@@ -36,8 +36,9 @@ def helpMessage() {
                  (default 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default 5)
-  --dada2_cpu    Number of threads for DADA2 denoising
-  --vsearch_cpu    Number of threads for VSEARCH taxonomy classification
+  --dada2_cpu    Number of threads for DADA2 denoising (default 8)
+  --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default 8)
+  --outdir    Output directory name (default "results")
   """
 }
 
@@ -54,6 +55,7 @@ params.maxaccept = 5
 params.rarefaction_depth = 10000
 params.dada2_cpu = 8
 params.vsearch_cpu = 8
+params.outdir = "results"
 
 // Show help message
 params.help = false
@@ -77,7 +79,7 @@ process sanity_check {
 // Import data into QIIME 2
 process import_qiime2 {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
-  publishDir "import_qiime"
+  publishDir "$params.outdir/import_qiime"
   label 'cpu_def'
 
   input:
@@ -97,7 +99,7 @@ process import_qiime2 {
 
 process demux_summarize {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
-  publishDir "summary_demux"
+  publishDir "$params.outdir/summary_demux"
   label 'cpu_def'
 
   input:
@@ -116,7 +118,7 @@ process demux_summarize {
 
 process dada2_denoise {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
-  publishDir "dada2"
+  publishDir "$params.outdir/dada2"
   cpus params.dada2_cpu
 
   input:
@@ -144,7 +146,7 @@ process dada2_denoise {
 // QC summary for dada2
 process dada2_qc {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
-  publishDir "results"
+  publishDir "$params.outdir/results"
   label 'cpu_def'
 
   input:
@@ -169,7 +171,7 @@ process dada2_qc {
 // Rarefaction visualization
 process dada2_rarefaction {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
-  publishDir "results"
+  publishDir "$params.outdir/results"
   label 'cpu_def'
 
   input:
@@ -190,7 +192,7 @@ process dada2_rarefaction {
 
 process class_tax {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
-  publishDir "dada2"
+  publishDir "$params.outdir/dada2"
   cpus params.vsearch_cpu
 
   input:
@@ -216,7 +218,7 @@ process class_tax {
 
 process barplot {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
-  publishDir "results"
+  publishDir "$params.outdir/results"
   label 'cpu_def'
 
   input:
@@ -239,6 +241,10 @@ process barplot {
 // TODO Export table of ASV to taxonomy and read counts
 // TODO Visualization of all results in a nice report
 // TODO Add QC of input reads. QV, read length etc using seqkits
+// TODO Add Krona plot
+// TODO Extract Qiime 2 log file under /tmp especially for denoise step
+// TODO Classified species percentage
+// TODO How to BLAST ASVs for strain level assignment
 
 workflow qiime2 {
   sample_file = channel.fromPath(params.input)
