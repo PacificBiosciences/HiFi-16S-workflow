@@ -15,11 +15,29 @@ nextflow.enable.dsl=2
 def helpMessage() {
   log.info"""
   Usage:
+  This pipeline takes in the standard sample manifest and metadata file used in
+  QIIME 2 and produces QC summary, taxonomy classification results and visualization.
 
-  Run the pipeline through usual sample manifest and metadata file used in
-  QIIME 2:
+  For samples TSV, two columns named "sample-id" and "absolute-filepath" are
+  required. For metadata TSV file, at least two columns named "sample_name" and
+  "condition" to separate samples into different groups.
+  
+  // TODO If no metadata TSV produced, generate a fake one
 
-  nextflow run main.nf --input samples.tsv --metadata metadata.tsv
+  nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
+    --dada2_cpu 8 --vsearch_cpu 8
+
+  Other important options:
+  --min_len    Minimum length of sequences to keep (default 1000)
+  --max_len    Maximum length of sequences to keep (default 1600)
+  --pooling_method    QIIME 2 pooling method for DADA2 denoise (default "pseudo"),
+                      see QIIME 2 documentation for more details
+  --maxreject    max-reject parameter for VSEARCH taxonomy classification method in QIIME 2
+                 (default 100)
+  --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
+                 (default 5)
+  --dada2_cpu    Number of threads for DADA2 denoising
+  --vsearch_cpu    Number of threads for VSEARCH taxonomy classification
   """
 }
 
@@ -34,12 +52,15 @@ params.maxreject = 100
 params.maxaccept = 5
 // TODO rarefaction depth change to max of sample depth dynamically
 params.rarefaction_depth = 10000
+params.dada2_cpu = 8
+params.vsearch_cpu = 8
 
 // Show help message
 params.help = false
 if (params.help) exit 0, helpMessage()
 
 process sanity_check {
+  label 'cpu_def'
   input:
   path sample_manifest
 
@@ -57,6 +78,7 @@ process sanity_check {
 process import_qiime2 {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
   publishDir "import_qiime"
+  label 'cpu_def'
 
   input:
   path sample_manifest
@@ -76,6 +98,7 @@ process import_qiime2 {
 process demux_summarize {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
   publishDir "summary_demux"
+  label 'cpu_def'
 
   input:
   path samples_qza
@@ -94,8 +117,7 @@ process demux_summarize {
 process dada2_denoise {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
   publishDir "dada2"
-  // Use default compute config
-  label 'cpu8'
+  cpus params.dada2_cpu
 
   input:
   path samples_qza
@@ -123,6 +145,7 @@ process dada2_denoise {
 process dada2_qc {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
   publishDir "results"
+  label 'cpu_def'
 
   input:
   path asv_stats
@@ -147,6 +170,7 @@ process dada2_qc {
 process dada2_rarefaction {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
   publishDir "results"
+  label 'cpu_def'
 
   input:
   path asv_freq
@@ -167,8 +191,7 @@ process dada2_rarefaction {
 process class_tax {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
   publishDir "dada2"
-  // Use default compute config
-  label 'cpu8'
+  cpus params.vsearch_cpu
 
   input:
   path asv_seq
@@ -194,6 +217,7 @@ process class_tax {
 process barplot {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
   publishDir "results"
+  label 'cpu_def'
 
   input:
   path asv_tab
@@ -211,6 +235,10 @@ process barplot {
   """
 }
 
+// TODO Export biom
+// TODO Export table of ASV to taxonomy and read counts
+// TODO Visualization of all results in a nice report
+// TODO Add QC of input reads. QV, read length etc using seqkits
 
 workflow qiime2 {
   sample_file = channel.fromPath(params.input)
