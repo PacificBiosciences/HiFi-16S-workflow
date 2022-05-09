@@ -5,14 +5,23 @@ Nextflow version 22 onwards is needed as the pipeline is written in DSL 2 langua
 
 QIIME 2 installation via conda using yml file. 
 
-* How to run with trace reports and visualization of workflow etc:
-`nextflow run ~/git/pacbio/pb-16S-nf/main.nf --input sample.tsv \
+This repository contains a set of small test data as well as example samples and metadata
+TSV file that can be used to test the pipeline. Note that you need to change the
+path of the FASTQ in `test_samples.tsv` to point to the correct location of the
+test dataset.
+
+An example of how to run with trace reports and visualization of workflow etc (
+the nextflow.config file by default will generate workflow DAG and resources
+report, so there's no need to specify on command line):
+
+```
+nextflow run ~/git/pacbio/pb-16S-nf/main.nf --input sample.tsv \
     --metadata metadata.tsv -profile conda \
     --rarefaction_depth 10000 \
-    -with-trace -with-timeline timeline.html -with-dag workflow.html \
-    --dada2_cpu 32 --vsearch_cpu 32 \
-    -with-report run_report.html`
-    
+    --dada2_cpu 32 --vsearch_cpu 32
+```
+
+
 Pipeline is still under development.
 
 ## DISCLAIMER
