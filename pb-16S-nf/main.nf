@@ -39,6 +39,10 @@ def helpMessage() {
   --dada2_cpu    Number of threads for DADA2 denoising (default 8)
   --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default 8)
   --outdir    Output directory name (default "results")
+  --vsearch_db	Directory for VSEARCH database (e.g. silva-138-99-seqs.qza can be
+                downloaded from QIIME database)
+  --vsearch_tax    Directory for VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
+                   downloaded from QIIME database)
   """
 }
 

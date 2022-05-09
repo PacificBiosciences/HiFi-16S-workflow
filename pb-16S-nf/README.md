@@ -14,11 +14,14 @@ An example of how to run with trace reports and visualization of workflow etc (
 the nextflow.config file by default will generate workflow DAG and resources
 report, so there's no need to specify on command line):
 
-`nextflow run ~/git/pacbio/pb-16S-nf/main.nf --input sample.tsv \
+```
+nextflow run ~/git/pacbio/pb-16S-nf/main.nf --input sample.tsv \
     --metadata metadata.tsv -profile conda \
     --rarefaction_depth 10000 \
     --dada2_cpu 32 --vsearch_cpu 32
-    
+```
+
+
 Pipeline is still under development.
 
 ## DISCLAIMER
