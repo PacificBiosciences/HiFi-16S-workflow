@@ -245,6 +245,7 @@ process barplot {
 // TODO Extract Qiime 2 log file under /tmp especially for denoise step
 // TODO Classified species percentage
 // TODO How to BLAST ASVs for strain level assignment
+// TODO Phylogenetic tree. ONT has an interactive one which is nice
 
 workflow qiime2 {
   sample_file = channel.fromPath(params.input)
