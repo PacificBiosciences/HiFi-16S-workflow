@@ -242,7 +242,7 @@ process barplot {
 }
 
 // TODO Export biom
-// TODO Export table of ASV to taxonomy and read counts
+// TODO Export table of ASV to taxonomy and read counts (https://forum.qiime2.org/t/combine-the-taxonomy-table-with-the-asv-count-table/18852/5)
 // TODO Visualization of all results in a nice report
 // TODO Add QC of input reads. QV, read length etc using seqkits
 // TODO Add Krona plot
@@ -250,6 +250,8 @@ process barplot {
 // TODO Classified species percentage
 // TODO How to BLAST ASVs for strain level assignment
 // TODO Phylogenetic tree. ONT has an interactive one which is nice
+// TODO Need to add option to *not* trim primers as MAS-seq may already trimmed away primers
+// TODO Look into use Kraken 2
 
 workflow qiime2 {
   sample_file = channel.fromPath(params.input)
