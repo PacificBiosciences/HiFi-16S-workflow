@@ -215,17 +215,21 @@ process dada2_rarefaction {
   """
 }
 
+// Classify taxonomy and export table
 process class_tax {
   conda 'qiime2-2022.2-py38-linux-conda.yml'
-  publishDir "$params.outdir/dada2"
+  publishDir "$params.outdir/results"
   cpus params.vsearch_cpu
 
   input:
   path asv_seq
+  path asv_freq
 
   output:
   path "taxonomy.vsearch.qza", emit: tax_vsearch
   path "tax_export"
+  path "merged_freq_tax.qzv", emit: tax_freq_tab
+  path "merged_freq_tax_tsv"
 
   script:
   """
@@ -238,6 +242,17 @@ process class_tax {
     --p-maxaccepts $params.maxaccept
 
   qiime tools export --input-path taxonomy.vsearch.qza --output-path tax_export
+
+  qiime feature-table transpose --i-table $asv_freq \
+    --o-transposed-feature-table transposed-asv.qza
+
+  qiime metadata tabulate --m-input-file $asv_seq \
+    --m-input-file taxonomy.vsearch.qza \
+    --m-input-file transposed-asv.qza \
+    --o-visualization merged_freq_tax.qzv
+
+  qiime tools export --input-path merged_freq_tax.qzv \
+    --output-path merged_freq_tax_tsv
   """
 }
 
@@ -283,7 +298,7 @@ workflow qiime2 {
   dada2_denoise(import_qiime2.out)
   dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
   dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file)
-  class_tax(dada2_denoise.out.asv_seq)
+  class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
 }
 
