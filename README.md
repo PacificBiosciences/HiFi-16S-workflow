@@ -10,19 +10,35 @@ TSV file that can be used to test the pipeline. Note that you need to change the
 path of the FASTQ in `test_samples.tsv` to point to the correct location of the
 test dataset.
 
-An example of how to run with trace reports and visualization of workflow etc (
-the nextflow.config file by default will generate workflow DAG and resources
-report, so there's no need to specify on command line):
+After installing Nextflow 22, run the following command to see the options for
+the pipeline:
 
 ```
-nextflow run ~/git/pacbio/pb-16S-nf/main.nf --input sample.tsv \
-    --metadata metadata.tsv -profile conda \
-    --rarefaction_depth 10000 \
-    --dada2_cpu 32 --vsearch_cpu 32
+nextflow run main.nf --help
+```
+
+The taxonomy classification step of the pipeline requires a database. We recommend
+using the Silva 138 database that can be downloaded at:
+
+`https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza`
+`https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza`
+
+To test the pipeline, run this example below. Note that the path of the database needs
+to be changed to the location on your server.
+
+```
+nextflow run main.nf --input test_sample.tsv \
+    --metadata test_metadata.tsv -profile conda \
+    --rarefaction_depth 50 \
+    --dada2_cpu 32 --vsearch_cpu 32 --outdir results \
+    --vsearch_db /path/to/silva-138-99-seqs.qza \
+    --vsearch_tax /path/to/silva-138-99-tax.qza
 ```
 
 
-Pipeline is still under development.
+Pipeline is still under development. The nextflow.config file by default will generate workflow DAG and resources
+report, so there's no need to specify on command line.:
+.
 
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 
