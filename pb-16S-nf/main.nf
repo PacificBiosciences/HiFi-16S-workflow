@@ -27,9 +27,11 @@ def helpMessage() {
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
-  Sequences can be trimmed first with lima (higher rate) using the example command (
-  16S_primers.fasta must be disambiguated first using all possible combinations of
-  degenerate sequences):
+  Sequences can be trimmed first with lima (higher rate compared to using DADA2
+  ) using the example command (16S_primers.fasta must be disambiguated first 
+  using all possible combinations of degenerate sequences, min-score-lead set 
+  to 0 as we don't care if the primers pair are similar, they should be since 
+  it's just degenerate sequences!):
 
   lima --hifi-preset ASYMMETRIC \\
     demultiplex.16S_For_bc1005--16S_Rev_bc1057.hifi_reads.fastq.gz \\
@@ -56,6 +58,10 @@ def helpMessage() {
                 downloaded from QIIME database)
   --vsearch_tax    Directory for VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
+  --front_p    Forward 16S primer to trim using DADA2. Set to 'none' if primers already
+               trimmed using lima (Default "AGRGTTYGATYMTGGCTCAG")
+  --adapter_p    Reverse 16S primer to trim using DADA2. Set to 'none' if primers already
+               trimmed using lima (Default "RGYTACCTTGTTACGACTT")
   """
 }
 
