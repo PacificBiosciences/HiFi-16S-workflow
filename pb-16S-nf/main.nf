@@ -39,6 +39,8 @@ def helpMessage() {
     --min-score-lead 0
 
   Other important options:
+  --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
+              this value will be discarded (defaul 2)
   --min_len    Minimum length of sequences to keep (default 1000)
   --max_len    Maximum length of sequences to keep (default 1600)
   --pooling_method    QIIME 2 pooling method for DADA2 denoise (default "pseudo"),
@@ -71,6 +73,7 @@ params.rarefaction_depth = 10000
 params.dada2_cpu = 8
 params.vsearch_cpu = 8
 params.outdir = "results"
+params.max_ee = 2
 
 // Show help message
 params.help = false
@@ -151,6 +154,7 @@ process dada2_denoise {
     --o-representative-sequences dada2-ccs_rep.qza \
     --o-denoising-stats dada2-ccs_stats.qza \
     --p-min-len $params.min_len --p-max-len $params.max_len \
+    --p-max-ee $params.max_ee \
     --p-front \'$params.front_p\' \
     --p-adapter \'$params.adapter_p\' \
     --p-n-threads $task.cpus \
