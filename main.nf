@@ -227,7 +227,7 @@ process class_tax {
 
   output:
   path "taxonomy.vsearch.qza", emit: tax_vsearch
-  path "tax_export"
+  path "tax_export/taxonomy.tsv", emit: tax_tsv
   path "merged_freq_tax.qzv", emit: tax_freq_tab
   path "merged_freq_tax_tsv"
 
@@ -253,6 +253,33 @@ process class_tax {
 
   qiime tools export --input-path merged_freq_tax.qzv \
     --output-path merged_freq_tax_tsv
+  """
+}
+
+// Export results into biom for use with phyloseq
+process export_biom {
+  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  publishDir "$params.outdir/results"
+  label 'cpu_def'
+
+  input:
+  path asv_freq
+  path tax_tsv
+
+  output:
+  path "feature-table-tax.biom"
+
+  script:
+  """
+  qiime tools export --input-path $asv_freq --output-path asv_freq/
+
+  sed 's/Feature ID/#OTUID/' $tax_tsv | sed 's/Taxon/taxonomy/' | \
+    sed 's/Consensus/confidence/' > biom-taxonomy.tsv
+
+  biom add-metadata -i asv_freq/feature-table.biom \
+    -o feature-table-tax.biom \
+    --observation-metadata-fp biom-taxonomy.tsv \
+    --sc-separated taxonomy 
   """
 }
 
@@ -299,6 +326,7 @@ workflow qiime2 {
   dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
   dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file)
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
+  export_biom(dada2_denoise.out.asv_freq, class_tax.out.tax_tsv)
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
 }
 
