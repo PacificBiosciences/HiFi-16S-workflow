@@ -27,6 +27,17 @@ def helpMessage() {
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
+  Sequences can be trimmed first with lima (higher rate) using the example command (
+  16S_primers.fasta must be disambiguated first using all possible combinations of
+  degenerate sequences):
+
+  lima --hifi-preset ASYMMETRIC \\
+    demultiplex.16S_For_bc1005--16S_Rev_bc1057.hifi_reads.fastq.gz \\
+    16S_primers.fasta \\
+    bc1005-bc1057.16s.lima.same.fastq.gz \\
+    --log-level INFO \\
+    --min-score-lead 0
+
   Other important options:
   --min_len    Minimum length of sequences to keep (default 1000)
   --max_len    Maximum length of sequences to keep (default 1600)
