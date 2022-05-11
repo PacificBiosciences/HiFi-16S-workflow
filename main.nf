@@ -21,16 +21,16 @@ def helpMessage() {
   For samples TSV, two columns named "sample-id" and "absolute-filepath" are
   required. For metadata TSV file, at least two columns named "sample_name" and
   "condition" to separate samples into different groups.
-  
+
   // TODO If no metadata TSV produced, generate a fake one
 
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
   Sequences can be trimmed first with lima (higher rate compared to using DADA2
-  ) using the example command (16S_primers.fasta must be disambiguated first 
-  using all possible combinations of degenerate sequences, min-score-lead set 
-  to 0 as we don't care if the primers pair are similar, they should be since 
+  ) using the example command (16S_primers.fasta must be disambiguated first
+  using all possible combinations of degenerate sequences, min-score-lead set
+  to 0 as we don't care if the primers pair are similar, they should be since
   it's just degenerate sequences!):
 
   lima --hifi-preset ASYMMETRIC \\
@@ -74,7 +74,8 @@ params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza
 params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
 params.maxreject = 100
 params.maxaccept = 5
-// TODO rarefaction depth change to max of sample depth dynamically
+// TODO rarefaction depth change to max of sample depth dynamically. Basically using 
+// csvtk to sort and get the count that covers at least 90% of samples
 params.rarefaction_depth = 10000
 params.dada2_cpu = 8
 params.vsearch_cpu = 8
@@ -180,7 +181,9 @@ process dada2_qc {
   path metadata
 
   output:
-  path "*"
+  path "dada2_stats.qzv", emit: dada2_stats
+  path "dada2_table.qzv", emit: dada2_table
+  path "stats.tsv", emit: dada2_stats_tsv
 
   script:
   """
@@ -190,6 +193,9 @@ process dada2_qc {
   qiime feature-table summarize --i-table $asv_freq \
     --o-visualization dada2_table.qzv \
     --m-sample-metadata-file $metadata
+
+  qiime tools export --input-path $asv_stats \
+    --output-path ./
   """
 }
 
@@ -279,7 +285,7 @@ process export_biom {
   biom add-metadata -i asv_freq/feature-table.biom \
     -o feature-table-tax.biom \
     --observation-metadata-fp biom-taxonomy.tsv \
-    --sc-separated taxonomy 
+    --sc-separated taxonomy
   """
 }
 
