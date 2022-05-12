@@ -81,6 +81,28 @@ params.dada2_cpu = 8
 params.vsearch_cpu = 8
 params.outdir = "results"
 params.max_ee = 2
+params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
+// Helper script for biom vis script
+params.rmd_helper = "$projectDir/scripts/import_biom.R"
+
+log.info """
+  Running pb-16S-nf pipeline for PacBio HiFi 16S
+  ==============================================
+  Minimum amplicon length filtered in DADA2: $params.min_len
+  Maximum amplicon length filtered in DADA2: $params.max_len
+  Forward 16S primer trimmed by DADA2 if given: $params.front_p
+  Reverse 16S primer trimmed by DADA2 if given: $params.adapter_p
+  maxEE parameter for DADA2 filterAndTrim: $params.max_ee
+  Pooling method for DADA2 denoise process: $params.pooling_method
+  Taxonomy sequence database for VSEARCH: $params.vsearch_db
+  Taxonomy annotation database for VSEARCH: $params.vsearch_tax
+  VSEARCH maxreject: $params.maxreject
+  VSEARCH maxaccept: $params.maxaccept
+  QIIME 2 rarefaction curve sampling depth: $params.rarefaction_depth
+  Number of threads specified for DADA2: $params.dada2_cpu
+  Number of threads specified for VSEARCH: $params.vsearch_cpu
+  Script location for HTML report generation: $params.rmd_vis_biom_script
+"""
 
 // Show help message
 params.help = false
@@ -103,7 +125,7 @@ process sanity_check {
 
 // Import data into QIIME 2
 process import_qiime2 {
-  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/import_qiime"
   label 'cpu_def'
 
@@ -123,7 +145,7 @@ process import_qiime2 {
 }
 
 process demux_summarize {
-  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/summary_demux"
   label 'cpu_def'
 
@@ -132,17 +154,21 @@ process demux_summarize {
 
   output:
   path "samples.demux.summary.qzv"
+  path "per-sample-fastq-counts.tsv"
 
   script:
   """
   qiime demux summarize --i-data $samples_qza \
     --o-visualization samples.demux.summary.qzv
+
+  qiime tools export --input-path samples.demux.summary.qzv \
+    --output-path ./
   """
 
 }
 
 process dada2_denoise {
-  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/dada2"
   cpus params.dada2_cpu
 
@@ -171,7 +197,7 @@ process dada2_denoise {
 
 // QC summary for dada2
 process dada2_qc {
-  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -184,6 +210,7 @@ process dada2_qc {
   path "dada2_stats.qzv", emit: dada2_stats
   path "dada2_table.qzv", emit: dada2_table
   path "stats.tsv", emit: dada2_stats_tsv
+  path "dada2_qc.tsv", emit: dada2_qc_tsv
 
   script:
   """
@@ -196,12 +223,16 @@ process dada2_qc {
 
   qiime tools export --input-path $asv_stats \
     --output-path ./
+
+  qiime tools export --input-path dada2_stats.qzv \
+    --output-path ./dada2_stats
+  mv dada2_stats/metadata.tsv dada2_qc.tsv
   """
 }
 
 // Rarefaction visualization
 process dada2_rarefaction {
-  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -223,7 +254,7 @@ process dada2_rarefaction {
 
 // Classify taxonomy and export table
 process class_tax {
-  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   cpus params.vsearch_cpu
 
@@ -235,7 +266,7 @@ process class_tax {
   path "taxonomy.vsearch.qza", emit: tax_vsearch
   path "tax_export/taxonomy.tsv", emit: tax_tsv
   path "merged_freq_tax.qzv", emit: tax_freq_tab
-  path "merged_freq_tax_tsv"
+  path "merged_freq_tax.tsv", emit: tax_freq_tab_tsv
 
   script:
   """
@@ -259,12 +290,14 @@ process class_tax {
 
   qiime tools export --input-path merged_freq_tax.qzv \
     --output-path merged_freq_tax_tsv
+
+  mv merged_freq_tax_tsv/metadata.tsv merged_freq_tax.tsv
   """
 }
 
 // Export results into biom for use with phyloseq
 process export_biom {
-  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -273,7 +306,7 @@ process export_biom {
   path tax_tsv
 
   output:
-  path "feature-table-tax.biom"
+  path "feature-table-tax.biom", emit:biom
 
   script:
   """
@@ -290,7 +323,7 @@ process export_biom {
 }
 
 process barplot {
-  conda 'qiime2-2022.2-py38-linux-conda.yml'
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -310,16 +343,37 @@ process barplot {
   """
 }
 
-// TODO Export biom
-// TODO Export table of ASV to taxonomy and read counts (https://forum.qiime2.org/t/combine-the-taxonomy-table-with-the-asv-count-table/18852/5)
+// HTML report
+process html_rep {
+  conda "$projectDir/pb-16s-vis-conda.yml"
+  publishDir "$params.outdir/results"
+  label 'cpu_def'
+
+  input:
+  path tax_freq_tab_tsv
+  path metadata
+  path sample_manifest
+  path dada2_qc
+
+  output:
+  path "visualize_biom.html", emit: html_report
+
+  script:
+  """
+  cp $params.rmd_vis_biom_script visualize_biom.Rmd
+  cp $params.rmd_helper import_biom.R
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc"), output_dir="./")'
+  """
+
+}
+
 // TODO Visualization of all results in a nice report
 // TODO Add QC of input reads. QV, read length etc using seqkits
 // TODO Add Krona plot
 // TODO Extract Qiime 2 log file under /tmp especially for denoise step
-// TODO Classified species percentage
 // TODO How to BLAST ASVs for strain level assignment
 // TODO Phylogenetic tree. ONT has an interactive one which is nice
-// TODO Need to add option to *not* trim primers as MAS-seq may already trimmed away primers
+// TODO Dockerize. Remember to replace run_dada_ccs.R so it works with trimmed sequences
 // TODO Look into use Kraken 2
 
 workflow qiime2 {
@@ -334,6 +388,7 @@ workflow qiime2 {
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   export_biom(dada2_denoise.out.asv_freq, class_tax.out.tax_tsv)
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
+  html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, sample_file, dada2_qc.out.dada2_qc_tsv)
 }
 
 workflow {

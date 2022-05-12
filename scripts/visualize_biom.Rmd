@@ -1,0 +1,146 @@
+---
+title: "Visualizing 16S Community"
+output: html_document
+params:
+  # biom: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/feature-table-tax.biom"
+  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/merged_freq_tax_tsv/metadata.tsv"
+  metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/macrogen_metadata.tsv"
+  sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/macrogen_lima_samples.manifest"
+  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/metadata.tsv" 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, options(scipen=999))
+library(plyr)
+library(tidyverse)
+library(cowplot)
+library(phyloseq)
+library(knitr)
+library(rmarkdown)
+library(DT)
+library(biomformat)
+# Source the function that can handle single sample or single OTU biom
+source('import_biom.R')
+
+theme_set(theme_bw(base_size = 18))
+
+# Load data
+dada2_qc <- read_tsv(params$dada2_qc)
+# QIIME weird formatting, remove the second line...
+dada2_qc <- dada2_qc[2:nrow(dada2_qc),, drop=FALSE]
+physeq_list <- list()
+
+mapping_file <- import_qiime_sample_data(mapfilename = params$sample_file)
+
+# Try importing from TSV
+tax_tsv <-  read_tsv(params$merged_tax_tab_file)
+tax_tsv <- tax_tsv[2:nrow(tax_tsv), ]
+
+otu_tab <- as.matrix(tax_tsv %>% select(mapping_file$sample.id) %>% mutate_all(as.numeric))
+rownames(otu_tab) <- tax_tsv$id
+tax_tab <- str_split(tax_tsv$Taxon, ";", simplify = TRUE)
+rownames(tax_tab) <- tax_tsv$id
+
+otu_tab <- otu_table(otu_tab, taxa_are_rows = TRUE)
+tax_tab <- tax_table(tax_tab)
+qiime2_8plex <- phyloseq(otu_tab, tax_tab)
+
+# qiime2_8plex <- new_import_biom(params$biom)
+phyloseq <- merge_phyloseq(qiime2_8plex, mapping_file)
+colnames(tax_table(phyloseq))= c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
+for (i in 1:ncol(tax_table(phyloseq))){
+  tax_table(phyloseq)[, i] <- gsub(".*__(.*)", "\\1", tax_table(phyloseq)[, i])
+  tax_table(phyloseq)[, i] <- gsub("_", " ", tax_table(phyloseq)[, i])
+}
+
+physeq_list["Run 16S"] <- phyloseq
+
+merge_tab_spec <- tibble()
+merge_tab_genus <- tibble()
+for (i in 1:length(physeq_list)){
+  physeq <- physeq_list[[i]]
+  type <- names(physeq_list[i])
+  
+  # Get tax table
+  tax_tab <- tax_table(physeq) %>% as("matrix") %>% as_tibble(rownames = "OTU")
+  otu_tab <- otu_table(physeq) %>% as("matrix") %>% as_tibble(rownames = "OTU")
+  full_tab <- tax_tab %>% inner_join(otu_tab)
+  # Tidy table. Gather by sample first, then sum at species level
+  full_tab <- full_tab %>% 
+    gather(key = "Sample", value = "Reads", sample_data(physeq)$sample.id) %>% 
+    mutate(Genus = if_else(Genus == "", "Unclassified Genus", Genus),
+           Species = if_else(Species!="", Species,
+                             if_else(Genus == "Unclassified Genus", "Unclassified Genus and Species", paste0("Unclassified ", Genus  , " Species"))))
+  
+  full_tab_spec <- full_tab %>% 
+    group_by(Sample, Species) %>% 
+    summarise(Abundance = sum(Reads)) %>% 
+    # Relative abundance
+    group_by(Sample) %>% 
+    mutate("Relative Abundance" = Abundance/sum(Abundance)) %>% 
+    ungroup() %>% 
+    mutate(method = type)
+  
+  full_tab_genus <- full_tab %>% 
+    group_by(Sample, Genus) %>% 
+    summarise(Abundance = sum(Reads)) %>% 
+    # Relative abundance
+    group_by(Sample) %>% 
+    mutate("Relative Abundance" = Abundance/sum(Abundance)) %>% 
+    ungroup() %>% 
+    mutate(method = type)
+  
+  merge_tab_spec <- bind_rows(merge_tab_spec, full_tab_spec)
+  merge_tab_genus <- bind_rows(merge_tab_genus, full_tab_genus)
+}
+
+total_asv <- nrow(otu_table(phyloseq))
+class_spec <- tax_tab %>% filter(!is.na(Species))
+class_gen <-  tax_tab %>% filter(!is.na(Genus))
+```
+
+## Summary QC statistics
+
+* Samples number: `r length(sample_data(physeq)$sample.id)`
+* Total number of input reads to DADA2: `r sum(as.numeric(dada2_qc$input))`
+* Total number of ASVs found: `r total_asv`
+* Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 2)*100`% of all input reads)
+* ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 2)*100`%)
+* ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 2)*100`%)
+
+## DADA2 QC metrics
+```{r, echo=FALSE}
+datatable(dada2_qc)
+```
+
+## Taxonomy table
+### Top 50 ASVs
+``` {r, echo=FALSE}
+vis_tab <- tax_tab %>% inner_join(otu_tab)
+count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
+rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
+mean_rel_abundance <- apply(rel_abundance, 1, mean)
+datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
+          options = list(scrollX = TRUE))
+```
+### Top 5 Classified Genus (Collapsed to species)
+``` {r, echo=FALSE}
+top5_genus <- merge_tab_genus %>% group_by(Genus) %>% 
+  summarise(mean_abun = mean(Abundance)) %>% 
+  top_n(5, wt = mean_abun) %>% 
+  arrange(desc(mean_abun)) %>% 
+  pull(Genus)
+top5_gen_species <- vis_tab %>% 
+   filter(Genus %in% top5_genus) %>% 
+   group_by(Species) %>% 
+   summarise(Genus = unique(Genus), 
+             across(sample_data(physeq)$sample.id, sum))
+datatable(top5_gen_species,
+          options = list(scrollX = TRUE))
+```
+
+### Full table
+``` {r, echo=FALSE}
+datatable(vis_tab,
+          options = list(scrollX = TRUE))
+```
