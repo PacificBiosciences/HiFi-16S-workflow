@@ -129,7 +129,8 @@ process generate_sample_file_header {
 // Trim full length 16S primers with lima
 process lima {
   conda "$projectDir/pb-16s-pbtools.yml"
-  publishDir "$params.outdir/trimmed_primers_FASTQ"
+  publishDir "$params.outdir/trimmed_primers_FASTQ", pattern: '*.fastq.gz'
+  publishDir "$params.outdir/lima_summary", pattern: '*.summary'
   cpus params.lima_cpu
 
   input:
@@ -138,27 +139,35 @@ process lima {
   output:
   tuple val(sampleID), path("${sampleID}.trimmed.fastq.gz")
   path "sample_ind_*.tsv", emit: samples_ind
+  path "*.summary", emit: lima_summary
+  path "lima_summary_${sampleID}.tsv", emit: summary_tocollect
 
   script:
   """
   lima --hifi-preset ASYMMETRIC --min-score-lead 0 $sampleFASTQ $params.primer_fasta ${sampleID}.trimmed.fastq.gz \
     --log-level INFO --log-file ${sampleID}.lima.log
   echo -e "${sampleID}\t"\$PWD"/${sampleID}.trimmed.fastq.gz" > sample_ind_${sampleID}.tsv
+  demux_rate=`grep "ZMWs above all thresholds" *.summary | sed 's/.*(\\([0-9].*%\\))/\\1/g'`
+  echo -e "${sampleID}\t\$demux_rate" > lima_summary_${sampleID}.tsv
   """
 }
 
 process prepare_qiime2_manifest {
   label 'cpu_def'
+    publishDir "$params.outdir/results/"
 
   input: 
   path sample_trimmed_file
   path "sample_ind_*.tsv"
+  path "lima_summary_*.tsv"
 
   output:
   path sample_trimmed_file, emit: sample_trimmed_file
+  path "samples_demux_rate.tsv"
 
   """
   cat sample_ind_*.tsv >> $sample_trimmed_file
+  cat lima_summary_*.tsv > samples_demux_rate.tsv
   """
 
 }
@@ -423,7 +432,7 @@ workflow qiime2 {
     .map{ row -> tuple(row.sample, file(row.fastq)) }
   metadata_file = channel.fromPath(params.metadata)
   lima(sample_file)
-  prepare_qiime2_manifest(generate_sample_file_header.out.sample_trimmed_file, lima.out.samples_ind.collect())
+  prepare_qiime2_manifest(generate_sample_file_header.out.sample_trimmed_file, lima.out.samples_ind.collect(), lima.out.summary_tocollect.collect())
   import_qiime2(prepare_qiime2_manifest.out.sample_trimmed_file)
   demux_summarize(import_qiime2.out)
   dada2_denoise(import_qiime2.out)
