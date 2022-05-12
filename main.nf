@@ -27,11 +27,11 @@ def helpMessage() {
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
-  Sequences can be trimmed first with lima (higher rate compared to using DADA2
-  ) using the example command (16S_primers.fasta must be disambiguated first
-  using all possible combinations of degenerate sequences, min-score-lead set
+  By default, sequences are first trimmed with lima (higher rate compared to using DADA2
+  ) using the example command below. 16S_primers.fasta file contains disambiguated 16S primers
+  using all possible combinations of degenerate sequences. "min-score-lead" is set
   to 0 as we don't care if the primers pair are similar, they should be since
-  it's just degenerate sequences!):
+  it's just degenerate sequences!
 
   lima --hifi-preset ASYMMETRIC \\
     demultiplex.16S_For_bc1005--16S_Rev_bc1057.hifi_reads.fastq.gz \\
@@ -53,22 +53,25 @@ def helpMessage() {
                  (default 5)
   --dada2_cpu    Number of threads for DADA2 denoising (default 8)
   --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default 8)
+  --lima_cpu    Number of threads for primer removal using lima (default 16)
   --outdir    Output directory name (default "results")
   --vsearch_db	Directory for VSEARCH database (e.g. silva-138-99-seqs.qza can be
                 downloaded from QIIME database)
   --vsearch_tax    Directory for VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
   --front_p    Forward 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using lima (Default "AGRGTTYGATYMTGGCTCAG")
+               trimmed using lima (Default "none")
   --adapter_p    Reverse 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using lima (Default "RGYTACCTTGTTACGACTT")
+               trimmed using lima (Default "none")
   """
 }
 
 params.min_len = 1000
 params.max_len = 1600
-params.front_p = 'AGRGTTYGATYMTGGCTCAG'
-params.adapter_p = 'RGYTACCTTGTTACGACTT'
+// params.front_p = 'AGRGTTYGATYMTGGCTCAG'
+// params.adapter_p = 'RGYTACCTTGTTACGACTT'
+params.front_p = 'none'
+params.adapter_p = 'none'
 params.pooling_method = 'pseudo'
 params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza"
 params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
@@ -84,6 +87,8 @@ params.max_ee = 2
 params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
 // Helper script for biom vis script
 params.rmd_helper = "$projectDir/scripts/import_biom.R"
+params.lima_cpu = 16
+params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 
 log.info """
   Running pb-16S-nf pipeline for PacBio HiFi 16S
@@ -99,6 +104,7 @@ log.info """
   VSEARCH maxreject: $params.maxreject
   VSEARCH maxaccept: $params.maxaccept
   QIIME 2 rarefaction curve sampling depth: $params.rarefaction_depth
+  Number of threads specified for lima: $params.lima_cpu
   Number of threads specified for DADA2: $params.dada2_cpu
   Number of threads specified for VSEARCH: $params.vsearch_cpu
   Script location for HTML report generation: $params.rmd_vis_biom_script
@@ -108,19 +114,53 @@ log.info """
 params.help = false
 if (params.help) exit 0, helpMessage()
 
-process sanity_check {
+process generate_sample_file_header {
   label 'cpu_def'
-  input:
-  path sample_manifest
 
   output:
-  path 'sanity.txt'
+  path 'samplefile.txt', emit: sample_trimmed_file
 
   script:
   """
-  echo "Running on file $sample_manifest and the file content is:" > sanity.txt
-  cat $sample_manifest >> sanity.txt
+  echo -e "sample-id\tabsolute-filepath" > samplefile.txt
   """
+}
+
+// Trim full length 16S primers with lima
+process lima {
+  conda "$projectDir/pb-16s-pbtools.yml"
+  publishDir "$params.outdir/trimmed_primers_FASTQ"
+  cpus params.lima_cpu
+
+  input:
+  tuple val(sampleID), path(sampleFASTQ)
+
+  output:
+  tuple val(sampleID), path("${sampleID}.trimmed.fastq.gz")
+  path "sample_ind_*.tsv", emit: samples_ind
+
+  script:
+  """
+  lima --hifi-preset ASYMMETRIC --min-score-lead 0 $sampleFASTQ $params.primer_fasta ${sampleID}.trimmed.fastq.gz \
+    --log-level INFO --log-file ${sampleID}.lima.log
+  echo -e "${sampleID}\t"\$PWD"/${sampleID}.trimmed.fastq.gz" > sample_ind_${sampleID}.tsv
+  """
+}
+
+process prepare_qiime2_manifest {
+  label 'cpu_def'
+
+  input: 
+  path sample_trimmed_file
+  path "sample_ind_*.tsv"
+
+  output:
+  path sample_trimmed_file, emit: sample_trimmed_file
+
+  """
+  cat sample_ind_*.tsv >> $sample_trimmed_file
+  """
+
 }
 
 // Import data into QIIME 2
@@ -377,10 +417,14 @@ process html_rep {
 // TODO Look into use Kraken 2
 
 workflow qiime2 {
+  generate_sample_file_header()
   sample_file = channel.fromPath(params.input)
+    .splitCsv(header: ['sample', 'fastq'], skip: 1, sep: "\t")
+    .map{ row -> tuple(row.sample, file(row.fastq)) }
   metadata_file = channel.fromPath(params.metadata)
-  sanity_check(sample_file)
-  import_qiime2(sample_file)
+  lima(sample_file)
+  prepare_qiime2_manifest(generate_sample_file_header.out.sample_trimmed_file, lima.out.samples_ind.collect())
+  import_qiime2(prepare_qiime2_manifest.out.sample_trimmed_file)
   demux_summarize(import_qiime2.out)
   dada2_denoise(import_qiime2.out)
   dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
@@ -388,7 +432,7 @@ workflow qiime2 {
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   export_biom(dada2_denoise.out.asv_freq, class_tax.out.tax_tsv)
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
-  html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, sample_file, dada2_qc.out.dada2_qc_tsv)
+  html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, prepare_qiime2_manifest.out.sample_trimmed_file, dada2_qc.out.dada2_qc_tsv)
 }
 
 workflow {

@@ -95,8 +95,8 @@ for (i in 1:length(physeq_list)){
 }
 
 total_asv <- nrow(otu_table(phyloseq))
-class_spec <- tax_tab %>% filter(!is.na(Species))
-class_gen <-  tax_tab %>% filter(!is.na(Genus))
+class_spec <- tax_tab %>% filter(Species != "")
+class_gen <-  tax_tab %>% filter(Genus != "")
 ```
 
 ## Summary QC statistics

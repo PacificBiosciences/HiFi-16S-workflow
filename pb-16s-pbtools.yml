@@ -1,0 +1,7 @@
+name: pb-16S-pbtools
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - lima=2.5.0
+  - seqkit=2.2.0
