@@ -114,18 +114,6 @@ log.info """
 params.help = false
 if (params.help) exit 0, helpMessage()
 
-process generate_sample_file_header {
-  label 'cpu_def'
-
-  output:
-  path 'samplefile.txt', emit: sample_trimmed_file
-
-  script:
-  """
-  echo -e "sample-id\tabsolute-filepath" > samplefile.txt
-  """
-}
-
 // Trim full length 16S primers with lima
 process lima {
   conda "$projectDir/pb-16s-pbtools.yml"
@@ -157,16 +145,16 @@ process prepare_qiime2_manifest {
     publishDir "$params.outdir/results/"
 
   input: 
-  path sample_trimmed_file
   path "sample_ind_*.tsv"
   path "lima_summary_*.tsv"
 
   output:
-  path sample_trimmed_file, emit: sample_trimmed_file
+  path "samplefile.txt", emit: sample_trimmed_file
   path "samples_demux_rate.tsv"
 
   """
-  cat sample_ind_*.tsv >> $sample_trimmed_file
+  echo -e "sample-id\tabsolute-filepath" > samplefile.txt
+  cat sample_ind_*.tsv >> samplefile.txt
   cat lima_summary_*.tsv > samples_demux_rate.tsv
   """
 
@@ -426,13 +414,12 @@ process html_rep {
 // TODO Look into use Kraken 2
 
 workflow qiime2 {
-  generate_sample_file_header()
   sample_file = channel.fromPath(params.input)
     .splitCsv(header: ['sample', 'fastq'], skip: 1, sep: "\t")
     .map{ row -> tuple(row.sample, file(row.fastq)) }
   metadata_file = channel.fromPath(params.metadata)
   lima(sample_file)
-  prepare_qiime2_manifest(generate_sample_file_header.out.sample_trimmed_file, lima.out.samples_ind.collect(), lima.out.summary_tocollect.collect())
+  prepare_qiime2_manifest(lima.out.samples_ind.collect(), lima.out.summary_tocollect.collect())
   import_qiime2(prepare_qiime2_manifest.out.sample_trimmed_file)
   demux_summarize(import_qiime2.out)
   dada2_denoise(import_qiime2.out)
