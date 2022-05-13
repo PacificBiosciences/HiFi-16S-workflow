@@ -45,7 +45,8 @@ In the output folder, you will find many useful results. In the `results` folder
 there is a HTML file named `visualize_biome.html` that provides an overview report
 of the 16S community with the taxonomy tables generated for filtering in web browser.
 The HTML file in `krona_html` can be opened directly in the browser for Krona plot
-visualization of the community. 
+visualization of the community. All ASV sequences in FASTA format can be found
+in the folder `dada2` as `dada2_ASV.fasta`.
 
 All the files ending with `.qzv` extension can be
 opened in [QIIME 2 View](https://view.qiime2.org/) directly for interactive 

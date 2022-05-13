@@ -272,6 +272,7 @@ process dada2_denoise {
   path "dada2-ccs_rep.qza", emit: asv_seq
   path "dada2-ccs_table.qza", emit: asv_freq
   path "dada2-ccs_stats.qza", emit:asv_stats
+  path "dada2_ASV.fasta", emit:asv_seq_fasta
 
   script:
   """
@@ -290,6 +291,11 @@ process dada2_denoise {
     --p-adapter \'$params.adapter_p\' \
     --p-n-threads $task.cpus \
     --p-pooling-method \'$params.pooling_method\'
+
+  # Export FASTA file for ASVs
+  qiime tools export --input-path dada2-ccs_rep.qza \
+    --output-path .
+  mv dna-sequences.fasta dada2_ASV.fasta
   """
 }
 
