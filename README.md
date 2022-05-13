@@ -1,5 +1,6 @@
 # pb-16S-analysis Pipeline using QIIME 2
 
+## Installation and usage
 This pipeline requires java 11 (Can be installed via Conda) to use Nextflow.
 Nextflow version 22 onwards is needed as the pipeline is written in DSL 2 language.
 
@@ -20,8 +21,8 @@ nextflow run main.nf --help
 The taxonomy classification step of the pipeline requires a database. We recommend
 using the Silva 138 database that can be downloaded at:
 
-`https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza`
-`https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza`
+[silva-138-99-seqs.qza](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
+[silva-138-99-tax.qza](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
 
 To test the pipeline, run this example below. Note that the path of the database needs
 to be changed to the location on your server.
@@ -38,7 +39,13 @@ nextflow run main.nf --input test_sample.tsv \
 
 Pipeline is still under development. The nextflow.config file by default will generate workflow DAG and resources
 report, so there's no need to specify on command line.:
-.
+
+## Frequently asked questions (FAQ)
+* A lot of my reads are lost in the denoise stage, what's going on?
+This can happen in extremely diverse community such as soil where the ASVs are of very low abundance.
+In each sample, the reads supporting the ASV are very low and may not pass DADA2 threshold to qualify
+as a cluster. See [here](https://github.com/benjjneb/dada2/issues/841) for a discussion on
+the algorithm.
 
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 
