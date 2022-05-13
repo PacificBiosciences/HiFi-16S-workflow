@@ -3,11 +3,21 @@ title: "Visualizing 16S Community"
 output: html_document
 params:
   # biom: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/feature-table-tax.biom"
-  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/merged_freq_tax_tsv/metadata.tsv"
+  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen_with_lima_in_nf_q30/results/merged_freq_tax.tsv"
   metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/macrogen_metadata.tsv"
   sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/macrogen_lima_samples.manifest"
-  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/metadata.tsv" 
+  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen_with_lima_in_nf_q30/results/dada2_qc.tsv" 
+  reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/f3/4ad0c64dc9a220a475530e41e08565/all_samples_seqkit.readstats.tsv"
+  summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/f3/4ad0c64dc9a220a475530e41e08565/seqkit.summarised_stats.group_by_samples.tsv"
 ---
+
+<style type="text/css">
+div.main-container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, options(scipen=999))
@@ -21,8 +31,9 @@ library(DT)
 library(biomformat)
 # Source the function that can handle single sample or single OTU biom
 source('import_biom.R')
+options(dplyr.summarise.inform = FALSE)
 
-theme_set(theme_bw(base_size = 18))
+theme_set(theme_bw(base_size = 14))
 
 # Load data
 dada2_qc <- read_tsv(params$dada2_qc)
@@ -108,39 +119,99 @@ class_gen <-  tax_tab %>% filter(Genus != "")
 * ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 2)*100`%)
 * ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 2)*100`%)
 
+## Input reads QC (Before filtering and primers removal)
+```{r, echo=FALSE, fig.width=8, fig.height=6}
+reads_qc <- read_tsv(params$reads_qc, col_types=cols())
+# Subsample reads with replacement from each sample for vis
+# Faster
+reads_qc <- reads_qc %>% 
+    group_by(sample) %>% 
+    slice_sample(n = 2000, replace = TRUE)
+
+# na.rm=TRUE will suppress warning about removed rows!
+ggplot(reads_qc, aes(x = avg.qual, y = ..density..)) + 
+  geom_histogram(alpha =0.5, binwidth = 2, na.rm=TRUE) + 
+  geom_density(color="red", adjust = 1, na.rm=TRUE) +
+  labs(x = "Reads quality (Q)", y = "Density", title = "Read Quality Distribution") +
+  scale_x_continuous(breaks = seq(20, 90, 10))
+
+# This plot contains code that says how many reads are above 3kbp in percentage
+# of the subsampled dataframe
+ggplot(reads_qc, aes(x = length, y = ..density..)) + 
+    geom_histogram(alpha =0.5, binwidth = 100, na.rm=TRUE) + 
+    geom_density(color="red", adjust = 4, na.rm=TRUE) +
+    labs(x = "Reads length (bp)", y = "Density", title = "Read Length Distribution") +
+    scale_x_continuous(breaks = c(100, 500, 1000, 1500, 2000, 3000), limits = c(0, 3000)) +
+  annotate("text", x = Inf, y = Inf, vjust="inward", hjust="inward",
+           label=paste0("Number of reads above 3000bp: ", 
+                        round((reads_qc %>% filter(length > 3000) %>% nrow())/nrow(reads_qc), 4), 
+                        "%"))
+
+summarise_qc <- read_tsv(params$summarised_reads_qc, col_types=cols())
+colnames(summarise_qc) <- c("Sample", "Length 1st Quartile (bp)", "Length 3rd Quartile (bp)",
+                            "Median Length (bp)", "Read Quality 1st Quartile (bp)", "Read Quality 3rd Quartile (bp)",
+                            "Median Read Quality")
+summarise_qc <- summarise_qc %>% 
+  select(Sample, contains("Median"), contains("Quartile"))
+datatable(summarise_qc,
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+
+
+```
+
 ## DADA2 QC metrics
 ```{r, echo=FALSE}
-datatable(dada2_qc)
+datatable(dada2_qc, 
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
 ```
 
 ## Taxonomy table
 ### Top 50 ASVs
 ``` {r, echo=FALSE}
-vis_tab <- tax_tab %>% inner_join(otu_tab)
+vis_tab <- tax_tab %>% inner_join(otu_tab, by="OTU")
 count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
 rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
 mean_rel_abundance <- apply(rel_abundance, 1, mean)
 datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
-          options = list(scrollX = TRUE))
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
 ```
 ### Top 5 Classified Genus (Collapsed to species)
 ``` {r, echo=FALSE}
-top5_genus <- merge_tab_genus %>% group_by(Genus) %>% 
+top5_genus <- merge_tab_genus %>% 
+  group_by(Genus) %>% 
   summarise(mean_abun = mean(Abundance)) %>% 
   top_n(5, wt = mean_abun) %>% 
   arrange(desc(mean_abun)) %>% 
   pull(Genus)
+
 top5_gen_species <- vis_tab %>% 
-   filter(Genus %in% top5_genus) %>% 
-   group_by(Species) %>% 
-   summarise(Genus = unique(Genus), 
-             across(sample_data(physeq)$sample.id, sum))
+  select(OTU, Genus, Species, sample_data(physeq)$sample.id) %>% 
+  filter(Genus %in% top5_genus) %>% 
+  group_by(Genus, Species) %>% 
+  summarise(across(sample_data(physeq)$sample.id, sum)) %>% 
+  ungroup()
+
 datatable(top5_gen_species,
-          options = list(scrollX = TRUE))
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
 ```
 
 ### Full table
 ``` {r, echo=FALSE}
 datatable(vis_tab,
-          options = list(scrollX = TRUE))
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
 ```

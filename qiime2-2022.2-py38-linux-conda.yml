@@ -448,3 +448,4 @@ dependencies:
   - zipp=3.8.0
   - zlib=1.2.11
   - zstd=1.5.2
+  - krona=2.8.1

@@ -475,6 +475,8 @@ process html_rep {
   path metadata
   path sample_manifest
   path dada2_qc
+  path reads_qc
+  path summarised_reads_qc
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -483,7 +485,30 @@ process html_rep {
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc"), output_dir="./")'
+  """
+
+}
+
+// Krona plot
+process krona_plot {
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  publishDir "$params.outdir/results"
+  label 'cpu_def'
+  // Ignore if this fail
+  errorStrategy = 'ignore'
+
+  input:
+  path asv_freq
+  path taxonomy
+
+  output:
+  path "krona.qzv"
+
+  script:
+  """
+  pip install git+https://github.com/kaanb93/q2-krona.git
+  qiime krona collapse-and-plot --i-table $asv_freq --i-taxonomy $taxonomy --o-krona-plot krona.qzv
   """
 
 }
@@ -494,7 +519,6 @@ workflow qiime2 {
     .map{ row -> tuple(row.sample, file(row.fastq)) }
   metadata_file = channel.fromPath(params.metadata)
   QC_fastq(sample_file)
-  QC_fastq.out.all_seqkit_stats.collect().view()
   collect_QC(QC_fastq.out.all_seqkit_stats.collect(), QC_fastq.out.all_seqkit_summary.collect())
   lima(QC_fastq.out.filtered_fastq)
   prepare_qiime2_manifest(lima.out.samples_ind.collect(), lima.out.summary_tocollect.collect())
@@ -506,7 +530,10 @@ workflow qiime2 {
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   export_biom(dada2_denoise.out.asv_freq, class_tax.out.tax_tsv)
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
-  html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, prepare_qiime2_manifest.out.sample_trimmed_file, dada2_qc.out.dada2_qc_tsv)
+  html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, prepare_qiime2_manifest.out.sample_trimmed_file,
+      dada2_qc.out.dada2_qc_tsv, 
+      collect_QC.out.all_samples_readstats, collect_QC.out.summarised_sample_readstats)
+  krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
 }
 
 workflow {
