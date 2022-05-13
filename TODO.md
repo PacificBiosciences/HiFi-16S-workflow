@@ -14,3 +14,5 @@
 * Kraken 2 for reads-level assignment?
 * Generate a metadata TSV if none is provided
 * Use csvtk to dynamically filter for rarefaction depth (Covering >50% of samples)
+* For Krona plot pip install, can we clone the repo locally and install from that
+to freeze it (avoiding risk of repo going down)
