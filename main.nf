@@ -12,6 +12,30 @@ Updated: 2022-5-5
 
 nextflow.enable.dsl=2
 
+params.filterQ = 30
+params.min_len = 1000
+params.max_len = 1600
+// params.front_p = 'AGRGTTYGATYMTGGCTCAG'
+// params.adapter_p = 'RGYTACCTTGTTACGACTT'
+params.front_p = 'none'
+params.adapter_p = 'none'
+params.pooling_method = 'pseudo'
+params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza"
+params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
+params.maxreject = 100
+params.maxaccept = 5
+params.rarefaction_depth = null
+params.dada2_cpu = 8
+params.vsearch_cpu = 8
+params.outdir = "results"
+params.max_ee = 2
+params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
+// Helper script for biom vis script
+params.rmd_helper = "$projectDir/scripts/import_biom.R"
+params.lima_cpu = 16
+params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
+params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
+
 def helpMessage() {
   log.info"""
   Usage:
@@ -70,28 +94,6 @@ def helpMessage() {
   """
 }
 
-params.filterQ = 30
-params.min_len = 1000
-params.max_len = 1600
-// params.front_p = 'AGRGTTYGATYMTGGCTCAG'
-// params.adapter_p = 'RGYTACCTTGTTACGACTT'
-params.front_p = 'none'
-params.adapter_p = 'none'
-params.pooling_method = 'pseudo'
-params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza"
-params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
-params.maxreject = 100
-params.maxaccept = 5
-params.rarefaction_depth = null
-params.dada2_cpu = 8
-params.vsearch_cpu = 8
-params.outdir = "results"
-params.max_ee = 2
-params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
-// Helper script for biom vis script
-params.rmd_helper = "$projectDir/scripts/import_biom.R"
-params.lima_cpu = 16
-params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 
 log.info """
   Running pb-16S-nf pipeline for PacBio HiFi 16S
@@ -274,6 +276,11 @@ process dada2_denoise {
 
   script:
   """
+  # Use custom script that can skip primer trimming
+  cp $params.dadaCCS_script run_dada_ccs.R
+  chmod +x run_dada_ccs.R
+  export PATH="./:\$PATH"
+  which run_dada_ccs.R
   qiime dada2 denoise-ccs --i-demultiplexed-seqs $samples_qza \
     --o-table dada2-ccs_table.qza \
     --o-representative-sequences dada2-ccs_rep.qza \
