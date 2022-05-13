@@ -22,8 +22,6 @@ def helpMessage() {
   required. For metadata TSV file, at least two columns named "sample_name" and
   "condition" to separate samples into different groups.
 
-  // TODO If no metadata TSV produced, generate a fake one
-
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
@@ -41,31 +39,38 @@ def helpMessage() {
     --min-score-lead 0
 
   Other important options:
+  --filterQ    Filter input reads above this Q value (default: 30).
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
-              this value will be discarded (defaul 2)
-  --min_len    Minimum length of sequences to keep (default 1000)
-  --max_len    Maximum length of sequences to keep (default 1600)
-  --pooling_method    QIIME 2 pooling method for DADA2 denoise (default "pseudo"),
+              this value will be discarded (default: 2)
+  --min_len    Minimum length of sequences to keep (default: 1000)
+  --max_len    Maximum length of sequences to keep (default: 1600)
+  --pooling_method    QIIME 2 pooling method for DADA2 denoise (default: "pseudo"),
                       see QIIME 2 documentation for more details
   --maxreject    max-reject parameter for VSEARCH taxonomy classification method in QIIME 2
-                 (default 100)
+                 (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
-                 (default 5)
-  --dada2_cpu    Number of threads for DADA2 denoising (default 8)
-  --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default 8)
-  --lima_cpu    Number of threads for primer removal using lima (default 16)
-  --outdir    Output directory name (default "results")
+                 (default: 5)
+  --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
+                         automatically select a cut-off above the minimum of the denoised 
+                         reads for >90% of the samples. This cut-off is stored in a file called
+                         "rarefaction_depth_suggested.txt" file in the results folder
+                         (default: null)
+  --dada2_cpu    Number of threads for DADA2 denoising (default: 8)
+  --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default: 8)
+  --lima_cpu    Number of threads for primer removal using lima (default: 16)
+  --outdir    Output directory name (default: "results")
   --vsearch_db	Directory for VSEARCH database (e.g. silva-138-99-seqs.qza can be
                 downloaded from QIIME database)
   --vsearch_tax    Directory for VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
   --front_p    Forward 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using lima (Default "none")
+               trimmed using lima (default: "none")
   --adapter_p    Reverse 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using lima (Default "none")
+               trimmed using lima (default: "none")
   """
 }
 
+params.filterQ = 30
 params.min_len = 1000
 params.max_len = 1600
 // params.front_p = 'AGRGTTYGATYMTGGCTCAG'
@@ -77,9 +82,7 @@ params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza
 params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
 params.maxreject = 100
 params.maxaccept = 5
-// TODO rarefaction depth change to max of sample depth dynamically. Basically using 
-// csvtk to sort and get the count that covers at least 90% of samples
-params.rarefaction_depth = 10000
+params.rarefaction_depth = null
 params.dada2_cpu = 8
 params.vsearch_cpu = 8
 params.outdir = "results"
@@ -93,6 +96,7 @@ params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 log.info """
   Running pb-16S-nf pipeline for PacBio HiFi 16S
   ==============================================
+  Filter input reads above Q: $params.filterQ
   Minimum amplicon length filtered in DADA2: $params.min_len
   Maximum amplicon length filtered in DADA2: $params.max_len
   Forward 16S primer trimmed by DADA2 if given: $params.front_p
@@ -113,6 +117,56 @@ log.info """
 // Show help message
 params.help = false
 if (params.help) exit 0, helpMessage()
+
+// QC before lima
+process QC_fastq {
+  conda "$projectDir/pb-16s-pbtools.yml"
+  label 'cpu8'
+  publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*filterQ*.fastq.gz'
+
+  input:
+  tuple val(sampleID), path(sampleFASTQ)
+
+  output:
+  path "${sampleID}.seqkit.readstats.tsv", emit: all_seqkit_stats
+  path "${sampleID}.seqkit.summarystats.tsv", emit: all_seqkit_summary
+  tuple val(sampleID), path("${sampleID}.filterQ${params.filterQ}.fastq.gz"), emit: filtered_fastq
+
+  script:
+  """
+  seqkit fx2tab -j $task.cpus -q --gc -l -H -n $sampleFASTQ |\
+    csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.readstats.tsv
+  seqkit stats -j $task.cpus -a ${sampleFASTQ} |\
+    csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.summarystats.tsv
+  seqkit seq -j $task.cpus --min-qual $params.filterQ $sampleFASTQ --out-file ${sampleID}.filterQ${params.filterQ}.fastq.gz
+  """
+}
+
+// Collect QC into single files
+process collect_QC {
+  conda "$projectDir/pb-16s-pbtools.yml"
+  publishDir "$params.outdir/results/reads_QC"
+  label 'cpu8'
+
+  input:
+  path "*"
+  path "*"
+
+  output:
+  path "all_samples_seqkit.readstats.tsv", emit: all_samples_readstats
+  path "all_samples_seqkit.summarystats.tsv", emit: all_samples_summarystats
+  path "seqkit.summarised_stats.group_by_samples.tsv", emit: summarised_sample_readstats
+  path "seqkit.summarised_stats.group_by_samples.pretty.tsv"
+
+  script:
+  """
+  csvtk concat -t -C '%' *.seqkit.readstats.tsv > all_samples_seqkit.readstats.tsv
+  csvtk concat -t -C '%' *.seqkit.summarystats.tsv > all_samples_seqkit.summarystats.tsv
+  # Summary read_qual for each sample
+  csvtk summary -t -C '%' -g sample -f length:q1,length:q3,length:median,avg.qual:q1,avg.qual:q3,avg.qual:median all_samples_seqkit.readstats.tsv > seqkit.summarised_stats.group_by_samples.tsv
+  csvtk pretty -t -C '%' seqkit.summarised_stats.group_by_samples.tsv > seqkit.summarised_stats.group_by_samples.pretty.tsv
+  """
+}
 
 // Trim full length 16S primers with lima
 process lima {
@@ -140,6 +194,7 @@ process lima {
   """
 }
 
+// Put all trimmed samples into a single file for QIIME2 import
 process prepare_qiime2_manifest {
   label 'cpu_def'
     publishDir "$params.outdir/results/"
@@ -248,6 +303,8 @@ process dada2_qc {
   path "dada2_table.qzv", emit: dada2_table
   path "stats.tsv", emit: dada2_stats_tsv
   path "dada2_qc.tsv", emit: dada2_qc_tsv
+  env(rarefaction_d), emit: rarefaction_depth
+  path "rarefaction_depth_suggested.txt"
 
   script:
   """
@@ -260,6 +317,18 @@ process dada2_qc {
 
   qiime tools export --input-path $asv_stats \
     --output-path ./
+  # Get number of reads for ASV covering 90% of samples
+  number=`bat stats.tsv | tail -n+3 | cut -f7 | sort | wc -l`
+  ninety=0.9
+  # +2 to account for the header
+  # Handle single sample
+  result=`echo "(\$number * \$ninety) + 2" | bc -l` 
+  if [ \${result%%.*} == 2 ];
+  then
+    result=3
+  fi
+  rarefaction_d=`head -n \${result%%.*} stats.tsv | tail -n+3 | tail -1 | cut -f6`
+  echo \${rarefaction_d} > rarefaction_depth_suggested.txt
 
   qiime tools export --input-path dada2_stats.qzv \
     --output-path ./dada2_stats
@@ -276,17 +345,26 @@ process dada2_rarefaction {
   input:
   path asv_freq
   path metadata
+  val(rarefaction_depth)
 
   output:
   path "*"
 
   script:
-  """
-  qiime diversity alpha-rarefaction --i-table $asv_freq \
-    --m-metadata-file $metadata \
-    --o-visualization alpha-rarefaction-curves.qzv \
-    --p-min-depth 10 --p-max-depth $params.rarefaction_depth
-  """
+  if( !params.rarefaction_depth )
+    """
+    qiime diversity alpha-rarefaction --i-table $asv_freq \
+      --m-metadata-file $metadata \
+      --o-visualization alpha-rarefaction-curves.qzv \
+      --p-min-depth 10 --p-max-depth $rarefaction_depth
+    """
+  else
+    """
+    qiime diversity alpha-rarefaction --i-table $asv_freq \
+      --m-metadata-file $metadata \
+      --o-visualization alpha-rarefaction-curves.qzv \
+      --p-min-depth 10 --p-max-depth $params.rarefaction_depth
+    """
 }
 
 // Classify taxonomy and export table
@@ -404,27 +482,21 @@ process html_rep {
 
 }
 
-// TODO Visualization of all results in a nice report
-// TODO Add QC of input reads. QV, read length etc using seqkits
-// TODO Add Krona plot
-// TODO Extract Qiime 2 log file under /tmp especially for denoise step
-// TODO How to BLAST ASVs for strain level assignment
-// TODO Phylogenetic tree. ONT has an interactive one which is nice
-// TODO Dockerize. Remember to replace run_dada_ccs.R so it works with trimmed sequences
-// TODO Look into use Kraken 2
-
 workflow qiime2 {
   sample_file = channel.fromPath(params.input)
     .splitCsv(header: ['sample', 'fastq'], skip: 1, sep: "\t")
     .map{ row -> tuple(row.sample, file(row.fastq)) }
   metadata_file = channel.fromPath(params.metadata)
-  lima(sample_file)
+  QC_fastq(sample_file)
+  QC_fastq.out.all_seqkit_stats.collect().view()
+  collect_QC(QC_fastq.out.all_seqkit_stats.collect(), QC_fastq.out.all_seqkit_summary.collect())
+  lima(QC_fastq.out.filtered_fastq)
   prepare_qiime2_manifest(lima.out.samples_ind.collect(), lima.out.summary_tocollect.collect())
   import_qiime2(prepare_qiime2_manifest.out.sample_trimmed_file)
   demux_summarize(import_qiime2.out)
   dada2_denoise(import_qiime2.out)
   dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
-  dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file)
+  dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   export_biom(dada2_denoise.out.asv_freq, class_tax.out.tax_tsv)
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
