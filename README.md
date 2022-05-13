@@ -38,7 +38,22 @@ nextflow run main.nf --input test_sample.tsv \
 ```
 
 Pipeline is still under development. The nextflow.config file by default will generate workflow DAG and resources
-report, so there's no need to specify on command line.:
+report, so there's no need to specify on command line.
+
+## Outputs
+In the output folder, you will find many useful results. In the `results` folder,
+there is a HTML file named `visualize_biome.html` that provides an overview report
+of the 16S community with the taxonomy tables generated for filtering in web browser.
+The HTML file in `krona_html` can be opened directly in the browser for Krona plot
+visualization of the community. 
+
+All the files ending with `.qzv` extension can be
+opened in [QIIME 2 View](https://view.qiime2.org/) directly for interactive 
+visualization, e.g. `taxa_barplot.qzv` for taxonomy barplot. For advanced users,
+`merged_freq_tax.tsv` contains the OTU count matrix that can be loaded into any
+language of choice for further processing or plots. You may also import the
+BIOM format file `feature-table-tax.biom` with many packages such as the popular
+`phyloseq`.
 
 ## Frequently asked questions (FAQ)
 * A lot of my reads are lost in the denoise stage, what's going on?
