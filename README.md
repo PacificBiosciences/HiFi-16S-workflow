@@ -22,6 +22,7 @@ The taxonomy classification step of the pipeline requires a database. We recomme
 using the Silva 138 database that can be downloaded at:
 
 [silva-138-99-seqs.qza](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
+
 [silva-138-99-tax.qza](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
 
 To test the pipeline, run this example below. Note that the path of the database needs
@@ -36,12 +37,12 @@ nextflow run main.nf --input test_sample.tsv \
     --vsearch_tax /path/to/silva-138-99-tax.qza
 ```
 
-
 Pipeline is still under development. The nextflow.config file by default will generate workflow DAG and resources
 report, so there's no need to specify on command line.:
 
 ## Frequently asked questions (FAQ)
 * A lot of my reads are lost in the denoise stage, what's going on?
+
 This can happen in extremely diverse community such as soil where the ASVs are of very low abundance.
 In each sample, the reads supporting the ASV are very low and may not pass DADA2 threshold to qualify
 as a cluster. See [here](https://github.com/benjjneb/dada2/issues/841) for a discussion on
