@@ -504,11 +504,13 @@ process krona_plot {
 
   output:
   path "krona.qzv"
+  path "krona_html"
 
   script:
   """
   pip install git+https://github.com/kaanb93/q2-krona.git
   qiime krona collapse-and-plot --i-table $asv_freq --i-taxonomy $taxonomy --o-krona-plot krona.qzv
+  qiime tools export --input-path krona.qzv --output-path krona_html
   """
 
 }
