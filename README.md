@@ -1,10 +1,22 @@
 # pb-16S-analysis Pipeline using QIIME 2
 
 ## Installation and usage
-This pipeline requires java 11 (Can be installed via Conda) to use Nextflow.
-Nextflow version 22 onwards is needed as the pipeline is written in DSL 2 language.
+This pipeline runs using Nextflow (Version 22 and above). All softwares dependencies are
+managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
+to speed up the conda environment installation. The default `nextflow.config` file 
+enables the use of `mamba` by default.
 
-QIIME 2 installation via conda using yml file. 
+The taxonomy classification step of the pipeline requires a database. We recommend
+using the Silva 138 database that can be downloaded at:
+
+- [silva-138-99-seqs.qza](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
+- [silva-138-99-tax.qza](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
+
+After installing Nextflow, `mamba`(Optional but recommended), clone the repository:
+
+```
+git clone https://github.com/proteinosome/pb-16S-nf.git
+```
 
 This repository contains a set of small test data as well as example samples and metadata
 TSV file that can be used to test the pipeline. Note that you need to change the
@@ -16,14 +28,61 @@ the pipeline:
 
 ```
 nextflow run main.nf --help
+
+Usage:
+  This pipeline takes in the standard sample manifest and metadata file used in
+  QIIME 2 and produces QC summary, taxonomy classification results and visualization.
+
+  For samples TSV, two columns named "sample-id" and "absolute-filepath" are
+  required. For metadata TSV file, at least two columns named "sample_name" and
+  "condition" to separate samples into different groups.
+
+  nextflow run main.nf --input samples.tsv --metadata metadata.tsv \
+    --dada2_cpu 8 --vsearch_cpu 8
+
+  By default, sequences are first trimmed with lima (higher rate compared to using DADA2
+  ) using the example command below. 16S_primers.fasta file contains disambiguated 16S primers
+  using all possible combinations of degenerate sequences. "min-score-lead" is set
+  to 0 as we don't care if the primers pair are similar, they should be since
+  it's just degenerate sequences!
+
+  lima --hifi-preset ASYMMETRIC \
+    demultiplex.16S_For_bc1005--16S_Rev_bc1057.hifi_reads.fastq.gz \
+    16S_primers.fasta \
+    bc1005-bc1057.16s.lima.same.fastq.gz \
+    --log-level INFO \
+    --min-score-lead 0
+
+  Other important options:
+  --filterQ    Filter input reads above this Q value (default: 30).
+  --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
+              this value will be discarded (default: 2)
+  --min_len    Minimum length of sequences to keep (default: 1000)
+  --max_len    Maximum length of sequences to keep (default: 1600)
+  --pooling_method    QIIME 2 pooling method for DADA2 denoise (default: "pseudo"),
+                      see QIIME 2 documentation for more details
+  --maxreject    max-reject parameter for VSEARCH taxonomy classification method in QIIME 2
+                 (default: 100)
+  --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
+                 (default: 5)
+  --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
+                         automatically select a cut-off above the minimum of the denoised
+                         reads for >90% of the samples. This cut-off is stored in a file called
+                         "rarefaction_depth_suggested.txt" file in the results folder
+                         (default: null)
+  --dada2_cpu    Number of threads for DADA2 denoising (default: 8)
+  --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default: 8)
+  --lima_cpu    Number of threads for primer removal using lima (default: 16)
+  --outdir    Output directory name (default: "results")
+  --vsearch_db  Directory for VSEARCH database (e.g. silva-138-99-seqs.qza can be
+                downloaded from QIIME database)
+  --vsearch_tax    Directory for VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
+                   downloaded from QIIME database)
+  --front_p    Forward 16S primer to trim using DADA2. Set to 'none' if primers already
+               trimmed using lima (default: "none")
+  --adapter_p    Reverse 16S primer to trim using DADA2. Set to 'none' if primers already
+               trimmed using lima (default: "none")
 ```
-
-The taxonomy classification step of the pipeline requires a database. We recommend
-using the Silva 138 database that can be downloaded at:
-
-[silva-138-99-seqs.qza](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
-
-[silva-138-99-tax.qza](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
 
 To test the pipeline, run this example below. Note that the path of the database needs
 to be changed to the location on your server.
@@ -31,14 +90,26 @@ to be changed to the location on your server.
 ```
 nextflow run main.nf --input test_sample.tsv \
     --metadata test_metadata.tsv -profile conda \
-    --rarefaction_depth 50 \
     --dada2_cpu 32 --vsearch_cpu 32 --outdir results \
     --vsearch_db /path/to/silva-138-99-seqs.qza \
     --vsearch_tax /path/to/silva-138-99-tax.qza
 ```
 
-Pipeline is still under development. The nextflow.config file by default will generate workflow DAG and resources
-report, so there's no need to specify on command line.
+To run this pipeline on your data, create the sample TSV and metadata TSV following
+the test data format (For metadata, if you do not have any grouping, you can just
+put any words in the "condition" column) and run the workflow similar to the above. 
+Remember to specify the `--outdir` directory to avoid overwriting existing results.
+
+The pipeline uses Slurm scheduler by default to run jobs on HPC. This can be changed
+in the `nextflow.config` file under `executor`. See Nextflow 
+[documentation](https://www.nextflow.io/docs/latest/executor.html) on the available
+executors. CPUs for `VSEARCH`, `DADA2` and `lima` can be specified as command line
+parameters as shown above. For all the other processes, they use any of the default
+labels in `nextflow.config` and can be changed according to your need.
+
+Pipeline is still under active development. The nextflow.config file by default will 
+generate workflow DAG and resources report to help benchmarking the resources
+required.
 
 ## Outputs
 In the output folder, you will find many useful results. In the `results` folder,
