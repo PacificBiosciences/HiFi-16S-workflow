@@ -94,10 +94,13 @@ def helpMessage() {
   """
 }
 
+// Show help message
+params.help = false
+if (params.help) exit 0, helpMessage()
 
 log.info """
-  Running pb-16S-nf pipeline for PacBio HiFi 16S
-  ==============================================
+  Parameters set for pb-16S-nf pipeline for PacBio HiFi 16S
+  =========================================================
   Filter input reads above Q: $params.filterQ
   Minimum amplicon length filtered in DADA2: $params.min_len
   Maximum amplicon length filtered in DADA2: $params.max_len
@@ -115,10 +118,6 @@ log.info """
   Number of threads specified for VSEARCH: $params.vsearch_cpu
   Script location for HTML report generation: $params.rmd_vis_biom_script
 """
-
-// Show help message
-params.help = false
-if (params.help) exit 0, helpMessage()
 
 // QC before lima
 process QC_fastq {
