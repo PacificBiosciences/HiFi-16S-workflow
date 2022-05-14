@@ -27,6 +27,7 @@ params.maxaccept = 5
 params.rarefaction_depth = null
 params.dada2_cpu = 8
 params.vsearch_cpu = 8
+params.vsearch_identity = 0.97
 params.outdir = "results"
 params.max_ee = 2
 params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
@@ -74,6 +75,7 @@ def helpMessage() {
                  (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 5)
+  --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
                          automatically select a cut-off above the minimum of the denoised 
                          reads for >90% of the samples. This cut-off is stored in a file called
@@ -112,6 +114,7 @@ log.info """
   Taxonomy annotation database for VSEARCH: $params.vsearch_tax
   VSEARCH maxreject: $params.maxreject
   VSEARCH maxaccept: $params.maxaccept
+  VSEARCH perc-identity: $params.vsearch_identity
   QIIME 2 rarefaction curve sampling depth: $params.rarefaction_depth
   Number of threads specified for lima: $params.lima_cpu
   Number of threads specified for DADA2: $params.dada2_cpu
@@ -409,7 +412,8 @@ process class_tax {
     --i-reference-taxonomy $params.vsearch_tax \
     --p-threads $task.cpus \
     --p-maxrejects $params.maxreject \
-    --p-maxaccepts $params.maxaccept
+    --p-maxaccepts $params.maxaccept \
+    --p-perc-identity $params.vsearch_identity
 
   qiime tools export --input-path taxonomy.vsearch.qza --output-path tax_export
 
