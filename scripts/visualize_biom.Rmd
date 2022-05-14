@@ -125,7 +125,7 @@ class_gen <-  tax_tab %>% filter(Genus != "")
 * Samples number: `r length(sample_data(physeq)$sample.id)`
 * Total number of CCS reads before filtering and primers trimming: `r nrow(reads_qc)`
 * Total number of reads after quality filtering: `r sum(all_read_count$input_reads)` (`r paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")`)
-* Total number of reads after primers trimming (DADA2 input): `r sum(all_read_count$demuxed_reads)` (`r round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 2)*100`)%
+* Total number of reads after primers trimming (DADA2 input): `r sum(all_read_count$demuxed_reads)` (`r round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 2)*100`%)
 * Total number of ASVs found: `r total_asv`
 * Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 2)*100`% of all input reads)
 * ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 2)*100`%)
