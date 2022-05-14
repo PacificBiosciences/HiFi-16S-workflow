@@ -4,7 +4,12 @@
 This pipeline runs using Nextflow (Version 22 and above). All softwares dependencies are
 managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
 to speed up the conda environment installation. The default `nextflow.config` file 
-enables the use of `mamba` by default.
+enables the use of `mamba` by default. You can install Nextflow following the instruction
+from Nextflow [documentation](https://www.nextflow.io/docs/latest/getstarted.html) or via Conda:
+
+```
+conda install -c bioconda nextflow
+```
 
 The taxonomy classification step of the pipeline requires a database. We recommend
 using the Silva 138 database that can be downloaded at:
@@ -12,7 +17,7 @@ using the Silva 138 database that can be downloaded at:
 - [silva-138-99-seqs.qza](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
 - [silva-138-99-tax.qza](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
 
-After installing Nextflow, `mamba`(Optional but recommended), clone the repository:
+After installing Nextflow and `mamba`(Optional but recommended), clone the repository:
 
 ```
 git clone https://github.com/proteinosome/pb-16S-nf.git
@@ -23,8 +28,8 @@ TSV file that can be used to test the pipeline. Note that you need to change the
 path of the FASTQ in `test_samples.tsv` to point to the correct location of the
 test dataset.
 
-After installing Nextflow 22, run the following command to see the options for
-the pipeline:
+After cloning the repository, run the following command in the cloned folder
+to see the options for the pipeline:
 
 ```
 nextflow run main.nf --help
