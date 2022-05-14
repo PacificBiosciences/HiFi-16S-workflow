@@ -90,7 +90,9 @@ Usage:
 ```
 
 To test the pipeline, run this example below. Note that the path of the database needs
-to be changed to the location on your server.
+to be changed to the location on your server. Conda environment will by default be created at 
+`$HOME/nf_conda` folder unless changed in the `nextflow.config` file. Once the conda environment
+is created it will be reused by any future run.
 
 ```
 nextflow run main.nf --input test_sample.tsv \
