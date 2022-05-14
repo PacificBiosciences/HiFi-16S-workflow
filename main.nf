@@ -143,32 +143,6 @@ process QC_fastq {
   """
 }
 
-// Collect QC into single files
-process collect_QC {
-  conda "$projectDir/pb-16s-pbtools.yml"
-  publishDir "$params.outdir/results/reads_QC"
-  label 'cpu8'
-
-  input:
-  path "*"
-  path "*"
-
-  output:
-  path "all_samples_seqkit.readstats.tsv", emit: all_samples_readstats
-  path "all_samples_seqkit.summarystats.tsv", emit: all_samples_summarystats
-  path "seqkit.summarised_stats.group_by_samples.tsv", emit: summarised_sample_readstats
-  path "seqkit.summarised_stats.group_by_samples.pretty.tsv"
-
-  script:
-  """
-  csvtk concat -t -C '%' *.seqkit.readstats.tsv > all_samples_seqkit.readstats.tsv
-  csvtk concat -t -C '%' *.seqkit.summarystats.tsv > all_samples_seqkit.summarystats.tsv
-  # Summary read_qual for each sample
-  csvtk summary -t -C '%' -g sample -f length:q1,length:q3,length:median,avg.qual:q1,avg.qual:q3,avg.qual:median all_samples_seqkit.readstats.tsv > seqkit.summarised_stats.group_by_samples.tsv
-  csvtk pretty -t -C '%' seqkit.summarised_stats.group_by_samples.tsv > seqkit.summarised_stats.group_by_samples.pretty.tsv
-  """
-}
-
 // Trim full length 16S primers with lima
 process lima {
   conda "$projectDir/pb-16s-pbtools.yml"
@@ -190,8 +164,40 @@ process lima {
   lima --hifi-preset ASYMMETRIC --min-score-lead 0 $sampleFASTQ $params.primer_fasta ${sampleID}.trimmed.fastq.gz \
     --log-level INFO --log-file ${sampleID}.lima.log
   echo -e "${sampleID}\t"\$PWD"/${sampleID}.trimmed.fastq.gz" > sample_ind_${sampleID}.tsv
+  input_read=`grep 'ZMWs.*input.*(A)' *.summary | sed 's/.*:\\ \\(.*\\)/\\1/g'`
+  demux_read=`grep 'ZMWs above all thresholds' *.summary | sed 's/.*:\\ \\(.*\\)\\ (.*)/\\1/g'`
   demux_rate=`grep "ZMWs above all thresholds" *.summary | sed 's/.*(\\([0-9].*%\\))/\\1/g'`
-  echo -e "${sampleID}\t\$demux_rate" > lima_summary_${sampleID}.tsv
+  echo -e "sample\tinput_reads\tdemuxed_reads\tdemux_rate" > lima_summary_${sampleID}.tsv
+  echo -e "${sampleID}\t\$input_read\t\$demux_read\t\$demux_rate" >> lima_summary_${sampleID}.tsv
+  """
+}
+
+// Collect QC into single files
+process collect_QC {
+  conda "$projectDir/pb-16s-pbtools.yml"
+  publishDir "$params.outdir/results/reads_QC"
+  label 'cpu8'
+
+  input:
+  path "*"
+  path "*"
+  path "*"
+
+  output:
+  path "all_samples_seqkit.readstats.tsv", emit: all_samples_readstats
+  path "all_samples_seqkit.summarystats.tsv", emit: all_samples_summarystats
+  path "seqkit.summarised_stats.group_by_samples.tsv", emit: summarised_sample_readstats
+  path "seqkit.summarised_stats.group_by_samples.pretty.tsv"
+  path "all_samples_lima_stats.tsv", emit: lima_summary
+
+  script:
+  """
+  csvtk concat -t -C '%' *.seqkit.readstats.tsv > all_samples_seqkit.readstats.tsv
+  csvtk concat -t -C '%' *.seqkit.summarystats.tsv > all_samples_seqkit.summarystats.tsv
+  csvtk concat -t lima_summary*.tsv > all_samples_lima_stats.tsv
+  # Summary read_qual for each sample
+  csvtk summary -t -C '%' -g sample -f length:q1,length:q3,length:median,avg.qual:q1,avg.qual:q3,avg.qual:median all_samples_seqkit.readstats.tsv > seqkit.summarised_stats.group_by_samples.tsv
+  csvtk pretty -t -C '%' seqkit.summarised_stats.group_by_samples.tsv > seqkit.summarised_stats.group_by_samples.pretty.tsv
   """
 }
 
@@ -483,6 +489,7 @@ process html_rep {
   path dada2_qc
   path reads_qc
   path summarised_reads_qc
+  path lima_summary_qc
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -491,7 +498,7 @@ process html_rep {
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", lima_qc="$lima_summary_qc"), output_dir="./")'
   """
 
 }
@@ -527,8 +534,10 @@ workflow qiime2 {
     .map{ row -> tuple(row.sample, file(row.fastq)) }
   metadata_file = channel.fromPath(params.metadata)
   QC_fastq(sample_file)
-  collect_QC(QC_fastq.out.all_seqkit_stats.collect(), QC_fastq.out.all_seqkit_summary.collect())
   lima(QC_fastq.out.filtered_fastq)
+  collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
+      QC_fastq.out.all_seqkit_summary.collect(),
+      lima.out.summary_tocollect.collect())
   prepare_qiime2_manifest(lima.out.samples_ind.collect(), lima.out.summary_tocollect.collect())
   import_qiime2(prepare_qiime2_manifest.out.sample_trimmed_file)
   demux_summarize(import_qiime2.out)
@@ -540,7 +549,8 @@ workflow qiime2 {
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
   html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, prepare_qiime2_manifest.out.sample_trimmed_file,
       dada2_qc.out.dada2_qc_tsv, 
-      collect_QC.out.all_samples_readstats, collect_QC.out.summarised_sample_readstats)
+      collect_QC.out.all_samples_readstats, collect_QC.out.summarised_sample_readstats,
+      collect_QC.out.lima_summary)
   krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
 }
 

@@ -7,8 +7,9 @@ params:
   metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/macrogen_metadata.tsv"
   sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/macrogen_lima_samples.manifest"
   dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen_with_lima_in_nf_q30/results/dada2_qc.tsv" 
-  reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/f3/4ad0c64dc9a220a475530e41e08565/all_samples_seqkit.readstats.tsv"
+  reads_qc: "/localdisk/home/kpin/github/test/work/75/a1840a87649fd88826b0764f8ec8ab/all_samples_seqkit.readstats.tsv"
   summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/f3/4ad0c64dc9a220a475530e41e08565/seqkit.summarised_stats.group_by_samples.tsv"
+  lima_qc: "/localdisk/home/kpin/github/test/work/75/a1840a87649fd88826b0764f8ec8ab/all_samples_lima_stats.tsv"
 ---
 
 <style type="text/css">
@@ -42,6 +43,15 @@ dada2_qc <- dada2_qc[2:nrow(dada2_qc),, drop=FALSE]
 physeq_list <- list()
 
 mapping_file <- import_qiime_sample_data(mapfilename = params$sample_file)
+
+# Reads QC
+reads_qc <- read_tsv(params$reads_qc, col_types=cols())
+summarise_qc <- read_tsv(params$summarised_reads_qc, col_types=cols())
+lima_qc <- read_tsv(params$lima_qc, col_types=cols())
+all_read_count <- reads_qc %>% 
+  group_by(sample) %>% 
+  summarise(pre_filter_reads = n()) %>% 
+  inner_join(lima_qc, by="sample")
 
 # Try importing from TSV
 tax_tsv <-  read_tsv(params$merged_tax_tab_file)
@@ -113,15 +123,26 @@ class_gen <-  tax_tab %>% filter(Genus != "")
 ## Summary QC statistics
 
 * Samples number: `r length(sample_data(physeq)$sample.id)`
-* Total number of input reads to DADA2: `r sum(as.numeric(dada2_qc$input))`
+* Total number of CCS reads before filtering and primers trimming: `r nrow(reads_qc)`
+* Total number of reads after quality filtering: `r sum(all_read_count$input_reads)` (`r paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")`)
+* Total number of reads after primers trimming (DADA2 input): `r sum(all_read_count$demuxed_reads)`
 * Total number of ASVs found: `r total_asv`
 * Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 2)*100`% of all input reads)
 * ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 2)*100`%)
 * ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 2)*100`%)
 
+## Overall reads filtering and number of full-length reads
+* Full-length reads are defined as reads with both F27 and R1492 primers
+```{r, echo=FALSE}
+datatable(all_read_count, 
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+```
+
 ## Input reads QC (Before filtering and primers removal)
 ```{r, echo=FALSE, fig.width=8, fig.height=6}
-reads_qc <- read_tsv(params$reads_qc, col_types=cols())
 # Subsample reads with replacement from each sample for vis
 # Faster
 reads_qc <- reads_qc %>% 
@@ -147,7 +168,6 @@ ggplot(reads_qc, aes(x = length, y = ..density..)) +
                         round((reads_qc %>% filter(length > 3000) %>% nrow())/nrow(reads_qc), 4), 
                         "%"))
 
-summarise_qc <- read_tsv(params$summarised_reads_qc, col_types=cols())
 colnames(summarise_qc) <- c("Sample", "Length 1st Quartile (bp)", "Length 3rd Quartile (bp)",
                             "Median Length (bp)", "Read Quality 1st Quartile (bp)", "Read Quality 3rd Quartile (bp)",
                             "Median Read Quality")
