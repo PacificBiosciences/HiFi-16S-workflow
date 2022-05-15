@@ -155,6 +155,11 @@ happen, try running `conda clean -a` and remove the offending `conda` packages c
 in the cache directory (e.g. if the erorr happens for QIIME, delete any folder in `conda info` 
 "package cache" containing QIIME).
 
+You can try to install the QIIME 2 environment directly to inspect any error
+messages:
+
+`mamba env create -n q2_test -f qiime2-2022.2-py38-linux-conda.yml`
+
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 
 ARE PROVIDED "AS IS," WITH ALL FAULTS, WITH NO REPRESENTATIONS OR WARRANTIES 
