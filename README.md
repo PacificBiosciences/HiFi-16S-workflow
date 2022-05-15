@@ -142,6 +142,19 @@ In each sample, the reads supporting the ASV are very low and may not pass DADA2
 as a cluster. See [here](https://github.com/benjjneb/dada2/issues/841) for a discussion on
 the algorithm.
 
+* I'm getting `Conda` "Safety" error indicating corrupted package or that some
+pipeline steps are not able to find specific command line tools (e.g. qiime).
+
+Sometimes the conda cache can become corrupted if you run many workflows
+in parallel before the environment was created, thus causing conflicts between
+the different workflow competing to create the same environment. We recommend running
+the test dataset above and wait for it to finish first so the conda
+environment is created successfully. Subsequent runs will use the same
+environment and will not need to recreate them. Nevertheless, if the errors
+happen, try running `conda clean -a` and remove the offending `conda` packages cache
+in the cache directory (e.g. if the erorr happens for QIIME, delete any folder in `conda info` 
+"package cache" containing QIIME).
+
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 
 ARE PROVIDED "AS IS," WITH ALL FAULTS, WITH NO REPRESENTATIONS OR WARRANTIES 
