@@ -58,18 +58,18 @@ def helpMessage() {
                          (default: null)
   --dada2_cpu    Number of threads for DADA2 denoising (default: 8)
   --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default: 8)
-  --cutadapt_cpu    Number of threads for primer removal using cutadapt (default: 16)
+  --lima_cpu    Number of threads for primer removal using lima (default: 16)
   --outdir    Output directory name (default: "results")
   --vsearch_db	Directory for VSEARCH database (e.g. silva-138-99-seqs.qza can be
                 downloaded from QIIME database)
   --vsearch_tax    Directory for VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
   --front_p    Forward 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using cutadapt (default: "none")
+               trimmed using lima (default: "none")
   --adapter_p    Reverse 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using cutadapt (default: "none")
-  --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
-                        removal) (default: trim with cutadapt)
+               trimmed using lima (default: "none")
+  --skip_primer_trim    Skip all primers trimming (switch off lima and DADA2 primers
+                        removal) (default: trim with lima)
   """
 }
 
@@ -81,9 +81,9 @@ params.max_len = 1600
 if (params.skip_primer_trim) {
   params.front_p = 'none'
   params.adapter_p = 'none'
-  trim_cutadapt = "No"
+  trim_lima = "No"
 } else {
-  trim_cutadapt = "Yes"
+  trim_lima = "Yes"
 }
 // params.front_p = 'AGRGTTYGATYMTGGCTCAG'
 // params.adapter_p = 'RGYTACCTTGTTACGACTT'
@@ -103,7 +103,7 @@ params.max_ee = 2
 params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
 // Helper script for biom vis script
 params.rmd_helper = "$projectDir/scripts/import_biom.R"
-params.cutadapt_cpu = 16
+params.lima_cpu = 16
 params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
 
@@ -118,7 +118,7 @@ log.info """
   Filter input reads above Q: $params.filterQ
   Minimum amplicon length filtered in DADA2: $params.min_len
   Maximum amplicon length filtered in DADA2: $params.max_len
-  Trim primers with cutadapt: $trim_cutadapt
+  Trim primers with lima: $trim_lima
   Forward 16S primer trimmed by DADA2 if given: $params.front_p
   Reverse 16S primer trimmed by DADA2 if given: $params.adapter_p
   maxEE parameter for DADA2 filterAndTrim: $params.max_ee
@@ -129,13 +129,13 @@ log.info """
   VSEARCH maxaccept: $params.maxaccept
   VSEARCH perc-identity: $params.vsearch_identity
   QIIME 2 rarefaction curve sampling depth: $params.rarefaction_depth
-  Number of threads specified for cutadapt: $params.cutadapt_cpu
+  Number of threads specified for lima: $params.lima_cpu
   Number of threads specified for DADA2: $params.dada2_cpu
   Number of threads specified for VSEARCH: $params.vsearch_cpu
   Script location for HTML report generation: $params.rmd_vis_biom_script
 """
 
-// QC before cutadapt
+// QC before lima
 process QC_fastq {
   conda "$projectDir/pb-16s-pbtools.yml"
   label 'cpu8'
@@ -161,12 +161,12 @@ process QC_fastq {
   """
 }
 
-// Trim full length 16S primers with cutadapt
-process cutadapt {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+// Trim full length 16S primers with lima
+process lima {
+  conda "$projectDir/pb-16s-pbtools.yml"
   publishDir "$params.outdir/trimmed_primers_FASTQ", pattern: '*.fastq.gz'
-  publishDir "$params.outdir/cutadapt_summary", pattern: '*.report'
-  cpus params.cutadapt_cpu
+  publishDir "$params.outdir/lima_summary", pattern: '*.summary'
+  cpus params.lima_cpu
 
   input:
   tuple val(sampleID), path(sampleFASTQ)
@@ -174,22 +174,19 @@ process cutadapt {
   output:
   tuple val(sampleID), path("${sampleID}.trimmed.fastq.gz")
   path "sample_ind_*.tsv", emit: samples_ind
-  path "*.summary", emit: cutadapt_summary
-  path "cutadapt_summary_${sampleID}.tsv", emit: summary_tocollect
+  path "*.summary", emit: lima_summary
+  path "lima_summary_${sampleID}.tsv", emit: summary_tocollect
 
   script:
   """
-  cutadapt -a "^AGRGTTYGATYMTGGCTCAG...AAGTCGTAACAAGGTARCY\$" \
-    ${sampleFASTQ} \
-    -o ${sampleID}.trimmed.fastq.gz \
-    -j 32 --trimmed-only --revcomp -e 0.1 \
-    --json ${sampleID}.cutadapt.report
-
+  lima --hifi-preset ASYMMETRIC --min-score-lead 0 $sampleFASTQ $params.primer_fasta ${sampleID}.trimmed.fastq.gz \
+    --log-level INFO --log-file ${sampleID}.lima.log
   echo -e "${sampleID}\t"\$PWD"/${sampleID}.trimmed.fastq.gz" > sample_ind_${sampleID}.tsv
-  input_read=`jq -r '.read_counts | .input' ${sampleID}.cutadapt.report`
-  demux_read=`jq -r '.read_counts | .output' ${sampleID}.cutadapt.report`
-  echo -e "sample\tinput_reads\tdemuxed_reads" > cutadapt_summary_${sampleID}.tsv
-  echo -e "${sampleID}\t\$input_read\t\$demux_read" >> cutadapt_summary_${sampleID}.tsv
+  input_read=`grep 'ZMWs.*input.*(A)' *.summary | sed 's/.*:\\ \\(.*\\)/\\1/g'`
+  demux_read=`grep 'ZMWs above all thresholds' *.summary | sed 's/.*:\\ \\(.*\\)\\ (.*)/\\1/g'`
+  demux_rate=`grep "ZMWs above all thresholds" *.summary | sed 's/.*(\\([0-9].*%\\))/\\1/g'`
+  echo -e "sample\tinput_reads\tdemuxed_reads\tdemux_rate" > lima_summary_${sampleID}.tsv
+  echo -e "${sampleID}\t\$input_read\t\$demux_read\t\$demux_rate" >> lima_summary_${sampleID}.tsv
   """
 }
 
@@ -209,21 +206,21 @@ process collect_QC {
   path "all_samples_seqkit.summarystats.tsv", emit: all_samples_summarystats
   path "seqkit.summarised_stats.group_by_samples.tsv", emit: summarised_sample_readstats
   path "seqkit.summarised_stats.group_by_samples.pretty.tsv"
-  path "all_samples_cutadapt_stats.tsv", emit: cutadapt_summary
+  path "all_samples_lima_stats.tsv", emit: lima_summary
 
   script:
   """
   csvtk concat -t -C '%' *.seqkit.readstats.tsv > all_samples_seqkit.readstats.tsv
   csvtk concat -t -C '%' *.seqkit.summarystats.tsv > all_samples_seqkit.summarystats.tsv
-  csvtk concat -t cutadapt_summary*.tsv > all_samples_cutadapt_stats.tsv
+  csvtk concat -t lima_summary*.tsv > all_samples_lima_stats.tsv
   # Summary read_qual for each sample
   csvtk summary -t -C '%' -g sample -f length:q1,length:q3,length:median,avg.qual:q1,avg.qual:q3,avg.qual:median all_samples_seqkit.readstats.tsv > seqkit.summarised_stats.group_by_samples.tsv
   csvtk pretty -t -C '%' seqkit.summarised_stats.group_by_samples.tsv > seqkit.summarised_stats.group_by_samples.pretty.tsv
   """
 }
 
-// Collect QC into single files if skipping cutadapt
-process collect_QC_skip_cutadapt {
+// Collect QC into single files if skipping lima
+process collect_QC_skip_lima {
   conda "$projectDir/pb-16s-pbtools.yml"
   publishDir "$params.outdir/results/reads_QC"
   label 'cpu8'
@@ -255,7 +252,7 @@ process prepare_qiime2_manifest {
 
   input: 
   path "sample_ind_*.tsv"
-  path "cutadapt_summary_*.tsv"
+  path "lima_summary_*.tsv"
 
   output:
   path "samplefile.txt", emit: sample_trimmed_file
@@ -264,13 +261,13 @@ process prepare_qiime2_manifest {
   """
   echo -e "sample-id\tabsolute-filepath" > samplefile.txt
   cat sample_ind_*.tsv >> samplefile.txt
-  cat cutadapt_summary_*.tsv > samples_demux_rate.tsv
+  cat lima_summary_*.tsv > samples_demux_rate.tsv
   """
 
 }
 
-// Put all trimmed samples into a single file for QIIME2 import if skipping cutadapt
-process prepare_qiime2_manifest_skip_cutadapt {
+// Put all trimmed samples into a single file for QIIME2 import if skipping lima
+process prepare_qiime2_manifest_skip_lima {
   label 'cpu_def'
     publishDir "$params.outdir/results/"
 
@@ -556,7 +553,7 @@ process html_rep {
   path dada2_qc
   path reads_qc
   path summarised_reads_qc
-  path cutadapt_summary_qc
+  path lima_summary_qc
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -565,12 +562,12 @@ process html_rep {
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", lima_qc="$lima_summary_qc"), output_dir="./")'
   """
 }
 
 // HTML report
-process html_rep_skip_cutadapt {
+process html_rep_skip_lima {
   conda "$projectDir/pb-16s-vis-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
@@ -582,7 +579,7 @@ process html_rep_skip_cutadapt {
   path dada2_qc
   path reads_qc
   path summarised_reads_qc
-  val(cutadapt_summary_qc)
+  val(lima_summary_qc)
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -591,7 +588,7 @@ process html_rep_skip_cutadapt {
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", lima_qc="$lima_summary_qc"), output_dir="./")'
   """
 }
 
@@ -627,21 +624,21 @@ workflow qiime2 {
   metadata_file = channel.fromPath(params.metadata)
   QC_fastq(sample_file)
   if (params.skip_primer_trim){
-    collect_QC_skip_cutadapt(QC_fastq.out.all_seqkit_stats.collect(),
+    collect_QC_skip_lima(QC_fastq.out.all_seqkit_stats.collect(),
         QC_fastq.out.all_seqkit_summary.collect())
-    prepare_qiime2_manifest_skip_cutadapt(QC_fastq.out.filtered_fastq_tsv.collect())
-    cutadapt_summary = "none"
-    qiime2_manifest = prepare_qiime2_manifest_skip_cutadapt.out.sample_trimmed_file
-    collect_QC_readstats = collect_QC_skip_cutadapt.out.all_samples_readstats
-    collect_QC_summarised_sample_stats = collect_QC_skip_cutadapt.out.summarised_sample_readstats
+    prepare_qiime2_manifest_skip_lima(QC_fastq.out.filtered_fastq_tsv.collect())
+    lima_summary = "none"
+    qiime2_manifest = prepare_qiime2_manifest_skip_lima.out.sample_trimmed_file
+    collect_QC_readstats = collect_QC_skip_lima.out.all_samples_readstats
+    collect_QC_summarised_sample_stats = collect_QC_skip_lima.out.summarised_sample_readstats
   } else {
-    cutadapt(QC_fastq.out.filtered_fastq)
+    lima(QC_fastq.out.filtered_fastq)
     collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
         QC_fastq.out.all_seqkit_summary.collect(),
-        cutadapt.out.summary_tocollect.collect())
-    prepare_qiime2_manifest(cutadapt.out.samples_ind.collect(),
-        cutadapt.out.summary_tocollect.collect())
-    cutadapt_summary = collect_QC.out.cutadapt_summary
+        lima.out.summary_tocollect.collect())
+    prepare_qiime2_manifest(lima.out.samples_ind.collect(),
+        lima.out.summary_tocollect.collect())
+    lima_summary = collect_QC.out.lima_summary
     qiime2_manifest = prepare_qiime2_manifest.out.sample_trimmed_file
     collect_QC_readstats = collect_QC.out.all_samples_readstats
     collect_QC_summarised_sample_stats = collect_QC.out.summarised_sample_readstats
@@ -655,15 +652,15 @@ workflow qiime2 {
   export_biom(dada2_denoise.out.asv_freq, class_tax.out.tax_tsv)
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
   if (params.skip_primer_trim){
-    html_rep_skip_cutadapt(class_tax.out.tax_freq_tab_tsv, metadata_file, qiime2_manifest,
+    html_rep_skip_lima(class_tax.out.tax_freq_tab_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 
         collect_QC_readstats, collect_QC_summarised_sample_stats,
-        cutadapt_summary)
+        lima_summary)
   } else {
     html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 
         collect_QC_readstats, collect_QC_summarised_sample_stats,
-        cutadapt_summary)
+        lima_summary)
   }
   krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
 }

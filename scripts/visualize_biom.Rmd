@@ -9,7 +9,7 @@ params:
   dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/dada2_qc.tsv" 
   reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/reads_QC/all_samples_seqkit.readstats.tsv"
   summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/reads_QC/seqkit.summarised_stats.group_by_samples.tsv"
-  lima_qc: "none"
+  cutadapt_qc: "none"
 ---
 
 <style type="text/css">
@@ -47,21 +47,22 @@ mapping_file <- import_qiime_sample_data(mapfilename = params$sample_file)
 # Reads QC
 reads_qc <- read_tsv(params$reads_qc, col_types=cols())
 summarise_qc <- read_tsv(params$summarised_reads_qc, col_types=cols())
-if (params$lima_qc != "none") {
-  lima_qc <- read_tsv(params$lima_qc, col_types=cols())
+if (params$cutadapt_qc != "none") {
+  cutadapt_qc <- read_tsv(params$cutadapt_qc, col_types=cols()) %>% 
+    mutate(demux_rate = demuxed_reads/input_reads)
   all_read_count <- reads_qc %>% 
     group_by(sample) %>% 
     summarise(pre_filter_reads = n()) %>% 
-    inner_join(lima_qc, by="sample")
-  skip_lima = "No"
-  trim_lima = "Yes"
+    inner_join(cutadapt_qc, by="sample")
+  skip_cutadapt = "No"
+  trim_cutadapt = "Yes"
 } else {
   all_read_count <- reads_qc %>% 
     group_by(sample) %>% 
     summarise(pre_filter_reads = n()) %>% 
     inner_join(dada2_qc %>% select(`sample-id`, input) %>% dplyr::rename(sample = "sample-id"))
-  skip_lima = "Yes"
-  trim_lima = "No"
+  skip_cutadapt = "Yes"
+  trim_cutadapt = "No"
 }
 
 # Try importing from TSV
@@ -137,9 +138,9 @@ class_gen_uncultured <- tax_tab %>% filter(Genus != "", !grepl("uncultured|metag
 
 * Samples number: `r length(sample_data(physeq)$sample.id)`
 * Total number of CCS reads before filtering and primers trimming: `r nrow(reads_qc)`
-* Was primers trimmed prior to DADA2? `r paste0(" ", trim_lima)`
-* Total number of reads after quality filtering: `r if (skip_lima != "Yes") {sum(all_read_count$input_reads)} else {sum(as.numeric(dada2_qc$input))}` (`r if (skip_lima != "Yes") {paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")} else {paste0(round(sum(as.numeric(dada2_qc$input))/nrow(reads_qc), 2), "%")}`)
-* Total number of reads after primers trimming (DADA2 input): `r if (skip_lima != "Yes") {sum(all_read_count$demuxed_reads)} else {paste0("Skipped lima trimming")}` (`r if (skip_lima != "Yes") {paste0(round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 2)*100, "%")} else {paste0("Skipped lima trimming")}`)
+* Was primers trimmed prior to DADA2? `r paste0(" ", trim_cutadapt)`
+* Total number of reads after quality filtering: `r if (skip_cutadapt != "Yes") {sum(all_read_count$input_reads)} else {sum(as.numeric(dada2_qc$input))}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")} else {paste0(round(sum(as.numeric(dada2_qc$input))/nrow(reads_qc), 2), "%")}`)
+* Total number of reads after primers trimming (DADA2 input): `r if (skip_cutadapt != "Yes") {sum(all_read_count$demuxed_reads)} else {paste0("Skipped cutadapt trimming")}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 2)*100, "%")} else {paste0("Skipped cutadapt trimming")}`)
 * Total number of ASVs found: `r total_asv`
 * Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 2)*100`% of all input reads)
 * ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 2)*100`%)
@@ -149,9 +150,9 @@ class_gen_uncultured <- tax_tab %>% filter(Genus != "", !grepl("uncultured|metag
 
 ## Overall reads filtering and number of full-length reads
 * Full-length reads are defined as reads with both F27 and R1492 primers
-* Note that full length counts column will only show if lima was used to trim primers (default).
+* Note that full length counts column will only show if cutadapt was used to trim primers (default).
 ```{r, echo=FALSE}
-if (skip_lima != "Yes") {
+if (skip_cutadapt != "Yes") {
   colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter", 
                                 "Full-length Reads", "Full-length Reads Percent")
 } else {
