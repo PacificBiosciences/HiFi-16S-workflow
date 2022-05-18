@@ -3,13 +3,13 @@ title: "Visualizing 16S Community"
 output: html_document
 params:
   # biom: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/feature-table-tax.biom"
-  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen_with_lima_in_nf_q30/results/merged_freq_tax.tsv"
-  metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/macrogen_metadata.tsv"
-  sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/macrogen_lima_samples.manifest"
-  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen_with_lima_in_nf_q30/results/dada2_qc.tsv" 
-  reads_qc: "/localdisk/home/kpin/github/test/work/75/a1840a87649fd88826b0764f8ec8ab/all_samples_seqkit.readstats.tsv"
-  summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/f3/4ad0c64dc9a220a475530e41e08565/seqkit.summarised_stats.group_by_samples.tsv"
-  lima_qc: "/localdisk/home/kpin/github/test/work/75/a1840a87649fd88826b0764f8ec8ab/all_samples_lima_stats.tsv"
+  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/merged_freq_tax.tsv"
+  metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/metadata.tsv"
+  sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/sample.manifest"
+  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/dada2_qc.tsv" 
+  reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/reads_QC/all_samples_seqkit.readstats.tsv"
+  summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/reads_QC/seqkit.summarised_stats.group_by_samples.tsv"
+  lima_qc: "none"
 ---
 
 <style type="text/css">
@@ -47,11 +47,22 @@ mapping_file <- import_qiime_sample_data(mapfilename = params$sample_file)
 # Reads QC
 reads_qc <- read_tsv(params$reads_qc, col_types=cols())
 summarise_qc <- read_tsv(params$summarised_reads_qc, col_types=cols())
-lima_qc <- read_tsv(params$lima_qc, col_types=cols())
-all_read_count <- reads_qc %>% 
-  group_by(sample) %>% 
-  summarise(pre_filter_reads = n()) %>% 
-  inner_join(lima_qc, by="sample")
+if (params$lima_qc != "none") {
+  lima_qc <- read_tsv(params$lima_qc, col_types=cols())
+  all_read_count <- reads_qc %>% 
+    group_by(sample) %>% 
+    summarise(pre_filter_reads = n()) %>% 
+    inner_join(lima_qc, by="sample")
+  skip_lima = "No"
+  trim_lima = "Yes"
+} else {
+  all_read_count <- reads_qc %>% 
+    group_by(sample) %>% 
+    summarise(pre_filter_reads = n()) %>% 
+    inner_join(dada2_qc %>% select(`sample-id`, input) %>% dplyr::rename(sample = "sample-id"))
+  skip_lima = "Yes"
+  trim_lima = "No"
+}
 
 # Try importing from TSV
 tax_tsv <-  read_tsv(params$merged_tax_tab_file)
@@ -118,24 +129,34 @@ for (i in 1:length(physeq_list)){
 total_asv <- nrow(otu_table(phyloseq))
 class_spec <- tax_tab %>% filter(Species != "")
 class_gen <-  tax_tab %>% filter(Genus != "")
+class_spec_uncultured <- tax_tab %>% filter(Species != "", !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
+class_gen_uncultured <- tax_tab %>% filter(Genus != "", !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
 ```
 
 ## Summary QC statistics
 
 * Samples number: `r length(sample_data(physeq)$sample.id)`
 * Total number of CCS reads before filtering and primers trimming: `r nrow(reads_qc)`
-* Total number of reads after quality filtering: `r sum(all_read_count$input_reads)` (`r paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")`)
-* Total number of reads after primers trimming (DADA2 input): `r sum(all_read_count$demuxed_reads)` (`r round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 2)*100`%)
+* Was primers trimmed prior to DADA2? `r paste0(" ", trim_lima)`
+* Total number of reads after quality filtering: `r if (skip_lima != "Yes") {sum(all_read_count$input_reads)} else {sum(as.numeric(dada2_qc$input))}` (`r if (skip_lima != "Yes") {paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")} else {paste0(round(sum(as.numeric(dada2_qc$input))/nrow(reads_qc), 2), "%")}`)
+* Total number of reads after primers trimming (DADA2 input): `r if (skip_lima != "Yes") {sum(all_read_count$demuxed_reads)} else {paste0("Skipped lima trimming")}` (`r if (skip_lima != "Yes") {paste0(round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 2)*100, "%")} else {paste0("Skipped lima trimming")}`)
 * Total number of ASVs found: `r total_asv`
 * Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 2)*100`% of all input reads)
 * ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 2)*100`%)
+* ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 2)*100`%)
 * ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 2)*100`%)
+* ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 2)*100`%)
 
 ## Overall reads filtering and number of full-length reads
 * Full-length reads are defined as reads with both F27 and R1492 primers
+* Note that full length counts column will only show if lima was used to trim primers (default).
 ```{r, echo=FALSE}
-colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter", 
-                              "Full-length Reads", "Full-length Reads Percent")
+if (skip_lima != "Yes") {
+  colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter", 
+                                "Full-length Reads", "Full-length Reads Percent")
+} else {
+  colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter")
+}
 datatable(all_read_count, 
           options = list(scrollX = TRUE), 
           filter = list(

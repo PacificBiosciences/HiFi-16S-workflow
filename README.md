@@ -160,6 +160,16 @@ messages:
 
 `mamba env create -n q2_test -f qiime2-2022.2-py38-linux-conda.yml`
 
+* I've received/downloaded 16S FASTQ that already has the primers trimmed, can I skip
+lima?
+
+We recommend using lima to trim the primers as it works well for HiFi sequencing
+data. However, there are many public dataset that may already have the full length
+primers trimmed, in which case you can specify `--skip_primer_trim` to skip
+primers trimming. If unsure, run with default pipeline and the lima demultiplexing rate
+(in the file `results/samples_demux_rate.tsv`) should be close to zero for all
+samples if the primers are already trimmed.
+
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 
 ARE PROVIDED "AS IS," WITH ALL FAULTS, WITH NO REPRESENTATIONS OR WARRANTIES 

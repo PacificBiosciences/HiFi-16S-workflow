@@ -304,5 +304,6 @@ col.names[[1]] <- paste0("#OTU ID\t", col.names[[1]])
 write.table(seqtab.nochim, out.path, sep="\t",
             row.names=TRUE, col.names=col.names, quote=FALSE)
 saveRDS(seqtab.nochim, gsub("tsv", "rds", out.path)) ### TESTING
+saveRDS(seqtab.nochim, "./seqtab_nochim.rds") # Added by Khi Pin
 
 q(status=0)

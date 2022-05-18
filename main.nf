@@ -12,31 +12,6 @@ Updated: 2022-5-5
 
 nextflow.enable.dsl=2
 
-params.filterQ = 30
-params.min_len = 1000
-params.max_len = 1600
-// params.front_p = 'AGRGTTYGATYMTGGCTCAG'
-// params.adapter_p = 'RGYTACCTTGTTACGACTT'
-params.front_p = 'none'
-params.adapter_p = 'none'
-params.pooling_method = 'pseudo'
-params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza"
-params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
-params.maxreject = 100
-params.maxaccept = 5
-params.rarefaction_depth = null
-params.dada2_cpu = 8
-params.vsearch_cpu = 8
-params.vsearch_identity = 0.97
-params.outdir = "results"
-params.max_ee = 2
-params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
-// Helper script for biom vis script
-params.rmd_helper = "$projectDir/scripts/import_biom.R"
-params.lima_cpu = 16
-params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
-params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
-
 def helpMessage() {
   log.info"""
   Usage:
@@ -93,8 +68,45 @@ def helpMessage() {
                trimmed using lima (default: "none")
   --adapter_p    Reverse 16S primer to trim using DADA2. Set to 'none' if primers already
                trimmed using lima (default: "none")
+  --skip_primer_trim    Skip all primers trimming (switch off lima and DADA2 primers
+                        removal) (default: trim with lima)
   """
 }
+
+params.skip_primer_trim = false
+params.filterQ = 30
+params.min_len = 1000
+params.max_len = 1600
+
+if (params.skip_primer_trim) {
+  params.front_p = 'none'
+  params.adapter_p = 'none'
+  trim_lima = "No"
+} else {
+  trim_lima = "Yes"
+}
+// params.front_p = 'AGRGTTYGATYMTGGCTCAG'
+// params.adapter_p = 'RGYTACCTTGTTACGACTT'
+params.front_p = 'none'
+params.adapter_p = 'none'
+params.pooling_method = 'pseudo'
+params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza"
+params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
+params.maxreject = 100
+params.maxaccept = 5
+params.rarefaction_depth = null
+params.dada2_cpu = 8
+params.vsearch_cpu = 8
+params.vsearch_identity = 0.97
+params.outdir = "results"
+params.max_ee = 2
+params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
+// Helper script for biom vis script
+params.rmd_helper = "$projectDir/scripts/import_biom.R"
+params.lima_cpu = 16
+params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
+params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
+
 
 // Show help message
 params.help = false
@@ -106,6 +118,7 @@ log.info """
   Filter input reads above Q: $params.filterQ
   Minimum amplicon length filtered in DADA2: $params.min_len
   Maximum amplicon length filtered in DADA2: $params.max_len
+  Trim primers with lima: $trim_lima
   Forward 16S primer trimmed by DADA2 if given: $params.front_p
   Reverse 16S primer trimmed by DADA2 if given: $params.adapter_p
   maxEE parameter for DADA2 filterAndTrim: $params.max_ee
@@ -134,6 +147,7 @@ process QC_fastq {
   output:
   path "${sampleID}.seqkit.readstats.tsv", emit: all_seqkit_stats
   path "${sampleID}.seqkit.summarystats.tsv", emit: all_seqkit_summary
+  path "${sampleID}_filtered.tsv", emit: filtered_fastq_tsv
   tuple val(sampleID), path("${sampleID}.filterQ${params.filterQ}.fastq.gz"), emit: filtered_fastq
 
   script:
@@ -143,6 +157,7 @@ process QC_fastq {
   seqkit stats -j $task.cpus -a ${sampleFASTQ} |\
     csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.summarystats.tsv
   seqkit seq -j $task.cpus --min-qual $params.filterQ $sampleFASTQ --out-file ${sampleID}.filterQ${params.filterQ}.fastq.gz
+  echo -e "${sampleID}\t"\$PWD"/${sampleID}.filterQ${params.filterQ}.fastq.gz" >> ${sampleID}_filtered.tsv
   """
 }
 
@@ -204,6 +219,32 @@ process collect_QC {
   """
 }
 
+// Collect QC into single files if skipping lima
+process collect_QC_skip_lima {
+  conda "$projectDir/pb-16s-pbtools.yml"
+  publishDir "$params.outdir/results/reads_QC"
+  label 'cpu8'
+
+  input:
+  path "*"
+  path "*"
+
+  output:
+  path "all_samples_seqkit.readstats.tsv", emit: all_samples_readstats
+  path "all_samples_seqkit.summarystats.tsv", emit: all_samples_summarystats
+  path "seqkit.summarised_stats.group_by_samples.tsv", emit: summarised_sample_readstats
+  path "seqkit.summarised_stats.group_by_samples.pretty.tsv"
+
+  script:
+  """
+  csvtk concat -t -C '%' *.seqkit.readstats.tsv > all_samples_seqkit.readstats.tsv
+  csvtk concat -t -C '%' *.seqkit.summarystats.tsv > all_samples_seqkit.summarystats.tsv
+  # Summary read_qual for each sample
+  csvtk summary -t -C '%' -g sample -f length:q1,length:q3,length:median,avg.qual:q1,avg.qual:q3,avg.qual:median all_samples_seqkit.readstats.tsv > seqkit.summarised_stats.group_by_samples.tsv
+  csvtk pretty -t -C '%' seqkit.summarised_stats.group_by_samples.tsv > seqkit.summarised_stats.group_by_samples.pretty.tsv
+  """
+}
+
 // Put all trimmed samples into a single file for QIIME2 import
 process prepare_qiime2_manifest {
   label 'cpu_def'
@@ -221,6 +262,24 @@ process prepare_qiime2_manifest {
   echo -e "sample-id\tabsolute-filepath" > samplefile.txt
   cat sample_ind_*.tsv >> samplefile.txt
   cat lima_summary_*.tsv > samples_demux_rate.tsv
+  """
+
+}
+
+// Put all trimmed samples into a single file for QIIME2 import if skipping lima
+process prepare_qiime2_manifest_skip_lima {
+  label 'cpu_def'
+    publishDir "$params.outdir/results/"
+
+  input: 
+  path "*filtered.tsv"
+
+  output:
+  path "samplefile.txt", emit: sample_trimmed_file
+
+  """
+  echo -e "sample-id\tabsolute-filepath" > samplefile.txt
+  cat *filtered.tsv >> samplefile.txt
   """
 
 }
@@ -282,6 +341,7 @@ process dada2_denoise {
   path "dada2-ccs_table.qza", emit: asv_freq
   path "dada2-ccs_stats.qza", emit:asv_stats
   path "dada2_ASV.fasta", emit:asv_seq_fasta
+  path "seqtab_nochim.rds", emit: dada2_rds
 
   script:
   """
@@ -504,7 +564,32 @@ process html_rep {
   cp $params.rmd_helper import_biom.R
   Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", lima_qc="$lima_summary_qc"), output_dir="./")'
   """
+}
 
+// HTML report
+process html_rep_skip_lima {
+  conda "$projectDir/pb-16s-vis-conda.yml"
+  publishDir "$params.outdir/results"
+  label 'cpu_def'
+
+  input:
+  path tax_freq_tab_tsv
+  path metadata
+  path sample_manifest
+  path dada2_qc
+  path reads_qc
+  path summarised_reads_qc
+  val(lima_summary_qc)
+
+  output:
+  path "visualize_biom.html", emit: html_report
+
+  script:
+  """
+  cp $params.rmd_vis_biom_script visualize_biom.Rmd
+  cp $params.rmd_helper import_biom.R
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", lima_qc="$lima_summary_qc"), output_dir="./")'
+  """
 }
 
 // Krona plot
@@ -538,12 +623,27 @@ workflow qiime2 {
     .map{ row -> tuple(row.sample, file(row.fastq)) }
   metadata_file = channel.fromPath(params.metadata)
   QC_fastq(sample_file)
-  lima(QC_fastq.out.filtered_fastq)
-  collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
-      QC_fastq.out.all_seqkit_summary.collect(),
-      lima.out.summary_tocollect.collect())
-  prepare_qiime2_manifest(lima.out.samples_ind.collect(), lima.out.summary_tocollect.collect())
-  import_qiime2(prepare_qiime2_manifest.out.sample_trimmed_file)
+  if (params.skip_primer_trim){
+    collect_QC_skip_lima(QC_fastq.out.all_seqkit_stats.collect(),
+        QC_fastq.out.all_seqkit_summary.collect())
+    prepare_qiime2_manifest_skip_lima(QC_fastq.out.filtered_fastq_tsv.collect())
+    lima_summary = "none"
+    qiime2_manifest = prepare_qiime2_manifest_skip_lima.out.sample_trimmed_file
+    collect_QC_readstats = collect_QC_skip_lima.out.all_samples_readstats
+    collect_QC_summarised_sample_stats = collect_QC_skip_lima.out.summarised_sample_readstats
+  } else {
+    lima(QC_fastq.out.filtered_fastq)
+    collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
+        QC_fastq.out.all_seqkit_summary.collect(),
+        lima.out.summary_tocollect.collect())
+    prepare_qiime2_manifest(lima.out.samples_ind.collect(),
+        lima.out.summary_tocollect.collect())
+    lima_summary = collect_QC.out.lima_summary
+    qiime2_manifest = prepare_qiime2_manifest.out.sample_trimmed_file
+    collect_QC_readstats = collect_QC.out.all_samples_readstats
+    collect_QC_summarised_sample_stats = collect_QC.out.summarised_sample_readstats
+  }
+  import_qiime2(qiime2_manifest)
   demux_summarize(import_qiime2.out)
   dada2_denoise(import_qiime2.out)
   dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
@@ -551,10 +651,17 @@ workflow qiime2 {
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   export_biom(dada2_denoise.out.asv_freq, class_tax.out.tax_tsv)
   barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
-  html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, prepare_qiime2_manifest.out.sample_trimmed_file,
-      dada2_qc.out.dada2_qc_tsv, 
-      collect_QC.out.all_samples_readstats, collect_QC.out.summarised_sample_readstats,
-      collect_QC.out.lima_summary)
+  if (params.skip_primer_trim){
+    html_rep_skip_lima(class_tax.out.tax_freq_tab_tsv, metadata_file, qiime2_manifest,
+        dada2_qc.out.dada2_qc_tsv, 
+        collect_QC_readstats, collect_QC_summarised_sample_stats,
+        lima_summary)
+  } else {
+    html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, qiime2_manifest,
+        dada2_qc.out.dada2_qc_tsv, 
+        collect_QC_readstats, collect_QC_summarised_sample_stats,
+        lima_summary)
+  }
   krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
 }
 
