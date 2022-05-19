@@ -52,18 +52,10 @@ Usage:
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \
     --dada2_cpu 8 --vsearch_cpu 8
 
-  By default, sequences are first trimmed with lima (higher rate compared to using DADA2
-  ) using the example command below. 16S_primers.fasta file contains disambiguated 16S primers
-  using all possible combinations of degenerate sequences. "min-score-lead" is set
-  to 0 as we don't care if the primers pair are similar, they should be since
-  it's just degenerate sequences!
-
-  lima --hifi-preset ASYMMETRIC \
-    demultiplex.16S_For_bc1005--16S_Rev_bc1057.hifi_reads.fastq.gz \
-    16S_primers.fasta \
-    bc1005-bc1057.16s.lima.same.fastq.gz \
-    --log-level INFO \
-    --min-score-lead 0
+  By default, sequences are first trimmed with cutadapt (higher rate compared to using DADA2
+  ) using the example command below. You can skip this by specifying "--skip_primer_trim"
+  if the sequences are already trimmed. The primer sequences used are the F27 and R1492
+  primers for full length 16S sequencing.
 
   Other important options:
   --filterQ    Filter input reads above this Q value (default: 30).
@@ -77,6 +69,7 @@ Usage:
                  (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 5)
+  --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
                          automatically select a cut-off above the minimum of the denoised
                          reads for >90% of the samples. This cut-off is stored in a file called
@@ -84,16 +77,17 @@ Usage:
                          (default: null)
   --dada2_cpu    Number of threads for DADA2 denoising (default: 8)
   --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default: 8)
-  --lima_cpu    Number of threads for primer removal using lima (default: 16)
+  --cutadapt_cpu    Number of threads for primer removal using cutadapt (default: 16)
   --outdir    Output directory name (default: "results")
-  --vsearch_db  Directory for VSEARCH database (e.g. silva-138-99-seqs.qza can be
+  --vsearch_db  Location of VSEARCH database (e.g. silva-138-99-seqs.qza can be
                 downloaded from QIIME database)
-  --vsearch_tax    Directory for VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
+  --vsearch_tax    Location of VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
-  --front_p    Forward 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using lima (default: "none")
-  --adapter_p    Reverse 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using lima (default: "none")
+  --silva_db   Location of Silva 138 database for taxonomy classification
+  --gtdb_db    Location of GTDB r202 for taxonomy classification
+  --refseq_db    Location of RefSeq+RDP database for taxonomy classification
+  --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
+                        removal) (default: trim with cutadapt)
 ```
 
 To test the pipeline, run this example below. Note that the path of the database needs
