@@ -100,7 +100,10 @@ nextflow run main.nf --input test_sample.tsv \
     --metadata test_metadata.tsv -profile conda \
     --dada2_cpu 32 --vsearch_cpu 32 --outdir results \
     --vsearch_db /path/to/silva-138-99-seqs.qza \
-    --vsearch_tax /path/to/silva-138-99-tax.qza
+    --vsearch_tax /path/to/silva-138-99-tax.qza \
+    --silva_db /path/to/silvaDB \
+    --gtdb_db /path/to/gtdbDB \
+    --refseq_db /path/to/refseqDB
 ```
 
 To run this pipeline on your data, create the sample TSV and metadata TSV following
