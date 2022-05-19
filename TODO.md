@@ -27,3 +27,4 @@ to freeze it (avoiding risk of repo going down)
 * Clean up import qiime manifest do not need to put samples_demux_rate file
 * Table too large with high amount of samples will cause HTML report to fail to load
 * Count number of reads in top samples
+* Make kraken2 reads classification optional
