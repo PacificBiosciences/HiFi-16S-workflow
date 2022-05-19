@@ -75,12 +75,12 @@ if (params.skip_primer_trim) {
   trim_cutadapt = "No"
 } else {
   trim_cutadapt = "Yes"
+  params.front_p = 'none'
+  params.adapter_p = 'none'
 }
 // Hidden parameters in case need to trim with DADA2 removePrimers function
 // params.front_p = 'AGRGTTYGATYMTGGCTCAG'
 // params.adapter_p = 'RGYTACCTTGTTACGACTT'
-params.front_p = 'none'
-params.adapter_p = 'none'
 params.pooling_method = 'pseudo'
 params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza"
 params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
