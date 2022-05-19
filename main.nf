@@ -25,18 +25,10 @@ def helpMessage() {
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
-  By default, sequences are first trimmed with lima (higher rate compared to using DADA2
-  ) using the example command below. 16S_primers.fasta file contains disambiguated 16S primers
-  using all possible combinations of degenerate sequences. "min-score-lead" is set
-  to 0 as we don't care if the primers pair are similar, they should be since
-  it's just degenerate sequences!
-
-  lima --hifi-preset ASYMMETRIC \\
-    demultiplex.16S_For_bc1005--16S_Rev_bc1057.hifi_reads.fastq.gz \\
-    16S_primers.fasta \\
-    bc1005-bc1057.16s.lima.same.fastq.gz \\
-    --log-level INFO \\
-    --min-score-lead 0
+  By default, sequences are first trimmed with cutadapt (higher rate compared to using DADA2
+  ) using the example command below. You can skip this by specifying "--skip_primer_trim" 
+  if the sequences are already trimmed. The primer sequences used are the F27 and R1492
+  primers for full length 16S sequencing.
 
   Other important options:
   --filterQ    Filter input reads above this Q value (default: 30).
@@ -60,14 +52,13 @@ def helpMessage() {
   --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default: 8)
   --cutadapt_cpu    Number of threads for primer removal using cutadapt (default: 16)
   --outdir    Output directory name (default: "results")
-  --vsearch_db	Directory for VSEARCH database (e.g. silva-138-99-seqs.qza can be
+  --vsearch_db	Location of VSEARCH database (e.g. silva-138-99-seqs.qza can be
                 downloaded from QIIME database)
-  --vsearch_tax    Directory for VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
+  --vsearch_tax    Location of VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
-  --front_p    Forward 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using cutadapt (default: "none")
-  --adapter_p    Reverse 16S primer to trim using DADA2. Set to 'none' if primers already
-               trimmed using cutadapt (default: "none")
+  --silva_db   Location of Silva 138 database for taxonomy classification 
+  --gtdb_db    Location of GTDB r202 for taxonomy classification
+  --refseq_db    Location of RefSeq+RDP database for taxonomy classification
   --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
                         removal) (default: trim with cutadapt)
   """
@@ -85,6 +76,7 @@ if (params.skip_primer_trim) {
 } else {
   trim_cutadapt = "Yes"
 }
+// Hidden parameters in case need to trim with DADA2 removePrimers function
 // params.front_p = 'AGRGTTYGATYMTGGCTCAG'
 // params.adapter_p = 'RGYTACCTTGTTACGACTT'
 params.front_p = 'none'
@@ -92,6 +84,9 @@ params.adapter_p = 'none'
 params.pooling_method = 'pseudo'
 params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza"
 params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
+params.silva_db = "~/references/taxonomy_database/silva_nr99_v138.1_wSpecies_train_set.fa.gz"
+params.gtdb_db = "~/references/taxonomy_database/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz"
+params.refseq_db = "~/references/taxonomy_database/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz"
 params.maxreject = 100
 params.maxaccept = 5
 params.rarefaction_depth = null
@@ -106,6 +101,7 @@ params.rmd_helper = "$projectDir/scripts/import_biom.R"
 params.cutadapt_cpu = 16
 params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
+params.dadaAssign_script = "$projectDir/scripts/dada2_assign_tax.R"
 
 
 // Show help message
@@ -119,8 +115,6 @@ log.info """
   Minimum amplicon length filtered in DADA2: $params.min_len
   Maximum amplicon length filtered in DADA2: $params.max_len
   Trim primers with cutadapt: $trim_cutadapt
-  Forward 16S primer trimmed by DADA2 if given: $params.front_p
-  Reverse 16S primer trimmed by DADA2 if given: $params.adapter_p
   maxEE parameter for DADA2 filterAndTrim: $params.max_ee
   Pooling method for DADA2 denoise process: $params.pooling_method
   Taxonomy sequence database for VSEARCH: $params.vsearch_db
@@ -174,7 +168,7 @@ process cutadapt {
   output:
   tuple val(sampleID), path("${sampleID}.trimmed.fastq.gz")
   path "sample_ind_*.tsv", emit: samples_ind
-  path "*.summary", emit: cutadapt_summary
+  path "*.report", emit: cutadapt_summary
   path "cutadapt_summary_${sampleID}.tsv", emit: summary_tocollect
 
   script:
@@ -182,7 +176,7 @@ process cutadapt {
   cutadapt -a "^AGRGTTYGATYMTGGCTCAG...AAGTCGTAACAAGGTARCY\$" \
     ${sampleFASTQ} \
     -o ${sampleID}.trimmed.fastq.gz \
-    -j 32 --trimmed-only --revcomp -e 0.1 \
+    -j ${task.cpus} --trimmed-only --revcomp -e 0.1 \
     --json ${sampleID}.cutadapt.report
 
   echo -e "${sampleID}\t"\$PWD"/${sampleID}.trimmed.fastq.gz" > sample_ind_${sampleID}.tsv
@@ -371,6 +365,46 @@ process dada2_denoise {
   """
 }
 
+// Assign taxonomies to SILVA, GTDB and RefSeq using DADA2
+// assignTaxonomy function based on Naive Bayes classifier
+process dada2_assignTax {
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  publishDir "$params.outdir/results"
+  cpus params.vsearch_cpu
+
+  input:
+  path asv_seq_fasta
+  path asv_seq
+  path asv_freq
+
+  output:
+  path "best_tax.qza", emit:best_nb_tax_qza
+  path "best_taxonomy.tsv", emit: best_nb_tax
+  path "best_tax_merged_freq_tax.tsv", emit: best_nb_tax_tsv
+
+  script:
+  """
+  Rscript --vanilla $params.dadaAssign_script $asv_seq_fasta $task.cpus $params.silva_db $params.gtdb_db $params.refseq_db 80
+
+  qiime feature-table transpose --i-table $asv_freq \
+    --o-transposed-feature-table transposed-asv.qza
+
+  qiime tools import --type "FeatureData[Taxonomy]" \
+    --input-format "TSVTaxonomyFormat" \
+    --input-path best_taxonomy.tsv --output-path best_tax.qza
+
+  qiime metadata tabulate --m-input-file $asv_seq \
+    --m-input-file best_tax.qza \
+    --m-input-file transposed-asv.qza \
+    --o-visualization merged_freq_tax.qzv
+
+  qiime tools export --input-path merged_freq_tax.qzv \
+    --output-path merged_freq_tax_tsv
+
+  mv merged_freq_tax_tsv/metadata.tsv best_tax_merged_freq_tax.tsv
+  """
+}
+
 // QC summary for dada2
 process dada2_qc {
   conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
@@ -465,7 +499,7 @@ process class_tax {
   path "taxonomy.vsearch.qza", emit: tax_vsearch
   path "tax_export/taxonomy.tsv", emit: tax_tsv
   path "merged_freq_tax.qzv", emit: tax_freq_tab
-  path "merged_freq_tax.tsv", emit: tax_freq_tab_tsv
+  path "vsearch_merged_freq_tax.tsv", emit: tax_freq_tab_tsv
 
   script:
   """
@@ -491,7 +525,7 @@ process class_tax {
   qiime tools export --input-path merged_freq_tax.qzv \
     --output-path merged_freq_tax_tsv
 
-  mv merged_freq_tax_tsv/metadata.tsv merged_freq_tax.tsv
+  mv merged_freq_tax_tsv/metadata.tsv vsearch_merged_freq_tax.tsv
   """
 }
 
@@ -652,20 +686,21 @@ workflow qiime2 {
   dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
   dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
-  export_biom(dada2_denoise.out.asv_freq, class_tax.out.tax_tsv)
-  barplot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch, metadata_file)
+  dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
+  export_biom(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax)
+  barplot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, metadata_file)
   if (params.skip_primer_trim){
-    html_rep_skip_cutadapt(class_tax.out.tax_freq_tab_tsv, metadata_file, qiime2_manifest,
+    html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 
         collect_QC_readstats, collect_QC_summarised_sample_stats,
         cutadapt_summary)
   } else {
-    html_rep(class_tax.out.tax_freq_tab_tsv, metadata_file, qiime2_manifest,
+    html_rep(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 
         collect_QC_readstats, collect_QC_summarised_sample_stats,
         cutadapt_summary)
   }
-  krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
+  krona_plot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza)
 }
 
 workflow {

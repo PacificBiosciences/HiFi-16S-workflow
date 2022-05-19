@@ -22,3 +22,8 @@
 to freeze it (avoiding risk of repo going down)
 * DONE: Output number of filtered reads in reads QC step
 * Deal with uncultured bacterium and metagenome in SILVA?
+* Document that cutadapt will orientate sequences making it usable for naive bayesian classifier and
+  without that the results will be weird
+* Clean up import qiime manifest do not need to put samples_demux_rate file
+* Table too large with high amount of samples will cause HTML report to fail to load
+* Count number of reads in top samples

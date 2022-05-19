@@ -99,10 +99,17 @@ for (i in 1:length(physeq_list)){
   otu_tab <- otu_table(physeq) %>% as("matrix") %>% as_tibble(rownames = "OTU")
   full_tab <- tax_tab %>% inner_join(otu_tab)
   # Tidy table. Gather by sample first, then sum at species level
+  ## This was commented out on 19th May as I shifted to using DADA2 assignTax
+  ## If using QIIME to assign tax such as VSEARCH, uncomment this
+  # full_tab <- full_tab %>% 
+  #   gather(key = "Sample", value = "Reads", sample_data(physeq)$sample.id) %>% 
+  #   mutate(Genus = if_else(Genus == "", "Unclassified Genus", Genus),
+  #          Species = if_else(Species!="", Species,
+  #                            if_else(Genus == "Unclassified Genus", "Unclassified Genus and Species", paste0("Unclassified ", Genus  , " Species"))))
   full_tab <- full_tab %>% 
     gather(key = "Sample", value = "Reads", sample_data(physeq)$sample.id) %>% 
-    mutate(Genus = if_else(Genus == "", "Unclassified Genus", Genus),
-           Species = if_else(Species!="", Species,
+    mutate(Genus = if_else(grepl("Unclassified", Genus), "Unclassified Genus", Genus),
+           Species = if_else(!grepl("Unclassified", Species), Species,
                              if_else(Genus == "Unclassified Genus", "Unclassified Genus and Species", paste0("Unclassified ", Genus  , " Species"))))
   
   full_tab_spec <- full_tab %>% 
@@ -128,10 +135,13 @@ for (i in 1:length(physeq_list)){
 }
 
 total_asv <- nrow(otu_table(phyloseq))
-class_spec <- tax_tab %>% filter(Species != "")
-class_gen <-  tax_tab %>% filter(Genus != "")
-class_spec_uncultured <- tax_tab %>% filter(Species != "", !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
-class_gen_uncultured <- tax_tab %>% filter(Genus != "", !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
+class_spec <- tax_tab %>% filter(!grepl("Unclassified", Species))
+class_gen <-  tax_tab %>% filter(!grepl("Unclassified", Genus))
+## Commented out. If use QIIME 2 vsearch, uncomment
+# class_spec <- tax_tab %>% filter(Species != "")
+# class_gen <-  tax_tab %>% filter(Genus != "")
+class_spec_uncultured <- tax_tab %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
+class_gen_uncultured <- tax_tab %>% filter(Genus != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
 ```
 
 ## Summary QC statistics

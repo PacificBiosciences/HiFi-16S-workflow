@@ -11,11 +11,18 @@ from Nextflow [documentation](https://www.nextflow.io/docs/latest/getstarted.htm
 conda install -c bioconda nextflow
 ```
 
-The taxonomy classification step of the pipeline requires a database. We recommend
-using the Silva 138 database that can be downloaded at:
+The taxonomy classification step of the pipeline requires a few databases. These can be downloaded
+from the following link:
 
-- [silva-138-99-seqs.qza](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
-- [silva-138-99-tax.qza](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
+- `--vsearch_db` and `--vsearch_tax`
+  - [`silva-138-99-seqs.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
+  - [`silva-138-99-tax.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
+- `--silva_db`
+  - [`silva_nr99_v138.1_wSpecies_train_set.fa.gz`](https://zenodo.org/record/4587955)
+- `--gtdb_db`
+  - [`GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
+- `--refseq_db`
+  - [`RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
 
 After installing Nextflow and `mamba`(Optional but recommended), clone the repository:
 
@@ -110,7 +117,7 @@ Remember to specify the `--outdir` directory to avoid overwriting existing resul
 The pipeline uses Slurm scheduler by default to run jobs on HPC. This can be changed
 in the `nextflow.config` file under `executor`. See Nextflow 
 [documentation](https://www.nextflow.io/docs/latest/executor.html) on the available
-executors. CPUs for `VSEARCH`, `DADA2` and `lima` can be specified as command line
+executors. CPUs for `VSEARCH`, `DADA2` and `cutadapt` can be specified as command line
 parameters as shown above. For all the other processes, they use any of the default
 labels in `nextflow.config` and can be changed according to your need.
 
@@ -161,14 +168,24 @@ messages:
 `mamba env create -n q2_test -f qiime2-2022.2-py38-linux-conda.yml`
 
 * I've received/downloaded 16S FASTQ that already has the primers trimmed, can I skip
-lima?
+primers removal?
 
-We recommend using lima to trim the primers as it works well for HiFi sequencing
+We recommend using the pipeline to trim the primers as it works well for HiFi sequencing
 data. However, there are many public dataset that may already have the full length
 primers trimmed, in which case you can specify `--skip_primer_trim` to skip
-primers trimming. If unsure, run with default pipeline and the lima demultiplexing rate
+primers trimming. If unsure, run with default pipeline and the cutadapt demultiplexing rate
 (in the file `results/samples_demux_rate.tsv`) should be close to zero for all
 samples if the primers are already trimmed.
+
+* How does the taxonomy classification work?
+
+We use the `assignTaxonomy` function from DADA2 to carry out taxonomy assignment.
+This pipeline uses 3 databases to classify the ASVs and the priority of assignment
+is Silva 138, followed by GTDB r202, then lastly RefSeq + RDP. This means for example
+if an ASV is not assigned at Species level using Silva, it will check if it can be assigned
+with GTDB. This ensure we assign as many ASVs as possible. There is also a VSEARCH
+taxonomy classification using Silva database only in the file called `results/vsearch_merged_freq_tax.tsv`
+that may work well in some cases as an alternative.
 
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 
