@@ -28,3 +28,4 @@ to freeze it (avoiding risk of repo going down)
 * Table too large with high amount of samples will cause HTML report to fail to load
 * Count number of reads in top samples
 * Make kraken2 reads classification optional
+* Parallelize classify step by splitting the ASV FASTA files into fixed number of ASV chunks
