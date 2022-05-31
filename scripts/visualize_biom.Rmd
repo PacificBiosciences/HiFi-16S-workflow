@@ -261,11 +261,11 @@ datatable(top5_gen_species,
           ))
 ```
 
-### Full table
-``` {r, echo=FALSE}
-datatable(vis_tab,
-          options = list(scrollX = TRUE), 
-          filter = list(
-            position = 'top', clear = FALSE
-          ))
-```
+<!-- ### Full table -->
+<!-- ``` {r, echo=FALSE} -->
+<!-- datatable(vis_tab, -->
+<!--           options = list(scrollX = TRUE),  -->
+<!--           filter = list( -->
+<!--             position = 'top', clear = FALSE -->
+<!--           )) -->
+<!-- ``` -->
