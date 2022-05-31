@@ -150,7 +150,7 @@ process QC_fastq {
   """
   seqkit fx2tab -j $task.cpus -q --gc -l -H -n $sampleFASTQ |\
     csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.readstats.tsv
-  seqkit stats -j $task.cpus -a ${sampleFASTQ} |\
+  seqkit stats -T -j $task.cpus -a ${sampleFASTQ} |\
     csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.summarystats.tsv
   seqkit seq -j $task.cpus --min-qual $params.filterQ $sampleFASTQ --out-file ${sampleID}.filterQ${params.filterQ}.fastq.gz
   echo -e "${sampleID}\t"\$PWD"/${sampleID}.filterQ${params.filterQ}.fastq.gz" >> ${sampleID}_filtered.tsv
