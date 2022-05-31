@@ -1,11 +1,10 @@
 # TODO
 
-* Parallelize classify step by splitting the ASV FASTA files into fixed number of ASV chunks
-* Count number of reads in top samples
 * For Krona plot pip install, can we clone the repo locally and install from that
-* Generate a metadata TSV if none is provided
-* How to BLAST ASVs for strain level assignment
 * Phylo tree and PCoA and diversity analysis
+* Add LotuS2 for OTU-based analysis? Or just add a guide on GitHub
+* Allow using just VSEARCH result and make naive bayes optional
+* Clean up workflow names in main
 * Dockerize
 * Cluster ASV into OTUs using `https://docs.qiime2.org/2022.2/plugins/available/vsearch/cluster-features-open-reference/` 
 * See `https://github.com/benjjneb/dada2/issues/1164` for discussion on losing reads in CCS
@@ -13,8 +12,8 @@
     * minQ=0 and maxEE=2 is similar to minQ=3 and maxEE=2 in MSA1003
   * Expose minQ?
 * Clean up import qiime manifest do not need to put samples_demux_rate file
-* Remove ASV in only one samples and less than 5 reads
-
+* Parallelize classify step by splitting the ASV FASTA files into fixed number of ASV chunks
+* Guide on how to BLAST ASVs for strain level assignment
 
 # DONE
 
@@ -41,3 +40,4 @@ to freeze it (avoiding risk of repo going down)
   otherwise keep them as is (the metagenome samples will likely help to "absorb" false-positive hits)
 * DONE: Document that cutadapt will orientate sequences making it usable for naive bayesian classifier and
   without that the results will be weird
+* DONE: Remove ASV in only one samples and less than 5 reads
