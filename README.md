@@ -139,6 +139,19 @@ BIOM format file `feature-table-tax.biom` with many packages such as the popular
 `phyloseq`.
 
 ## Frequently asked questions (FAQ)
+* Why `cutadapt`?
+
+The naive Bayes classified in QIIME 2 requires the ASVs to be in the same sequence orientation.
+PacBio's CCS reads have random orientations out of the instrument, hence they need to
+to be oriented first, and this can be done with either `lima` or `cutadapt`. 
+Technically, `lima` has this capability too but it requires BAM input. There are many
+public dataset on SRA that is in FASTQ format and `lima` will not orientate them. Due to the 
+accuracy of HiFi reads, the performance difference between `lima` and `cutadapt` should be
+minimal in our experience.
+
+Without the read orientation, you will notice that the taxonomy assignments can produce
+weird results (e.g. archea assignment only at the highest taxonomy level).
+
 * A lot of my reads are lost in the denoise stage, what's going on?
 
 This can happen in extremely diverse community such as soil where the ASVs are of very low abundance.
@@ -177,12 +190,17 @@ samples if the primers are already trimmed.
 * How does the taxonomy classification work?
 
 We use the `assignTaxonomy` function from DADA2 to carry out taxonomy assignment.
-This pipeline uses 3 databases to classify the ASVs and the priority of assignment
+This pipeline uses 3 databases to classify the ASVs (requiring a minimum bootstrap of 80 using
+the minBoot parameter) and the priority of assignment
 is Silva 138, followed by GTDB r202, then lastly RefSeq + RDP. This means for example
 if an ASV is not assigned at Species level using Silva, it will check if it can be assigned
 with GTDB. This ensure we assign as many ASVs as possible. There is also a VSEARCH
 taxonomy classification using Silva database only in the file called `results/vsearch_merged_freq_tax.tsv`
 that may work well in some cases as an alternative.
+
+This process is done first at Species level, then at Genus level. In addition, if any ASV
+is assigned as "uncultured" or "metagenome", it will go through the iterative assignment
+process just like the unclassified ASVs.
 
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 

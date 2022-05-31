@@ -42,6 +42,9 @@ def helpMessage() {
                  (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 5)
+  --min_asv_totalfreq    Total frequency of any ASV must be above this threshold
+                         across all samples to be retained (default 5)
+  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained (default 2)
   --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
                          automatically select a cut-off above the minimum of the denoised 
@@ -68,6 +71,8 @@ params.skip_primer_trim = false
 params.filterQ = 30
 params.min_len = 1000
 params.max_len = 1600
+params.min_asv_totalfreq = 5
+params.min_asv_sample = 2
 
 if (params.skip_primer_trim) {
   params.front_p = 'none'
@@ -368,8 +373,8 @@ process dada2_denoise {
   path samples_qza
 
   output:
-  path "dada2-ccs_rep.qza", emit: asv_seq
-  path "dada2-ccs_table.qza", emit: asv_freq
+  path "dada2-ccs_rep_filtered.qza", emit: asv_seq
+  path "dada2-ccs_table_filtered.qza", emit: asv_freq
   path "dada2-ccs_stats.qza", emit:asv_stats
   path "dada2_ASV.fasta", emit:asv_seq_fasta
   path "seqtab_nochim.rds", emit: dada2_rds
@@ -392,8 +397,21 @@ process dada2_denoise {
     --p-n-threads $task.cpus \
     --p-pooling-method \'$params.pooling_method\'
 
+  # Filter ASVs and sequences
+  qiime feature-table filter-features \
+    --i-table dada2-ccs_table.qza \
+    --p-min-frequency $params.min_asv_totalfreq \
+    --p-min-samples $params.min_asv_sample \
+    --p-filter-empty-samples \
+    --o-filtered-table dada2-ccs_table_filtered.qza
+
+  qiime feature-table filter-seqs \
+    --i-data dada2-ccs_rep.qza \
+    --i-table dada2-ccs_table_filtered.qza \
+    --o-filtered-data dada2-ccs_rep_filtered.qza
+
   # Export FASTA file for ASVs
-  qiime tools export --input-path dada2-ccs_rep.qza \
+  qiime tools export --input-path dada2-ccs_rep_filtered.qza \
     --output-path .
   mv dna-sequences.fasta dada2_ASV.fasta
   """
@@ -625,6 +643,7 @@ process html_rep {
   path reads_qc
   path summarised_reads_qc
   path cutadapt_summary_qc
+  path vsearch_tax_tsv
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -633,7 +652,7 @@ process html_rep {
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv"), output_dir="./")'
   """
 }
 
@@ -651,6 +670,7 @@ process html_rep_skip_cutadapt {
   path reads_qc
   path summarised_reads_qc
   val(cutadapt_summary_qc)
+  path vsearch_tax_tsv
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -659,7 +679,7 @@ process html_rep_skip_cutadapt {
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv"), output_dir="./")'
   """
 }
 
@@ -729,12 +749,12 @@ workflow qiime2 {
     html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 
         collect_QC_readstats, collect_QC_summarised_sample_stats,
-        cutadapt_summary)
+        cutadapt_summary, class_tax.out.tax_freq_tab_tsv)
   } else {
     html_rep(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 
         collect_QC_readstats, collect_QC_summarised_sample_stats,
-        cutadapt_summary)
+        cutadapt_summary, class_tax.out.tax_freq_tab_tsv)
   }
   krona_plot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza)
 }

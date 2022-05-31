@@ -3,13 +3,14 @@ title: "Visualizing 16S Community"
 output: html_document
 params:
   # biom: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/feature-table-tax.biom"
-  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/merged_freq_tax.tsv"
-  metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/metadata.tsv"
-  sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/sample.manifest"
-  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/dada2_qc.tsv" 
-  reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/reads_QC/all_samples_seqkit.readstats.tsv"
-  summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/pb-16S_2022-5-14_ATCC_MSA1003/results/reads_QC/seqkit.summarised_stats.group_by_samples.tsv"
+  merged_tax_tab_file: "/raw-data/khipin-data/16S/PRJNA774819_gut_bifidobacterium_SQII/work/7f/4b1d38b8176b16dfe953260cd44ffa/best_tax_merged_freq_tax.tsv"
+  metadata: "/home/kpin/synology_data/data/16S/PRJNA774819_gut_bifidobacterium_SQII/metadata.tsv"
+  sample_file: "/home/kpin/synology_data/data/16S/PRJNA774819_gut_bifidobacterium_SQII/samples.manifest"
+  dada2_qc: "/raw-data/khipin-data/16S/PRJNA774819_gut_bifidobacterium_SQII/work/b6/4360386495bf17faa26e24e8e7ec44/dada2_qc.tsv" 
+  reads_qc: "/home/kpin/synology_data/data/16S/PRJNA774819_gut_bifidobacterium_SQII/pb-16S_2022-5-31_besttax/results/reads_QC/all_samples_seqkit.readstats.tsv"
+  summarised_reads_qc: "/home/kpin/synology_data/data/16S/PRJNA774819_gut_bifidobacterium_SQII/pb-16S_2022-5-31_besttax/results/reads_QC/seqkit.summarised_stats.group_by_samples.tsv"
   cutadapt_qc: "none"
+  vsearch_tax_tab_file: "/raw-data/khipin-data/16S/PRJNA774819_gut_bifidobacterium_SQII/work/5f/7fbff95f62a8d82e901e1253409bdf/vsearch_merged_freq_tax.tsv"
 ---
 
 <style type="text/css">
@@ -68,11 +69,25 @@ if (params$cutadapt_qc != "none") {
 # Try importing from TSV
 tax_tsv <-  read_tsv(params$merged_tax_tab_file)
 tax_tsv <- tax_tsv[2:nrow(tax_tsv), ]
+tax_tsv_vsearch <- read_tsv(params$vsearch_tax_tab_file)
+tax_tsv_vsearch <- tax_tsv_vsearch[2:nrow(tax_tsv_vsearch), ]
 
-otu_tab <- as.matrix(tax_tsv %>% select(mapping_file$sample.id) %>% mutate_all(as.numeric))
+# Sometimes samples get removed. Record this
+sample_final <- intersect(mapping_file$sample.id, colnames(tax_tsv))
+# Samples filtered out
+removed_sample <- setdiff(mapping_file$sample.id, sample_final)
+
+otu_tab <- as.matrix(tax_tsv %>% select(all_of(sample_final)) %>% mutate_all(as.numeric))
 rownames(otu_tab) <- tax_tsv$id
 tax_tab <- str_split(tax_tsv$Taxon, ";", simplify = TRUE)
 rownames(tax_tab) <- tax_tsv$id
+
+# For VSEARCH only taxonomy
+tax_tab_vsearch <- str_split(tax_tsv_vsearch$Taxon, ";", simplify = TRUE)
+rownames(tax_tab_vsearch) <- tax_tsv_vsearch$id
+tax_tab_vsearch <- tax_table(tax_tab_vsearch)
+colnames(tax_tab_vsearch) <- c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
+tax_tab_vsearch <- tax_table(tax_tab_vsearch) %>% as("matrix") %>% as_tibble(rownames = "OTU")
 
 otu_tab <- otu_table(otu_tab, taxa_are_rows = TRUE)
 tax_tab <- tax_table(tax_tab)
@@ -142,21 +157,36 @@ class_gen <-  tax_tab %>% filter(!grepl("Unclassified", Genus))
 # class_gen <-  tax_tab %>% filter(Genus != "")
 class_spec_uncultured <- tax_tab %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
 class_gen_uncultured <- tax_tab %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
+
+class_spec_vsearch <- tax_tab_vsearch %>% filter(Species != "")
+class_gen_vsearch <-  tax_tab_vsearch %>% filter(Genus != "")
+## Commented out. If use QIIME 2 vsearch, uncomment
+# class_spec <- tax_tab %>% filter(Species != "")
+# class_gen <-  tax_tab %>% filter(Genus != "")
+class_spec_uncultured_vsearch <- tax_tab_vsearch %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
+class_gen_uncultured_vsearch <- tax_tab_vsearch %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
+
 ```
 
 ## Summary QC statistics
 
 * Samples number: `r length(sample_data(physeq)$sample.id)`
+* Final samples number post-DADA2: `r length(sample_final)`
+* Missing samples (Not enough reads, do not pass QC, etc): `r removed_sample`
 * Total number of CCS reads before filtering and primers trimming: `r nrow(reads_qc)`
 * Was primers trimmed prior to DADA2? `r paste0(" ", trim_cutadapt)`
-* Total number of reads after quality filtering: `r if (skip_cutadapt != "Yes") {sum(all_read_count$input_reads)} else {sum(as.numeric(dada2_qc$input))}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")} else {paste0(round(sum(as.numeric(dada2_qc$input))/nrow(reads_qc), 2), "%")}`)
-* Total number of reads after primers trimming (DADA2 input): `r if (skip_cutadapt != "Yes") {sum(all_read_count$demuxed_reads)} else {paste0("Skipped cutadapt trimming")}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 2)*100, "%")} else {paste0("Skipped cutadapt trimming")}`)
+* Total number of reads after quality filtering: `r if (skip_cutadapt != "Yes") {sum(all_read_count$input_reads)} else {sum(as.numeric(dada2_qc$input))}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")} else {paste0(round(sum(as.numeric(dada2_qc$input))/nrow(reads_qc), 4), "%")}`)
+* Total number of reads after primers trimming (DADA2 input): `r if (skip_cutadapt != "Yes") {sum(all_read_count$demuxed_reads)} else {paste0("Skipped cutadapt trimming")}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 4)*100, "%")} else {paste0("Skipped cutadapt trimming")}`)
 * Total number of ASVs found: `r total_asv`
-* Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 2)*100`% of all input reads)
-* ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 2)*100`%)
-* ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 2)*100`%)
-* ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 2)*100`%)
-* ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 2)*100`%)
+* Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 4)*100`% of all input reads)
+* ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 4)*100`%)
+* ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 4)*100`%)
+* ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 4)*100`%)
+* ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 4)*100`%)
+* ASVs classified at Species level (VSEARCH with SILVA only): `r nrow(class_spec_vsearch)` (`r round(nrow(class_spec_vsearch)/total_asv, 4)*100`%)
+* ASVs classified at Species level (Excluding metagenome/uncultured entries, VSEARCH with SILVA only): `r nrow(class_spec_uncultured_vsearch)` (`r round(nrow(class_spec_uncultured_vsearch)/total_asv, 4)*100`%)
+* ASVs classified at Genus level (VSEARCH with SILVA only): `r nrow(class_gen_vsearch)` (`r round(nrow(class_gen_vsearch)/total_asv, 4)*100`%)
+* ASVs classified at Genus level (Excluding metagenome/uncultured entries, VSEARCH with SILVA only): `r nrow(class_gen_uncultured_vsearch)` (`r round(nrow(class_gen_uncultured_vsearch)/total_asv, 4)*100`%)
 
 ## Overall reads filtering and number of full-length reads
 * Full-length reads are defined as reads with both F27 and R1492 primers
