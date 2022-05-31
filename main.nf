@@ -61,7 +61,6 @@ def helpMessage() {
   --refseq_db    Location of RefSeq+RDP database for taxonomy classification
   --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
                         removal) (default: trim with cutadapt)
-  --kraken2_db    Database built for Kraken2 for reads-based taxonomy assignment
   """
 }
 
@@ -103,7 +102,8 @@ params.cutadapt_cpu = 16
 params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
 params.dadaAssign_script = "$projectDir/scripts/dada2_assign_tax.R"
-params.kraken2_db = "~/references/taxonomy_database/ncbi_bacteria_16S_k2db/"
+// kraken2 DB if enabling Kraken2. Deprecated.
+// params.kraken2_db = "~/references/taxonomy_database/ncbi_bacteria_16S_k2db/"
 
 
 // Show help message
@@ -189,36 +189,37 @@ process cutadapt {
   """
 }
 
-process kraken2 {
-  conda "$projectDir/pb-16s-pbtools.yml"
-  publishDir "$params.outdir/kraken2", pattern: '*kraken2.report'
-  publishDir "$params.outdir/kraken2", pattern: '*kraken2.out'
-  publishDir "$params.outdir/bracken", pattern: '*bracken.report'
-  publishDir "$params.outdir/bracken", pattern: '*bracken.out'
-  label 'cpu8'
-
-  input:
-  tuple val(sampleID), path(sampleTrimmed_fastq)
-
-  output:
-  path "${sampleID}.kraken2.report"
-  path "${sampleID}.kraken2.out"
-  path "${sampleID}.bracken.report"
-  path "${sampleID}.bracken.out"
-
-  script:
-  """
-  kraken2 --db $params.kraken2_db \
-    --report ${sampleID}.kraken2.report \
-    --output ${sampleID}.kraken2.out --use-names \
-    ${sampleTrimmed_fastq} > ${sampleID}.kraken2.log
-
-  bracken -d $params.kraken2_db -r 1000 -l S -t 0 \
-    -i ${sampleID}.kraken2.report \
-    -o ${sampleID}.bracken.out \
-    -w ${sampleID}.bracken.report > ${sampleID}.bracken.log
-  """
-}
+// To process with Kraken2. Deprecated.
+// process kraken2 {
+//   conda "$projectDir/pb-16s-pbtools.yml"
+//   publishDir "$params.outdir/kraken2", pattern: '*kraken2.report'
+//   publishDir "$params.outdir/kraken2", pattern: '*kraken2.out'
+//   publishDir "$params.outdir/bracken", pattern: '*bracken.report'
+//   publishDir "$params.outdir/bracken", pattern: '*bracken.out'
+//   label 'cpu8'
+// 
+//   input:
+//   tuple val(sampleID), path(sampleTrimmed_fastq)
+// 
+//   output:
+//   path "${sampleID}.kraken2.report"
+//   path "${sampleID}.kraken2.out"
+//   path "${sampleID}.bracken.report"
+//   path "${sampleID}.bracken.out"
+// 
+//   script:
+//   """
+//   kraken2 --db $params.kraken2_db \
+//     --report ${sampleID}.kraken2.report \
+//     --output ${sampleID}.kraken2.out --use-names \
+//     ${sampleTrimmed_fastq} > ${sampleID}.kraken2.log
+// 
+//   bracken -d $params.kraken2_db -r 1000 -l S -t 0 \
+//     -i ${sampleID}.kraken2.report \
+//     -o ${sampleID}.bracken.out \
+//     -w ${sampleID}.bracken.report > ${sampleID}.bracken.log
+//   """
+// }
 
 // Collect QC into single files
 process collect_QC {
@@ -694,7 +695,7 @@ workflow qiime2 {
   metadata_file = channel.fromPath(params.metadata)
   QC_fastq(sample_file)
   if (params.skip_primer_trim){
-    kraken2(QC_fastq.out.filtered_fastq)
+    // kraken2(QC_fastq.out.filtered_fastq)
     collect_QC_skip_cutadapt(QC_fastq.out.all_seqkit_stats.collect(),
         QC_fastq.out.all_seqkit_summary.collect())
     prepare_qiime2_manifest_skip_cutadapt(QC_fastq.out.filtered_fastq_tsv.collect())
@@ -704,7 +705,7 @@ workflow qiime2 {
     collect_QC_summarised_sample_stats = collect_QC_skip_cutadapt.out.summarised_sample_readstats
   } else {
     cutadapt(QC_fastq.out.filtered_fastq)
-    kraken2(cutadapt.out.cutadapt_fastq)
+    // kraken2(cutadapt.out.cutadapt_fastq)
     collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
         QC_fastq.out.all_seqkit_summary.collect(),
         cutadapt.out.summary_tocollect.collect())
