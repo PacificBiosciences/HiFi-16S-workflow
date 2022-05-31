@@ -27,5 +27,7 @@ to freeze it (avoiding risk of repo going down)
 * Clean up import qiime manifest do not need to put samples_demux_rate file
 * Table too large with high amount of samples will cause HTML report to fail to load
 * Count number of reads in top samples
-* Make kraken2 reads classification optional
+* DONE: Make kraken2 reads classification optional
+  * With higher confidence (0.5 and above), the assignment rate was found to be quite low.
+  So deprecated 2022-5-31. Code still in there if needed to enable in the future
 * Parallelize classify step by splitting the ASV FASTA files into fixed number of ASV chunks
