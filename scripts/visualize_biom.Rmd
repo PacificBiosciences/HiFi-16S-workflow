@@ -2,18 +2,18 @@
 title: "HiFi Full-length 16S Analysis Report"
 output: html_document
 params:
-  merged_tax_tab_file: "/localdisk/home/kpin/github/test/work/7e/065f9b7085e1b914af556bbed0e56e/best_tax_merged_freq_tax.tsv"
-  metadata: "/localdisk/home/kpin/github/test/test_metadata_2samples.tsv"
-  sample_file: "/localdisk/home/kpin/github/test/work/cf/00f2b8c63ac2349279371290a76dcf/samplefile.txt"
-  dada2_qc: "/localdisk/home/kpin/github/test/work/4d/d8b46b63747fad16c1c85869f9df8d/dada2_qc.tsv" 
-  reads_qc: "/localdisk/home/kpin/github/test/work/e2/2015fa3b18400eb15164ba55fb1b73/all_samples_seqkit.readstats.tsv"
-  summarised_reads_qc: "/localdisk/home/kpin/github/test/work/e2/2015fa3b18400eb15164ba55fb1b73/seqkit.summarised_stats.group_by_samples.tsv"
+  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/b3/09ca532e6aaca6ae51addf4391e574/best_tax_merged_freq_tax.tsv"
+  metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/metadata.tsv"
+  sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/52/6bb3004d6824650c639555218dd51f/samplefile.txt"
+  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/b3/3a1d7b2c27607602e5b49e8a1db95d/dada2_qc.tsv" 
+  reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/22/8101664411a0afcc3e10fc57ae27d0/all_samples_seqkit.readstats.tsv"
+  summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/22/8101664411a0afcc3e10fc57ae27d0/seqkit.summarised_stats.group_by_samples.tsv"
   cutadapt_qc: "none"
-  vsearch_tax_tab_file: "/localdisk/home/kpin/github/test/work/63/1b82f427de9fc1759ffcd08abcb348/vsearch_merged_freq_tax.tsv"
+  vsearch_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/de/f87cc27131d9f5996755e4b7c9ef6d/vsearch_merged_freq_tax.tsv"
   colorby: "condition"
-  bray_mat: "/localdisk/home/kpin/github/test/work/e9/59902764c681208fc35e8c28e42679/core-metrics-diversity/bray_curtis_distance_matrix.tsv"
-  wunifrac_mat: "/localdisk/home/kpin/github/test/work/e9/59902764c681208fc35e8c28e42679/core-metrics-diversity/weighted_unifrac_distance_matrix.tsv"
-  unifrac_mat: "/localdisk/home/kpin/github/test/work/e9/59902764c681208fc35e8c28e42679/core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv"
+  bray_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/04/0998ddd52091c984141b618756487b/core-metrics-diversity/bray_curtis_distance_matrix.tsv"
+  wunifrac_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/04/0998ddd52091c984141b618756487b/core-metrics-diversity/weighted_unifrac_distance_matrix.tsv"
+  unifrac_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/04/0998ddd52091c984141b618756487b/core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv"
 ---
 
 <style type="text/css">

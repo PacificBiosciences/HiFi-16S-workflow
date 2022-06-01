@@ -49,11 +49,11 @@ nextflow run main.nf --help
   required. For metadata TSV file, at least two columns named "sample_name" and
   "condition" to separate samples into different groups.
 
-  nextflow run main.nf --input samples.tsv --metadata metadata.tsv \
+  nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
   By default, sequences are first trimmed with cutadapt (higher rate compared to using DADA2
-  ) using the example command below. You can skip this by specifying "--skip_primer_trim"
+  ) using the example command below. You can skip this by specifying "--skip_primer_trim" 
   if the sequences are already trimmed. The primer sequences used are the F27 and R1492
   primers for full length 16S sequencing.
 
@@ -70,11 +70,13 @@ nextflow run main.nf --help
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 5)
   --min_asv_totalfreq    Total frequency of any ASV must be above this threshold
-                         across all samples to be retained (default 5)
-  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained (default 2)
+                         across all samples to be retained. Set this to 0 to disable filtering
+                         (default 5)
+  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained. 
+                      Set this to 0 to disable. (default 2)
   --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
-                         automatically select a cut-off above the minimum of the denoised
+                         automatically select a cut-off above the minimum of the denoised 
                          reads for >90% of the samples. This cut-off is stored in a file called
                          "rarefaction_depth_suggested.txt" file in the results folder
                          (default: null)
@@ -82,15 +84,17 @@ nextflow run main.nf --help
   --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default: 8)
   --cutadapt_cpu    Number of threads for primer removal using cutadapt (default: 16)
   --outdir    Output directory name (default: "results")
-  --vsearch_db  Location of VSEARCH database (e.g. silva-138-99-seqs.qza can be
+  --vsearch_db	Location of VSEARCH database (e.g. silva-138-99-seqs.qza can be
                 downloaded from QIIME database)
   --vsearch_tax    Location of VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
-  --silva_db   Location of Silva 138 database for taxonomy classification
+  --silva_db   Location of Silva 138 database for taxonomy classification 
   --gtdb_db    Location of GTDB r202 for taxonomy classification
   --refseq_db    Location of RefSeq+RDP database for taxonomy classification
   --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
                         removal) (default: trim with cutadapt)
+  --colorby    Columns in metadata TSV file to use for coloring the MDS plot
+               in HTML report (default: condition)
 ```
 
 To test the pipeline, run this example below. Note that the path of the database needs

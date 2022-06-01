@@ -71,6 +71,10 @@ def helpMessage() {
   """
 }
 
+// Show help message
+params.help = false
+if (params.help) exit 0, helpMessage()
+
 params.skip_primer_trim = false
 params.filterQ = 30
 params.min_len = 1000
@@ -124,9 +128,6 @@ params.dadaAssign_script = "$projectDir/scripts/dada2_assign_tax.R"
 // params.kraken2_db = "~/references/taxonomy_database/ncbi_bacteria_16S_k2db/"
 
 
-// Show help message
-params.help = false
-if (params.help) exit 0, helpMessage()
 
 log.info """
   Parameters set for pb-16S-nf pipeline for PacBio HiFi 16S
