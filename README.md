@@ -205,6 +205,16 @@ This process is done first at Species level, then at Genus level. In addition, i
 is assigned as "uncultured" or "metagenome", it will go through the iterative assignment
 process just like the unclassified ASVs.
 
+* Some species in MSA 1003 demo data are missing!
+
+If you run this pipeline by default with PacBio's publicly available
+192-plex replicates ATCC-MSA1003, some 0.02% bacteria may be missing depending on
+which replicates you use due to the default `min_asv_sample` and `min_asv_totalfreq`
+parameters. These bacteria may only have a few reads in 1/2 samples, so they're
+prone to getting filtered out. You can set the two parameters to 0 to disable
+filtering and the bacteria should pop out. However, in real dataset this 
+may result in more false-positives.
+
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 
 ARE PROVIDED "AS IS," WITH ALL FAULTS, WITH NO REPRESENTATIONS OR WARRANTIES 

@@ -1,10 +1,9 @@
 # TODO
 
+* Document all outputs and clean up workflow names
 * For Krona plot pip install, can we clone the repo locally and install from that
-* Phylo tree and PCoA and diversity analysis
 * Add LotuS2 for OTU-based analysis? Or just add a guide on GitHub
 * Allow using just VSEARCH result and make naive bayes optional
-* Clean up workflow names in main
 * Dockerize
 * Cluster ASV into OTUs using `https://docs.qiime2.org/2022.2/plugins/available/vsearch/cluster-features-open-reference/` 
 * See `https://github.com/benjjneb/dada2/issues/1164` for discussion on losing reads in CCS
@@ -41,3 +40,5 @@ to freeze it (avoiding risk of repo going down)
 * DONE: Document that cutadapt will orientate sequences making it usable for naive bayesian classifier and
   without that the results will be weird
 * DONE: Remove ASV in only one samples and less than 5 reads
+* DONE: Handle one sample workflow
+* DONE: Phylo tree and PCoA and diversity analysis

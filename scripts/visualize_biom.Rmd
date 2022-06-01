@@ -1,16 +1,19 @@
 ---
-title: "Visualizing 16S Community"
+title: "HiFi Full-length 16S Analysis Report"
 output: html_document
 params:
-  # biom: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/results_macrogen/results/feature-table-tax.biom"
-  merged_tax_tab_file: "/raw-data/khipin-data/16S/PRJNA774819_gut_bifidobacterium_SQII/work/7f/4b1d38b8176b16dfe953260cd44ffa/best_tax_merged_freq_tax.tsv"
-  metadata: "/home/kpin/synology_data/data/16S/PRJNA774819_gut_bifidobacterium_SQII/metadata.tsv"
-  sample_file: "/home/kpin/synology_data/data/16S/PRJNA774819_gut_bifidobacterium_SQII/samples.manifest"
-  dada2_qc: "/raw-data/khipin-data/16S/PRJNA774819_gut_bifidobacterium_SQII/work/b6/4360386495bf17faa26e24e8e7ec44/dada2_qc.tsv" 
-  reads_qc: "/home/kpin/synology_data/data/16S/PRJNA774819_gut_bifidobacterium_SQII/pb-16S_2022-5-31_besttax/results/reads_QC/all_samples_seqkit.readstats.tsv"
-  summarised_reads_qc: "/home/kpin/synology_data/data/16S/PRJNA774819_gut_bifidobacterium_SQII/pb-16S_2022-5-31_besttax/results/reads_QC/seqkit.summarised_stats.group_by_samples.tsv"
+  merged_tax_tab_file: "/localdisk/home/kpin/github/test/work/7e/065f9b7085e1b914af556bbed0e56e/best_tax_merged_freq_tax.tsv"
+  metadata: "/localdisk/home/kpin/github/test/test_metadata_2samples.tsv"
+  sample_file: "/localdisk/home/kpin/github/test/work/cf/00f2b8c63ac2349279371290a76dcf/samplefile.txt"
+  dada2_qc: "/localdisk/home/kpin/github/test/work/4d/d8b46b63747fad16c1c85869f9df8d/dada2_qc.tsv" 
+  reads_qc: "/localdisk/home/kpin/github/test/work/e2/2015fa3b18400eb15164ba55fb1b73/all_samples_seqkit.readstats.tsv"
+  summarised_reads_qc: "/localdisk/home/kpin/github/test/work/e2/2015fa3b18400eb15164ba55fb1b73/seqkit.summarised_stats.group_by_samples.tsv"
   cutadapt_qc: "none"
-  vsearch_tax_tab_file: "/raw-data/khipin-data/16S/PRJNA774819_gut_bifidobacterium_SQII/work/5f/7fbff95f62a8d82e901e1253409bdf/vsearch_merged_freq_tax.tsv"
+  vsearch_tax_tab_file: "/localdisk/home/kpin/github/test/work/63/1b82f427de9fc1759ffcd08abcb348/vsearch_merged_freq_tax.tsv"
+  colorby: "condition"
+  bray_mat: "/localdisk/home/kpin/github/test/work/e9/59902764c681208fc35e8c28e42679/core-metrics-diversity/bray_curtis_distance_matrix.tsv"
+  wunifrac_mat: "/localdisk/home/kpin/github/test/work/e9/59902764c681208fc35e8c28e42679/core-metrics-diversity/weighted_unifrac_distance_matrix.tsv"
+  unifrac_mat: "/localdisk/home/kpin/github/test/work/e9/59902764c681208fc35e8c28e42679/core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv"
 ---
 
 <style type="text/css">
@@ -44,6 +47,8 @@ dada2_qc <- dada2_qc[2:nrow(dada2_qc),, drop=FALSE]
 physeq_list <- list()
 
 mapping_file <- import_qiime_sample_data(mapfilename = params$sample_file)
+metadata <- import_qiime_sample_data(mapfilename = params$metadata)
+# phylotree <- read_tree(params$phylotree)
 
 # Reads QC
 reads_qc <- read_tsv(params$reads_qc, col_types=cols())
@@ -89,12 +94,12 @@ tax_tab_vsearch <- tax_table(tax_tab_vsearch)
 colnames(tax_tab_vsearch) <- c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
 tax_tab_vsearch <- tax_table(tax_tab_vsearch) %>% as("matrix") %>% as_tibble(rownames = "OTU")
 
-otu_tab <- otu_table(otu_tab, taxa_are_rows = TRUE)
-tax_tab <- tax_table(tax_tab)
-qiime2_8plex <- phyloseq(otu_tab, tax_tab)
+qiime2_8plex <- phyloseq(otu_table(otu_tab, taxa_are_rows = TRUE),
+                         # phy_tree(phylotree), 
+                         tax_table(tax_tab))
 
 # qiime2_8plex <- new_import_biom(params$biom)
-phyloseq <- merge_phyloseq(qiime2_8plex, mapping_file)
+phyloseq <- merge_phyloseq(qiime2_8plex, mapping_file, metadata)
 colnames(tax_table(phyloseq))= c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
 for (i in 1:ncol(tax_table(phyloseq))){
   tax_table(phyloseq)[, i] <- gsub(".*__(.*)", "\\1", tax_table(phyloseq)[, i])
@@ -166,27 +171,36 @@ class_gen_vsearch <-  tax_tab_vsearch %>% filter(Genus != "")
 class_spec_uncultured_vsearch <- tax_tab_vsearch %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
 class_gen_uncultured_vsearch <- tax_tab_vsearch %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
 
+# ASV per sample
+asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
 ```
 
 ## Summary QC statistics
 
-* Samples number: `r length(sample_data(physeq)$sample.id)`
+* Samples number: `r length(mapping_file$sample.id)`
 * Final samples number post-DADA2: `r length(sample_final)`
 * Missing samples (Not enough reads, do not pass QC, etc): `r removed_sample`
 * Total number of CCS reads before filtering and primers trimming: `r nrow(reads_qc)`
 * Was primers trimmed prior to DADA2? `r paste0(" ", trim_cutadapt)`
-* Total number of reads after quality filtering: `r if (skip_cutadapt != "Yes") {sum(all_read_count$input_reads)} else {sum(as.numeric(dada2_qc$input))}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 2)*100, "%")} else {paste0(round(sum(as.numeric(dada2_qc$input))/nrow(reads_qc), 4), "%")}`)
+* Total number of reads after quality filtering: `r if (skip_cutadapt != "Yes") {sum(all_read_count$input_reads)} else {sum(as.numeric(dada2_qc$input))}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 4)*100, "%")} else {paste0(round(sum(as.numeric(dada2_qc$input))/nrow(reads_qc), 4)*100, "%")}`)
 * Total number of reads after primers trimming (DADA2 input): `r if (skip_cutadapt != "Yes") {sum(all_read_count$demuxed_reads)} else {paste0("Skipped cutadapt trimming")}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 4)*100, "%")} else {paste0("Skipped cutadapt trimming")}`)
 * Total number of ASVs found: `r total_asv`
+* Average number of ASVs per sample: `r asv_persample`
 * Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 4)*100`% of all input reads)
+
+### Classification using Naive Bayes classifier with SILVA, GTDB and RefSeq + RDP
+
 * ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 4)*100`%)
 * ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 4)*100`%)
 * ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 4)*100`%)
 * ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 4)*100`%)
-* ASVs classified at Species level (VSEARCH with SILVA only): `r nrow(class_spec_vsearch)` (`r round(nrow(class_spec_vsearch)/total_asv, 4)*100`%)
-* ASVs classified at Species level (Excluding metagenome/uncultured entries, VSEARCH with SILVA only): `r nrow(class_spec_uncultured_vsearch)` (`r round(nrow(class_spec_uncultured_vsearch)/total_asv, 4)*100`%)
-* ASVs classified at Genus level (VSEARCH with SILVA only): `r nrow(class_gen_vsearch)` (`r round(nrow(class_gen_vsearch)/total_asv, 4)*100`%)
-* ASVs classified at Genus level (Excluding metagenome/uncultured entries, VSEARCH with SILVA only): `r nrow(class_gen_uncultured_vsearch)` (`r round(nrow(class_gen_uncultured_vsearch)/total_asv, 4)*100`%)
+
+### Classification using VSEARCH with SILVA only
+
+* ASVs classified at Species level: `r nrow(class_spec_vsearch)` (`r round(nrow(class_spec_vsearch)/total_asv, 4)*100`%)
+* ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured_vsearch)` (`r round(nrow(class_spec_uncultured_vsearch)/total_asv, 4)*100`%)
+* ASVs classified at Genus level: `r nrow(class_gen_vsearch)` (`r round(nrow(class_gen_vsearch)/total_asv, 4)*100`%)
+* ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured_vsearch)` (`r round(nrow(class_gen_uncultured_vsearch)/total_asv, 4)*100`%)
 
 ## Overall reads filtering and number of full-length reads
 * Full-length reads are defined as reads with both F27 and R1492 primers
@@ -255,7 +269,64 @@ datatable(dada2_qc,
           ))
 ```
 
-## Taxonomy table
+## Top Taxa and Plots
+
+* For interactive view, use the Emperor QZV output from QIIME2 in `results/core-metrics-diversity` folder with QIIME2 View
+* Note that if the distances between all samples are zero for a specific method, the plots will not be shown.
+
+### Bray-Curtis MDS plot
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+# Calculate distance matrix
+iDist <- read_tsv(params$bray_mat)
+# Empty matrix (one sample), don't do anything
+if (! is_empty(iDist)){
+  iDist <- as.dist(iDist[, 2:ncol(iDist)])
+  # Calculate ordination
+  # If all samples are identical, don't do anything!
+  if(sum(iDist) != 0){
+    iMDS  <- ordinate(phyloseq, "MDS", distance=iDist)
+    ## Make plot
+    plot_ordination(phyloseq, iMDS, color=params$colorby, title = "Bray-Curtis MDS")
+  } else {
+    print("All samples have distances of zero in Bray-Curtis matrix")
+  }
+} else {
+    print("Bray-Curtis matrix is empty (Did you process only one sample?)")
+}
+```
+
+### Weighted and Unweighted Unifrac MDS plot
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+# Calculate distance matrix
+iDist <- read_tsv(params$wunifrac_mat)
+if (! is_empty(iDist)) {
+  iDist <- as.dist(iDist[, 2:ncol(iDist)])
+  if(sum(iDist) != 0){
+    iMDS  <- ordinate(phyloseq, "MDS", distance=iDist)
+    plot_ordination(phyloseq, iMDS, color=params$colorby, title = "Weighted Unifrac MDS")
+  } else {
+    print("All samples have distances of zero in weighted Unifrac matrix")
+  }
+} else {
+    print("Weighted unifrac matrix is empty (Did you process only one sample?)")
+}
+
+iDist2 <- read_tsv(params$unifrac_mat)
+if (! is_empty(iDist2)){
+  iDist2 <- as.dist(iDist2[, 2:ncol(iDist2)])
+  #Calculate ordination
+  if(sum(iDist2) != 0){
+    iMDS2  <- ordinate(phyloseq, "MDS", distance=iDist2)
+    plot_ordination(phyloseq, iMDS2, color=params$colorby, title = "Unweighted Unifrac MDS")
+  } else {
+    print("All samples have distances of zero in unweighted Unifrac matrix")
+  }
+} else {
+  print("Unweighted unifrac matrix is empty (Did you process only one sample?)")
+}
+
+```
+
 ### Top 50 ASVs
 ``` {r, echo=FALSE}
 vis_tab <- tax_tab %>% inner_join(otu_tab, by="OTU")

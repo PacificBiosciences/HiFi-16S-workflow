@@ -43,8 +43,10 @@ def helpMessage() {
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 5)
   --min_asv_totalfreq    Total frequency of any ASV must be above this threshold
-                         across all samples to be retained (default 5)
-  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained (default 2)
+                         across all samples to be retained. Set this to 0 to disable filtering
+                         (default 5)
+  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained. 
+                      Set this to 0 to disable. (default 2)
   --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
                          automatically select a cut-off above the minimum of the denoised 
@@ -64,6 +66,8 @@ def helpMessage() {
   --refseq_db    Location of RefSeq+RDP database for taxonomy classification
   --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
                         removal) (default: trim with cutadapt)
+  --colorby    Columns in metadata TSV file to use for coloring the MDS plot
+               in HTML report (default: condition)
   """
 }
 
@@ -71,8 +75,17 @@ params.skip_primer_trim = false
 params.filterQ = 30
 params.min_len = 1000
 params.max_len = 1600
-params.min_asv_totalfreq = 5
-params.min_asv_sample = 2
+params.colorby = "condition"
+params.skip_phylotree = false
+n_sample=file(params.input).countLines() - 1
+if (n_sample == 1) {
+  params.min_asv_totalfreq = 0
+  params.min_asv_sample = 0
+  println("Only 1 sample. min_asv_sample and min_asv_totalfreq set to 0.")
+} else {
+  params.min_asv_totalfreq = 5
+  params.min_asv_sample = 2
+}
 
 if (params.skip_primer_trim) {
   params.front_p = 'none'
@@ -118,12 +131,15 @@ if (params.help) exit 0, helpMessage()
 log.info """
   Parameters set for pb-16S-nf pipeline for PacBio HiFi 16S
   =========================================================
+  Number of samples in samples TSV: $n_sample
   Filter input reads above Q: $params.filterQ
+  Trim primers with cutadapt: $trim_cutadapt
   Minimum amplicon length filtered in DADA2: $params.min_len
   Maximum amplicon length filtered in DADA2: $params.max_len
-  Trim primers with cutadapt: $trim_cutadapt
   maxEE parameter for DADA2 filterAndTrim: $params.max_ee
   Pooling method for DADA2 denoise process: $params.pooling_method
+  Minimum number of samples required to keep any ASV: $params.min_asv_sample
+  Minimum number of reads required to keep any ASV: $params.min_asv_totalfreq 
   Taxonomy sequence database for VSEARCH: $params.vsearch_db
   Taxonomy annotation database for VSEARCH: $params.vsearch_tax
   VSEARCH maxreject: $params.maxreject
@@ -397,14 +413,32 @@ process dada2_denoise {
     --p-n-threads $task.cpus \
     --p-pooling-method \'$params.pooling_method\'
 
-  # Filter ASVs and sequences
-  qiime feature-table filter-features \
-    --i-table dada2-ccs_table.qza \
-    --p-min-frequency $params.min_asv_totalfreq \
-    --p-min-samples $params.min_asv_sample \
-    --p-filter-empty-samples \
-    --o-filtered-table dada2-ccs_table_filtered.qza
-
+  if [ $params.min_asv_sample -gt 0 ] && [ $params.min_asv_totalfreq -gt 0 ]
+  then
+    # Filter ASVs and sequences
+    qiime feature-table filter-features \
+      --i-table dada2-ccs_table.qza \
+      --p-min-frequency $params.min_asv_totalfreq \
+      --p-min-samples $params.min_asv_sample \
+      --p-filter-empty-samples \
+      --o-filtered-table dada2-ccs_table_filtered.qza
+  elif [ $params.min_asv_sample -gt 0 ] && [ $params.min_asv_totalfreq -eq 0 ]
+  then
+    qiime feature-table filter-features \
+      --i-table dada2-ccs_table.qza \
+      --p-min-samples $params.min_asv_sample \
+      --p-filter-empty-samples \
+      --o-filtered-table dada2-ccs_table_filtered.qza
+  elif [ $params.min_asv_sample -eq 0 ] && [ $params.min_asv_totalfreq -gt 0 ]
+  then
+    qiime feature-table filter-features \
+      --i-table dada2-ccs_table.qza \
+      --p-min-frequency $params.min_asv_totalfreq \
+      --p-filter-empty-samples \
+      --o-filtered-table dada2-ccs_table_filtered.qza
+  else
+    mv dada2-ccs_table.qza dada2-ccs_table_filtered.qza
+  fi
   qiime feature-table filter-seqs \
     --i-data dada2-ccs_rep.qza \
     --i-table dada2-ccs_table_filtered.qza \
@@ -416,6 +450,7 @@ process dada2_denoise {
   mv dna-sequences.fasta dada2_ASV.fasta
   """
 }
+
 
 // Assign taxonomies to SILVA, GTDB and RefSeq using DADA2
 // assignTaxonomy function based on Naive Bayes classifier
@@ -473,7 +508,7 @@ process dada2_qc {
   path "dada2_table.qzv", emit: dada2_table
   path "stats.tsv", emit: dada2_stats_tsv
   path "dada2_qc.tsv", emit: dada2_qc_tsv
-  env(rarefaction_d), emit: rarefaction_depth
+  env(int_rarefaction_d), emit: rarefaction_depth
   path "rarefaction_depth_suggested.txt"
 
   script:
@@ -485,24 +520,109 @@ process dada2_qc {
     --o-visualization dada2_table.qzv \
     --m-sample-metadata-file $metadata
 
+  qiime tools export --input-path dada2_table.qzv \
+    --output-path dada2_table_summary
+
   qiime tools export --input-path $asv_stats \
     --output-path ./
+
   # Get number of reads for ASV covering 90% of samples
-  number=`bat stats.tsv | tail -n+3 | cut -f7 | sort | wc -l`
+  number=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | wc -l`
   ninety=0.9
-  # +2 to account for the header
-  # Handle single sample
-  result=`echo "(\$number * \$ninety) + 2" | bc -l` 
-  if [ \${result%%.*} == 2 ];
+  # Handle single sample and 2 samples
+  if [ \${number} == 1 ];
   then
-    result=3
+    result=1
+  elif [ \${number} == 2 ];
+  then
+    result=2
+  else
+    result=`echo "(\$number * \$ninety)" | bc -l` 
   fi
-  rarefaction_d=`head -n \${result%%.*} stats.tsv | tail -n+3 | tail -1 | cut -f6`
-  echo \${rarefaction_d} > rarefaction_depth_suggested.txt
+  rarefaction_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
+    head -n \${result%%.*} | tail -n1 | cut -f2 -d,`
+  int_rarefaction_d=\${rarefaction_d%%.*}
+  echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
 
   qiime tools export --input-path dada2_stats.qzv \
     --output-path ./dada2_stats
   mv dada2_stats/metadata.tsv dada2_qc.tsv
+  """
+}
+
+process qiime2_phylogeny_diversity {
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  publishDir "$params.outdir/results/phylogeny_diversity"
+  label 'cpu8' 
+
+  input:
+  path metadata
+  path asv_seq
+  path asv_freq
+  val(rarefaction_depth)
+
+  output:
+  path "*.qza"
+  path "core-metrics-diversity"
+  path "phylotree_mafft_rooted.nwk", emit:qiime2_tree
+  path "core-metrics-diversity/bray_curtis_distance_matrix.tsv", emit:bray_mat
+  path "core-metrics-diversity/weighted_unifrac_distance_matrix.tsv", emit:wunifrac_mat
+  path "core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv", emit:unifrac_mat
+
+  script:
+  if (n_sample > 1)
+  """
+  qiime phylogeny align-to-tree-mafft-fasttree \
+    --p-n-threads $task.cpus \
+    --i-sequences $asv_seq \
+    --o-alignment mafft_alignment.qza \
+    --o-masked-alignment mafft_alignment_masked.qza \
+    --o-tree phylotree_mafft_unrooted.qza \
+    --o-rooted-tree phylotree_mafft_rooted.qza
+
+  qiime tools export --input-path phylotree_mafft_rooted.qza \
+    --output-path ./
+  mv tree.nwk phylotree_mafft_rooted.nwk
+
+  qiime diversity core-metrics-phylogenetic \
+    --p-n-jobs-or-threads $task.cpus \
+    --i-phylogeny phylotree_mafft_rooted.qza \
+    --i-table $asv_freq \
+    --m-metadata-file $metadata \
+    --p-sampling-depth $rarefaction_depth \
+    --output-dir ./core-metrics-diversity
+
+  # Export various matrix for plotting later
+  qiime tools export --input-path ./core-metrics-diversity/bray_curtis_distance_matrix.qza \
+    --output-path ./core-metrics-diversity
+  mv ./core-metrics-diversity/distance-matrix.tsv \
+    ./core-metrics-diversity/bray_curtis_distance_matrix.tsv
+  qiime tools export --input-path ./core-metrics-diversity/weighted_unifrac_distance_matrix.qza \
+    --output-path ./core-metrics-diversity
+  mv ./core-metrics-diversity/distance-matrix.tsv \
+    ./core-metrics-diversity/weighted_unifrac_distance_matrix.tsv
+  qiime tools export --input-path ./core-metrics-diversity/unweighted_unifrac_distance_matrix.qza \
+    --output-path ./core-metrics-diversity
+  mv ./core-metrics-diversity/distance-matrix.tsv \
+    ./core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv
+  """
+  else
+  """
+  qiime phylogeny align-to-tree-mafft-fasttree \
+    --p-n-threads $task.cpus \
+    --i-sequences $asv_seq \
+    --o-alignment mafft_alignment.qza \
+    --o-masked-alignment mafft_alignment_masked.qza \
+    --o-tree phylotree_mafft_unrooted.qza \
+    --o-rooted-tree phylotree_mafft_rooted.qza
+
+  qiime tools export --input-path phylotree_mafft_rooted.qza \
+    --output-path ./
+  mv tree.nwk phylotree_mafft_rooted.nwk
+  mkdir ./core-metrics-diversity
+  touch ./core-metrics-diversity/bray_curtis_distance_matrix.tsv \
+    ./core-metrics-diversity/weighted_unifrac_distance_matrix.tsv \
+    ./core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv
   """
 }
 
@@ -644,6 +764,10 @@ process html_rep {
   path summarised_reads_qc
   path cutadapt_summary_qc
   path vsearch_tax_tsv
+  path bray_mat
+  path unifrac_mat
+  path wunifrac_mat
+  val(colorby)
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -652,7 +776,7 @@ process html_rep {
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat"), output_dir="./")'
   """
 }
 
@@ -671,6 +795,10 @@ process html_rep_skip_cutadapt {
   path summarised_reads_qc
   val(cutadapt_summary_qc)
   path vsearch_tax_tsv
+  path bray_mat
+  path unifrac_mat
+  path wunifrac_mat
+  val(colorby)
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -679,7 +807,7 @@ process html_rep_skip_cutadapt {
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat"), output_dir="./")'
   """
 }
 
@@ -708,7 +836,7 @@ process krona_plot {
 
 }
 
-workflow qiime2 {
+workflow pb16S {
   sample_file = channel.fromPath(params.input)
     .splitCsv(header: ['sample', 'fastq'], skip: 1, sep: "\t")
     .map{ row -> tuple(row.sample, file(row.fastq)) }
@@ -740,6 +868,8 @@ workflow qiime2 {
   demux_summarize(import_qiime2.out)
   dada2_denoise(import_qiime2.out)
   dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
+  qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
+      dada2_denoise.out.asv_freq, dada2_qc.out.rarefaction_depth)
   dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
@@ -749,16 +879,20 @@ workflow qiime2 {
     html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 
         collect_QC_readstats, collect_QC_summarised_sample_stats,
-        cutadapt_summary, class_tax.out.tax_freq_tab_tsv)
+        cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
+        qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
+        params.colorby)
   } else {
     html_rep(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 
         collect_QC_readstats, collect_QC_summarised_sample_stats,
-        cutadapt_summary, class_tax.out.tax_freq_tab_tsv)
+        cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
+        qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
+        params.colorby)
   }
   krona_plot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza)
 }
 
 workflow {
-  qiime2()
+  pb16S()
 }
