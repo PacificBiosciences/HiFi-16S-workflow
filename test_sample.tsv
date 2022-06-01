@@ -1,2 +1,2 @@
 sample-id	absolute-filepath
-test_data	./test_data/test_100_reads.fastq
+test_data	/localdisk/home/kpin/github/test/test_data/test_100_reads.fastq
