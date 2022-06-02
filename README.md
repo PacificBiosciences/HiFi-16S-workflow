@@ -201,13 +201,17 @@ This pipeline uses 3 databases to classify the ASVs (requiring a minimum bootstr
 the minBoot parameter) and the priority of assignment
 is Silva 138, followed by GTDB r202, then lastly RefSeq + RDP. This means for example
 if an ASV is not assigned at Species level using Silva, it will check if it can be assigned
-with GTDB. This ensure we assign as many ASVs as possible. There is also a VSEARCH
-taxonomy classification using Silva database only in the file called `results/vsearch_merged_freq_tax.tsv`
-that may work well in some cases as an alternative.
+with GTDB. This ensure we assign as many ASVs as possible. 
 
 This process is done first at Species level, then at Genus level. In addition, if any ASV
 is assigned as "uncultured" or "metagenome", it will go through the iterative assignment
 process just like the unclassified ASVs.
+
+There is also a VSEARCH taxonomy classification using Silva database only in the file called 
+`results/vsearch_merged_freq_tax.tsv` that may work better in some cases. The final 
+report will contain statistics from either types of assignment. If you notice a large
+discrepancy, it can be because one method fail to assign a large amount of ASVs from the
+same genus/species. This is likely a database-related bias.
 
 * Some species in MSA 1003 demo data are missing!
 
