@@ -28,6 +28,7 @@ After installing Nextflow and `mamba`(Optional but recommended), clone the repos
 
 ```
 git clone https://github.com/proteinosome/pb-16S-nf.git
+cd pb-16S-nf
 ```
 
 This repository contains a set of small test data as well as example samples and metadata
@@ -98,11 +99,19 @@ nextflow run main.nf --help
 ```
 
 To test the pipeline, run this example below. Note that the path of the database needs
-to be changed to the location on your server. Conda environment will by default be created at 
+to be changed to their respective locations on your server. In addition, please change the
+path on "test_sample.tsv" to point to the correct absolute location of the test dataset
+(You can find it by typing `readlink -f test_data/test_1000_reads.fastq.gz` when you're in
+the cloned pb-16S-nf folder). Conda environment will by default be created at 
 `$HOME/nf_conda` folder unless changed in the `nextflow.config` file. Once the conda environment
 is created it will be reused by any future run.
 
 ```
+# Find the path of test dataset and replace the path in test_sample.tsv
+readlink -f test_data/test_1000_reads.fastq.gz
+
+# Remember to change "/path/to//xxx" to point at the correct location of 
+# the databases
 nextflow run main.nf --input test_sample.tsv \
     --metadata test_metadata.tsv -profile conda \
     --dada2_cpu 32 --vsearch_cpu 32 --outdir results \
@@ -127,25 +136,22 @@ labels in `nextflow.config` and can be changed according to your need.
 
 Pipeline is still under active development. The nextflow.config file by default will 
 generate workflow DAG and resources report to help benchmarking the resources
-required.
+required. See the `report_results` folder created after the pipeline finishes running 
+for DAG and resources report.
 
 ## Outputs
-In the output folder, you will find many useful results. In the `results` folder,
-there is a HTML file named `visualize_biome.html` that provides an overview report
-of the 16S community with the taxonomy tables generated for filtering in web browser.
-The HTML file in `krona_html` can be opened directly in the browser for Krona plot
-visualization of the community. All ASV sequences in FASTA format can be found
-in the folder `dada2` as `dada2_ASV.fasta`.
-
-All the files ending with `.qzv` extension can be
-opened in [QIIME 2 View](https://view.qiime2.org/) directly for interactive 
-visualization, e.g. `taxa_barplot.qzv` for taxonomy barplot. For advanced users,
-`merged_freq_tax.tsv` contains the OTU count matrix that can be loaded into any
-language of choice for further processing or plots. You may also import the
-BIOM format file `feature-table-tax.biom` with many packages such as the popular
-`phyloseq`.
+Outputs are documented [here].(https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md)
 
 ## Frequently asked questions (FAQ)
+* Can I restart the pipeline?
+
+Yes! Nextflow pipeline can be resumed after interruption by adding the `-resume` option 
+in the `nextflow run` command when you run the pipeline. Nextflow is smart enough to not rerun
+any step if it does not need to. For example, if you want to manually provide the 
+rarefaction/sampling depth after the pipeline finishes, rerun by adding 
+`-resume --rarefaction_depth 5000` and only the steps that uses sampling/rarefaction depth will rerun.
+Of course, any step downstream of those will also rerun.
+
 * Why `cutadapt`?
 
 The naive Bayes classified in QIIME 2 requires the ASVs to be in the same sequence orientation.
