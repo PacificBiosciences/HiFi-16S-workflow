@@ -1,4 +1,4 @@
-# pb-16S-nf Pipeline using QIIME 2
+# HiFi Full-length 16S analysis with pb-16S-nf
 
 ## Workflow overview and output
 This Nextflow pipeline is designed to process PacBio HiFi full-length 16S data into a set of high
