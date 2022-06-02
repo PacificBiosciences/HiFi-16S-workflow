@@ -140,7 +140,7 @@ required. See the `report_results` folder created after the pipeline finishes ru
 for DAG and resources report.
 
 ## Outputs
-Outputs are documented [here].(https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md)
+Outputs are documented [here](https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md)
 
 ## Frequently asked questions (FAQ)
 * Can I restart the pipeline?
