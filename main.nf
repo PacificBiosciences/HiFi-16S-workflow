@@ -468,6 +468,7 @@ process dada2_assignTax {
   output:
   path "best_tax.qza", emit:best_nb_tax_qza
   path "best_taxonomy.tsv", emit: best_nb_tax
+  path "best_taxonomy_withDB.tsv"
   path "best_tax_merged_freq_tax.tsv", emit: best_nb_tax_tsv
 
   script:
@@ -642,20 +643,12 @@ process dada2_rarefaction {
   path "*"
 
   script:
-  if( !params.rarefaction_depth )
-    """
-    qiime diversity alpha-rarefaction --i-table $asv_freq \
-      --m-metadata-file $metadata \
-      --o-visualization alpha-rarefaction-curves.qzv \
-      --p-min-depth 10 --p-max-depth $rarefaction_depth
-    """
-  else
-    """
-    qiime diversity alpha-rarefaction --i-table $asv_freq \
-      --m-metadata-file $metadata \
-      --o-visualization alpha-rarefaction-curves.qzv \
-      --p-min-depth 10 --p-max-depth $params.rarefaction_depth
-    """
+  """
+  qiime diversity alpha-rarefaction --i-table $asv_freq \
+    --m-metadata-file $metadata \
+    --o-visualization alpha-rarefaction-curves.qzv \
+    --p-min-depth 10 --p-max-depth $rarefaction_depth
+  """
 }
 
 // Classify taxonomy and export table
@@ -885,9 +878,16 @@ workflow pb16S {
   demux_summarize(import_qiime2.out)
   dada2_denoise(import_qiime2.out)
   dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
-  qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
-      dada2_denoise.out.asv_freq, dada2_qc.out.rarefaction_depth)
-  dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
+  if( params.rarefaction_depth > 0 ){
+    rd = params.rarefaction_depth
+    qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
+        dada2_denoise.out.asv_freq, rd)
+    dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, rd)
+  } else {
+    qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
+        dada2_denoise.out.asv_freq, dada2_qc.out.rarefaction_depth)
+    dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
+  }
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   export_biom(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)

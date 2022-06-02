@@ -81,6 +81,7 @@ rownames(final_spec) <- otu_id
 
 # For each row, look for the deepest level assigned and assign confidence value
 to_save <- data.frame()
+to_save2 <- data.frame()
 for (i in 1:nrow(final_spec)){
   row <- final_spec[i, ]
   all_na <- which(is.na(row))
@@ -106,10 +107,16 @@ for (i in 1:nrow(final_spec)){
     "Taxon" = paste(
       paste(c("d__", "p__", "c__", "o__", "f__", "g__", "s__"), c(row[, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus")], paste(row[, "Genus"], row[, "Species"], sep=" ")), sep = ""), 
       collapse = "; "),
-    "Confidence" = conf
+    "Confidence" = conf,
+    "Assignment Database" = row['Assignment']
   )
-  to_save <- rbind(to_save, tosave_row)
+  to_save <- rbind(to_save, tosave_row[, 1:3])
+  to_save2 <- rbind(to_save2, tosave_row)
 }
 
 write.table(to_save, "best_taxonomy.tsv", quote = FALSE,
             sep = "\t",row.names = FALSE, col.names = c("Feature ID", "Taxon", "Confidence"))
+
+write.table(to_save2, "best_taxonomy_withDB.tsv", quote = FALSE,
+           sep = "\t",row.names = FALSE, 
+           col.names = c("Feature ID", "Taxon", "Confidence", "Assignment Database"))
