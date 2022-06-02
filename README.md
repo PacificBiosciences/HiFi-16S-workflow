@@ -7,6 +7,12 @@ through the `QIIME 2 framework` for interactive plotting, but also generates a H
 the important statistics and top taxonomies for the 16S communities. The outputs and stages of this pipeline 
 are documented [here](https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md).
 
+We provide an example of report generated using this pipeline based on 8 replicates from the ATCC MSA-1003 
+mock community sequenced on Sequel II. Right click this 
+[link](https://github.com/proteinosome/pb-16S-nf/raw/main/examples/results/visualize_biom.html) and save it on 
+your computer, then double click to open it. All other important outputs from the pipeline are available
+in the [`examples`](https://github.com/proteinosome/pb-16S-nf/tree/main/examples) folder when you clone this repository.
+
 ## Installation and usage
 This pipeline runs using Nextflow (Version 22 and above). All softwares dependencies are
 managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
