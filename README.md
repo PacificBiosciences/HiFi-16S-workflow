@@ -1,4 +1,11 @@
-# pb-16S-analysis Pipeline using QIIME 2
+# pb-16S-nf Pipeline using QIIME 2
+
+## Workflow overview and output
+This Nextflow pipeline is designed to process PacBio HiFi full-length 16S data into a set of high
+quality amplicon sequence variants (ASVs) using `QIIME 2` and `DADA2`. It provides a set of visualization 
+through the `QIIME 2 framework` for interactive plotting, but also generates a HTML report to report
+the important statistics and top taxonomies for the 16S communities. The outputs and stages of this pipeline 
+are documented [here](https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md).
 
 ## Installation and usage
 This pipeline runs using Nextflow (Version 22 and above). All softwares dependencies are
@@ -138,9 +145,6 @@ Pipeline is still under active development. The nextflow.config file by default 
 generate workflow DAG and resources report to help benchmarking the resources
 required. See the `report_results` folder created after the pipeline finishes running 
 for DAG and resources report.
-
-## Workflow overview and output
-Outputs and the different stages of this pipeline are documented [here](https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md).
 
 ## Frequently asked questions (FAQ)
 * Can I restart the pipeline?
