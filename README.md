@@ -139,8 +139,8 @@ generate workflow DAG and resources report to help benchmarking the resources
 required. See the `report_results` folder created after the pipeline finishes running 
 for DAG and resources report.
 
-## Outputs
-Outputs are documented [here](https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md)
+## Workflow overview and output
+Outputs and the different stages of this pipeline are documented [here](https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md).
 
 ## Frequently asked questions (FAQ)
 * Can I restart the pipeline?
