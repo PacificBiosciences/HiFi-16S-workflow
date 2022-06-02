@@ -2,18 +2,18 @@
 title: "HiFi Full-length 16S Analysis Report"
 output: html_document
 params:
-  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/b3/09ca532e6aaca6ae51addf4391e574/best_tax_merged_freq_tax.tsv"
-  metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/metadata.tsv"
-  sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/52/6bb3004d6824650c639555218dd51f/samplefile.txt"
-  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/b3/3a1d7b2c27607602e5b49e8a1db95d/dada2_qc.tsv" 
-  reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/22/8101664411a0afcc3e10fc57ae27d0/all_samples_seqkit.readstats.tsv"
-  summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/22/8101664411a0afcc3e10fc57ae27d0/seqkit.summarised_stats.group_by_samples.tsv"
+  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/e6/780cbb51343ad6a296c8513937f4d1/best_tax_merged_freq_tax.tsv"
+  metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/macrogen_metadata.tsv"
+  sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/05/3ee15f598c0513df6860d6696351a1/samplefile.txt"
+  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/58/d5f8550d1cd5f0249b50d5cb4e6c51/dada2_qc.tsv" 
+  reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/b3/68b3cb52af795013be0de09399ce07/all_samples_seqkit.readstats.tsv"
+  summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/b3/68b3cb52af795013be0de09399ce07/seqkit.summarised_stats.group_by_samples.tsv"
   cutadapt_qc: "none"
-  vsearch_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/de/f87cc27131d9f5996755e4b7c9ef6d/vsearch_merged_freq_tax.tsv"
+  vsearch_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/16/b8a1c18524f00c837258dc8d6e71af/vsearch_merged_freq_tax.tsv"
   colorby: "condition"
-  bray_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/04/0998ddd52091c984141b618756487b/core-metrics-diversity/bray_curtis_distance_matrix.tsv"
-  wunifrac_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/04/0998ddd52091c984141b618756487b/core-metrics-diversity/weighted_unifrac_distance_matrix.tsv"
-  unifrac_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/04/0998ddd52091c984141b618756487b/core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv"
+  bray_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/35/d873756c9b50ea805a92e26aa17bb1/core-metrics-diversity/bray_curtis_distance_matrix.tsv"
+  wunifrac_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/35/d873756c9b50ea805a92e26aa17bb1/core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv"
+  unifrac_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/35/d873756c9b50ea805a92e26aa17bb1/core-metrics-diversity/weighted_unifrac_distance_matrix.tsv"
 ---
 
 <style type="text/css">
@@ -92,21 +92,30 @@ tax_tab_vsearch <- str_split(tax_tsv_vsearch$Taxon, ";", simplify = TRUE)
 rownames(tax_tab_vsearch) <- tax_tsv_vsearch$id
 tax_tab_vsearch <- tax_table(tax_tab_vsearch)
 colnames(tax_tab_vsearch) <- c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
+qiime2_8plex_vsearch <- phyloseq(otu_table(otu_tab, taxa_are_rows = TRUE),
+                         # phy_tree(phylotree), 
+                         tax_tab_vsearch)
+
 tax_tab_vsearch <- tax_table(tax_tab_vsearch) %>% as("matrix") %>% as_tibble(rownames = "OTU")
 
 qiime2_8plex <- phyloseq(otu_table(otu_tab, taxa_are_rows = TRUE),
                          # phy_tree(phylotree), 
                          tax_table(tax_tab))
 
-# qiime2_8plex <- new_import_biom(params$biom)
 phyloseq <- merge_phyloseq(qiime2_8plex, mapping_file, metadata)
+phyloseq_vsearch <- merge_phyloseq(qiime2_8plex_vsearch, mapping_file, metadata)
 colnames(tax_table(phyloseq))= c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
 for (i in 1:ncol(tax_table(phyloseq))){
   tax_table(phyloseq)[, i] <- gsub(".*__(.*)", "\\1", tax_table(phyloseq)[, i])
   tax_table(phyloseq)[, i] <- gsub("_", " ", tax_table(phyloseq)[, i])
 }
+for (i in 1:ncol(tax_table(phyloseq_vsearch))){
+  tax_table(phyloseq_vsearch)[, i] <- gsub(".*__(.*)", "\\1", tax_table(phyloseq_vsearch)[, i])
+  tax_table(phyloseq_vsearch)[, i] <- gsub("_", " ", tax_table(phyloseq_vsearch)[, i])
+}
 
-physeq_list["Run 16S"] <- phyloseq
+physeq_list["besttax"] <- phyloseq
+physeq_list["vsearch"] <- phyloseq_vsearch
 
 merge_tab_spec <- tibble()
 merge_tab_genus <- tibble()
@@ -118,20 +127,27 @@ for (i in 1:length(physeq_list)){
   tax_tab <- tax_table(physeq) %>% as("matrix") %>% as_tibble(rownames = "OTU")
   otu_tab <- otu_table(physeq) %>% as("matrix") %>% as_tibble(rownames = "OTU")
   full_tab <- tax_tab %>% inner_join(otu_tab)
-  # Tidy table. Gather by sample first, then sum at species level
-  ## This was commented out on 19th May as I shifted to using DADA2 assignTax
-  ## If using QIIME to assign tax such as VSEARCH, uncomment this
-  # full_tab <- full_tab %>% 
-  #   gather(key = "Sample", value = "Reads", sample_data(physeq)$sample.id) %>% 
-  #   mutate(Genus = if_else(Genus == "", "Unclassified Genus", Genus),
-  #          Species = if_else(Species!="", Species,
-  #                            if_else(Genus == "Unclassified Genus", "Unclassified Genus and Species", paste0("Unclassified ", Genus  , " Species"))))
-  full_tab <- full_tab %>% 
-    gather(key = "Sample", value = "Reads", sample_data(physeq)$sample.id) %>% 
-    mutate(Genus = if_else(grepl("Unclassified", Genus), "Unclassified Genus", Genus),
-           Species = if_else(!grepl("Unclassified", Species), Species,
-                             if_else(Genus == "Unclassified Genus", "Unclassified Genus and Species", paste0("Unclassified ", Genus  , " Species"))))
   
+  if(type == "vsearch") {
+    full_tab <- full_tab %>%
+      gather(key = "Sample", value = "Reads", sample_data(physeq)$sample.id) %>%
+      mutate(Genus = if_else(Genus == "", "Unclassified Genus", Genus),
+             Species = if_else(Species!="", Species,
+                               if_else(Genus == "Unclassified Genus", 
+                                       "Unclassified Genus and Species", 
+                                       paste0("Unclassified ", Genus  , " Species"))))
+  } else {
+    
+    full_tab <- full_tab %>%
+      gather(key = "Sample", value = "Reads", sample_data(physeq)$sample.id) %>% 
+      mutate(Genus = if_else(grepl("Unclassified", Genus), 
+                             "Unclassified Genus", Genus),
+             Species = if_else(!grepl("Unclassified", Species), Species,
+                               if_else(grepl("Unclassified", Genus), 
+                                       "Unclassified Genus and Species", 
+                                       paste0("Unclassified ", Genus  , " Species"))))
+  }
+
   full_tab_spec <- full_tab %>% 
     group_by(Sample, Species) %>% 
     summarise(Abundance = sum(Reads)) %>% 
@@ -154,22 +170,26 @@ for (i in 1:length(physeq_list)){
   merge_tab_genus <- bind_rows(merge_tab_genus, full_tab_genus)
 }
 
-total_asv <- nrow(otu_table(phyloseq))
-class_spec <- tax_tab %>% filter(!grepl("Unclassified", Species))
-class_gen <-  tax_tab %>% filter(!grepl("Unclassified", Genus))
+total_asv <- nrow(otu_table(physeq_list[["besttax"]]))
+tab_besttax <- as_tibble(as.data.frame(tax_table(physeq_list[["besttax"]])), rownames="OTU")
+otu_besttax <- as_tibble(as.data.frame(otu_table(physeq_list[["besttax"]])), rownames="OTU")
+class_spec <- tab_besttax %>% filter(!grepl("Unclassified", Species))
+class_gen <-  tab_besttax %>% filter(!grepl("Unclassified", Genus))
 ## Commented out. If use QIIME 2 vsearch, uncomment
 # class_spec <- tax_tab %>% filter(Species != "")
 # class_gen <-  tax_tab %>% filter(Genus != "")
-class_spec_uncultured <- tax_tab %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
-class_gen_uncultured <- tax_tab %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
+class_spec_uncultured <- tab_besttax %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
+class_gen_uncultured <- tab_besttax %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
 
-class_spec_vsearch <- tax_tab_vsearch %>% filter(Species != "")
-class_gen_vsearch <-  tax_tab_vsearch %>% filter(Genus != "")
+tab_vsearch <- as_tibble(as.data.frame(tax_table(physeq_list[["vsearch"]])), rownames="OTU")
+otu_vsearch <- as_tibble(as.data.frame(otu_table(physeq_list[["vsearch"]])), rownames="OTU")
+class_spec_vsearch <- tab_vsearch %>% filter(Species != "")
+class_gen_vsearch <-  tab_vsearch %>% filter(Genus != "")
 ## Commented out. If use QIIME 2 vsearch, uncomment
 # class_spec <- tax_tab %>% filter(Species != "")
 # class_gen <-  tax_tab %>% filter(Genus != "")
-class_spec_uncultured_vsearch <- tax_tab_vsearch %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
-class_gen_uncultured_vsearch <- tax_tab_vsearch %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
+class_spec_uncultured_vsearch <- tab_vsearch %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
+class_gen_uncultured_vsearch <- tab_vsearch %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
 
 # ASV per sample
 asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
@@ -192,19 +212,19 @@ asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
 
 * ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 4)*100`%)
 * ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 4)*100`%)
-* Reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(phyloseq)[class_spec_uncultured$OTU,])/sum(otu_table(phyloseq)), 2)*100`%
+* Percentage reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_spec_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
 * ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 4)*100`%)
 * ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 4)*100`%)
-* Reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(phyloseq)[class_gen_uncultured$OTU,])/sum(otu_table(phyloseq)), 2)*100`%
+* Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_gen_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
 
 ### Classification using VSEARCH with SILVA only
 
 * ASVs classified at Species level: `r nrow(class_spec_vsearch)` (`r round(nrow(class_spec_vsearch)/total_asv, 4)*100`%)
 * ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured_vsearch)` (`r round(nrow(class_spec_uncultured_vsearch)/total_asv, 4)*100`%)
-* Reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(phyloseq)[class_spec_uncultured_vsearch$OTU,])/sum(otu_table(phyloseq)), 2)*100`%
+* Percentage reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["vsearch"]])[class_spec_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
 * ASVs classified at Genus level: `r nrow(class_gen_vsearch)` (`r round(nrow(class_gen_vsearch)/total_asv, 4)*100`%)
 * ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured_vsearch)` (`r round(nrow(class_gen_uncultured_vsearch)/total_asv, 4)*100`%)
-* Reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(phyloseq)[class_gen_uncultured_vsearch$OTU,])/sum(otu_table(phyloseq)), 2)*100`%
+* Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["vsearch"]])[class_gen_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
 
 ## Overall reads filtering and number of full-length reads
 * Full-length reads are defined as reads with both F27 and R1492 primers
@@ -331,9 +351,9 @@ if (! is_empty(iDist2)){
 
 ```
 
-### Top 50 ASVs
+### Top 50 ASVs with Naive Bayes Classifier
 ``` {r, echo=FALSE}
-vis_tab <- tax_tab %>% inner_join(otu_tab, by="OTU")
+vis_tab <- tab_besttax %>% inner_join(otu_besttax, by="OTU")
 count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
 rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
 mean_rel_abundance <- apply(rel_abundance, 1, mean)
@@ -343,23 +363,80 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
             position = 'top', clear = FALSE
           ))
 ```
-### Top 5 Classified Genus (Collapsed to species)
+### Top 10 Classified Genus (Collapsed to species) with Naive Bayes Classifier
+* Relative abundance is calculated by dividing the number of reads for each ASV to the
+total number of reads in each sample.
 ``` {r, echo=FALSE}
-top5_genus <- merge_tab_genus %>% 
+# Display top 10
+top10_genus <- merge_tab_genus %>% 
+  filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
   group_by(Genus) %>% 
-  summarise(mean_abun = mean(Abundance)) %>% 
-  top_n(5, wt = mean_abun) %>% 
-  arrange(desc(mean_abun)) %>% 
-  pull(Genus)
+  summarise("Mean supporting reads across samples" = round(mean(Abundance), 2),
+            "Mean relative abundance across samples" = round(mean(`Relative Abundance`), 2)) %>% 
+  top_n(10, wt = `Mean relative abundance across samples`) %>% 
+  arrange(desc(`Mean relative abundance across samples`)) 
 
-top5_gen_species <- vis_tab %>% 
+top10_gen_species <- vis_tab %>% 
   select(OTU, Genus, Species, sample_data(physeq)$sample.id) %>% 
-  filter(Genus %in% top5_genus) %>% 
+  filter(Genus %in% top10_genus$Genus) %>% 
   group_by(Genus, Species) %>% 
   summarise(across(sample_data(physeq)$sample.id, sum)) %>% 
-  ungroup()
+  ungroup() %>% 
+  arrange(factor(Genus, levels=top10_genus$Genus))
 
-datatable(top5_gen_species,
+datatable(top10_genus,
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+
+datatable(top10_gen_species,
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+```
+
+### Top 50 ASVs with VSEARCH + SILVA
+``` {r, echo=FALSE}
+vis_tab <- tab_vsearch %>% inner_join(otu_vsearch, by="OTU")
+count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
+rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
+mean_rel_abundance <- apply(rel_abundance, 1, mean)
+datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+```
+### Top 10 Classified Genus (Collapsed to species) with VSEARCH + SILVA
+* Relative abundance is calculated by dividing the number of reads for each ASV to the
+total number of reads in each sample.
+``` {r, echo=FALSE}
+# Display top 10
+top10_genus <- merge_tab_genus %>% 
+  filter(method=="vsearch", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
+  group_by(Genus) %>% 
+  summarise("Mean supporting reads across samples" = round(mean(Abundance), 2),
+            "Mean relative abundance across samples" = round(mean(`Relative Abundance`), 2)) %>% 
+  top_n(10, wt = `Mean relative abundance across samples`) %>% 
+  arrange(desc(`Mean relative abundance across samples`)) 
+
+top10_gen_species <- vis_tab %>% 
+  select(OTU, Genus, Species, sample_data(physeq)$sample.id) %>% 
+  filter(Genus %in% top10_genus$Genus) %>% 
+  group_by(Genus, Species) %>% 
+  summarise(across(sample_data(physeq)$sample.id, sum)) %>% 
+  ungroup() %>% 
+  arrange(factor(Genus, levels=top10_genus$Genus))
+
+datatable(top10_genus,
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+
+datatable(top10_gen_species,
           options = list(scrollX = TRUE), 
           filter = list(
             position = 'top', clear = FALSE
