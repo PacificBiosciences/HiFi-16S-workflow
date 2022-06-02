@@ -711,9 +711,11 @@ process export_biom {
   input:
   path asv_freq
   path tax_tsv
+  path tax_tsv_vsearch
 
   output:
   path "feature-table-tax.biom", emit:biom
+  path "feature-table-tax_vsearch.biom", emit:biom_vsearch
 
   script:
   """
@@ -726,6 +728,14 @@ process export_biom {
     -o feature-table-tax.biom \
     --observation-metadata-fp biom-taxonomy.tsv \
     --sc-separated taxonomy
+
+  sed 's/Feature ID/#OTUID/' $tax_tsv_vsearch | sed 's/Taxon/taxonomy/' | \
+    sed 's/Consensus/confidence/' > biom-taxonomy_vsearch.tsv
+
+  biom add-metadata -i asv_freq/feature-table.biom \
+    -o feature-table-tax_vsearch.biom \
+    --observation-metadata-fp biom-taxonomy_vsearch.tsv \
+    --sc-separated taxonomy
   """
 }
 
@@ -737,16 +747,22 @@ process barplot {
   input:
   path asv_tab
   path tax
+  path tax_vsearch
   path metadata
 
   output:
   path 'taxa_barplot.qzv'
+  path 'taxa_barplot_vsearch.qzv'
 
   script:
   """
   qiime taxa barplot --i-table $asv_tab --i-taxonomy $tax \
     --m-metadata-file $metadata \
     --o-visualization taxa_barplot.qzv
+
+  qiime taxa barplot --i-table $asv_tab --i-taxonomy $tax_vsearch \
+    --m-metadata-file $metadata \
+    --o-visualization taxa_barplot_vsearch.qzv
   """
 }
 
@@ -874,8 +890,8 @@ workflow pb16S {
   dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
   class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
   dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
-  export_biom(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax)
-  barplot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, metadata_file)
+  export_biom(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
+  barplot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
   if (params.skip_primer_trim){
     html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
         dada2_qc.out.dada2_qc_tsv, 

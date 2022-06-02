@@ -192,15 +192,19 @@ asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
 
 * ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 4)*100`%)
 * ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 4)*100`%)
+* Reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(phyloseq)[class_spec_uncultured$OTU,])/sum(otu_table(phyloseq)), 2)*100`%
 * ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 4)*100`%)
 * ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 4)*100`%)
+* Reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(phyloseq)[class_gen_uncultured$OTU,])/sum(otu_table(phyloseq)), 2)*100`%
 
 ### Classification using VSEARCH with SILVA only
 
 * ASVs classified at Species level: `r nrow(class_spec_vsearch)` (`r round(nrow(class_spec_vsearch)/total_asv, 4)*100`%)
 * ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured_vsearch)` (`r round(nrow(class_spec_uncultured_vsearch)/total_asv, 4)*100`%)
+* Reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(phyloseq)[class_spec_uncultured_vsearch$OTU,])/sum(otu_table(phyloseq)), 2)*100`%
 * ASVs classified at Genus level: `r nrow(class_gen_vsearch)` (`r round(nrow(class_gen_vsearch)/total_asv, 4)*100`%)
 * ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured_vsearch)` (`r round(nrow(class_gen_uncultured_vsearch)/total_asv, 4)*100`%)
+* Reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(phyloseq)[class_gen_uncultured_vsearch$OTU,])/sum(otu_table(phyloseq)), 2)*100`%
 
 ## Overall reads filtering and number of full-length reads
 * Full-length reads are defined as reads with both F27 and R1492 primers
