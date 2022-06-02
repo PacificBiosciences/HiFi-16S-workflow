@@ -1,0 +1,101 @@
+{
+  "tag": "Cutadapt report",
+  "schema_version": [0, 1],
+  "cutadapt_version": "3.7",
+  "python_version": "3.8.13",
+  "command_line_arguments": [
+    "-a",
+    "^AGRGTTYGATYMTGGCTCAG...AAGTCGTAACAAGGTARCY$",
+    "bc1007_bc1075.filterQ30.fastq.gz",
+    "-o",
+    "bc1007_bc1075.trimmed.fastq.gz",
+    "-j",
+    "16",
+    "--trimmed-only",
+    "--revcomp",
+    "-e",
+    "0.1",
+    "--json",
+    "bc1007_bc1075.cutadapt.report"
+  ],
+  "cores": 16,
+  "input": {
+    "path1": "bc1007_bc1075.filterQ30.fastq.gz",
+    "path2": null,
+    "paired": false
+  },
+  "read_counts": {
+    "input": 11389,
+    "filtered": {
+      "too_short": null,
+      "too_long": null,
+      "too_many_n": null,
+      "too_many_expected_errors": null,
+      "casava_filtered": null,
+      "discard_trimmed": null,
+      "discard_untrimmed": 92
+    },
+    "output": 11297,
+    "reverse_complemented": 6126,
+    "read1_with_adapter": 11297,
+    "read2_with_adapter": null
+  },
+  "basepair_counts": {
+    "input": 17023357,
+    "input_read1": 17023357,
+    "input_read2": null,
+    "quality_trimmed": null,
+    "quality_trimmed_read1": null,
+    "quality_trimmed_read2": null,
+    "output": 16452961,
+    "output_read1": 16452961,
+    "output_read2": null
+  },
+  "adapters_read1": [
+    {
+      "name": "1",
+      "total_matches": 22594,
+      "on_reverse_complement": 6126,
+      "linked": true,
+      "five_prime_end": {
+        "type": "anchored_five_prime",
+        "sequence": "AGRGTTYGATYMTGGCTCAG",
+        "error_rate": 0.1,
+        "indels": true,
+        "error_lengths": null,
+        "matches": 11297,
+        "adjacent_bases": null,
+        "dominant_adjacent_base": null,
+        "trimmed_lengths": [
+          {"len": 18, "expect": 0.0, "counts": [0, 0, 11, 2]},
+          {"len": 19, "expect": 0.0, "counts": [0, 291, 14]},
+          {"len": 20, "expect": 0.0, "counts": [8033, 1294, 45, 2]},
+          {"len": 21, "expect": 0.0, "counts": [0, 1357, 53, 1]},
+          {"len": 22, "expect": 0.0, "counts": [0, 0, 185, 9]}
+        ]
+      },
+      "three_prime_end": {
+        "type": "anchored_three_prime",
+        "sequence": "AAGTCGTAACAAGGTARCY",
+        "error_rate": 0.1,
+        "indels": true,
+        "error_lengths": null,
+        "matches": 11297,
+        "adjacent_bases": {
+          "A": 5,
+          "C": 0,
+          "G": 9670,
+          "T": 1622,
+          "": 0
+        },
+        "dominant_adjacent_base": "G",
+        "trimmed_lengths": [
+          {"len": 18, "expect": 0.0, "counts": [0, 378, 22, 5]},
+          {"len": 19, "expect": 0.0, "counts": [8033, 1864, 252, 2]},
+          {"len": 20, "expect": 0.0, "counts": [0, 700, 34, 7]}
+        ]
+      }
+    }
+  ],
+  "adapters_read2": null
+}
