@@ -104,11 +104,11 @@ if (params.skip_primer_trim) {
 // params.front_p = 'AGRGTTYGATYMTGGCTCAG'
 // params.adapter_p = 'RGYTACCTTGTTACGACTT'
 params.pooling_method = 'pseudo'
-params.vsearch_db = "~/references/taxonomy_database/qiime2/silva-138-99-seqs.qza"
-params.vsearch_tax = "~/references/taxonomy_database/qiime2/silva-138-99-tax.qza"
-params.silva_db = "~/references/taxonomy_database/silva_nr99_v138.1_wSpecies_train_set.fa.gz"
-params.gtdb_db = "~/references/taxonomy_database/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz"
-params.refseq_db = "~/references/taxonomy_database/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz"
+params.vsearch_db = "$projectDir/references/silva-138-99-seqs.qza"
+params.vsearch_tax = "$projectDir/references/silva-138-99-tax.qza"
+params.silva_db = "$projectDir/references/silva_nr99_v138.1_wSpecies_train_set.fa.gz"
+params.refseq_db = "$projectDir/references/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz"
+params.gtdb_db = "$projectDir/references/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz"
 params.maxreject = 100
 params.maxaccept = 100
 params.rarefaction_depth = null
