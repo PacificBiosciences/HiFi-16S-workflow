@@ -41,7 +41,7 @@ def helpMessage() {
   --maxreject    max-reject parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
-                 (default: 5)
+                 (default: 100)
   --min_asv_totalfreq    Total frequency of any ASV must be above this threshold
                          across all samples to be retained. Set this to 0 to disable filtering
                          (default 5)
@@ -110,7 +110,7 @@ params.silva_db = "~/references/taxonomy_database/silva_nr99_v138.1_wSpecies_tra
 params.gtdb_db = "~/references/taxonomy_database/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz"
 params.refseq_db = "~/references/taxonomy_database/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz"
 params.maxreject = 100
-params.maxaccept = 5
+params.maxaccept = 100
 params.rarefaction_depth = null
 params.dada2_cpu = 8
 params.vsearch_cpu = 8
@@ -676,7 +676,8 @@ process class_tax {
     --p-threads $task.cpus \
     --p-maxrejects $params.maxreject \
     --p-maxaccepts $params.maxaccept \
-    --p-perc-identity $params.vsearch_identity
+    --p-perc-identity $params.vsearch_identity \
+    --p-top-hits-only
 
   qiime tools export --input-path taxonomy.vsearch.qza --output-path tax_export
 
@@ -907,7 +908,7 @@ workflow pb16S {
         qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
         params.colorby)
   }
-  krona_plot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza)
+  krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
 }
 
 workflow {
