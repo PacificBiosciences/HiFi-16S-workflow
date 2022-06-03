@@ -21,28 +21,33 @@ enables the use of `mamba` by default. You can install Nextflow following the in
 from Nextflow [documentation](https://www.nextflow.io/docs/latest/getstarted.html) or via Conda:
 
 ```
+# (Optional but recommended) Install mamba
+conda install mamba -n base -c conda-forge
 conda install -c bioconda nextflow
 ```
 
-The taxonomy classification step of the pipeline requires a few databases. These can be downloaded
-from the following link:
-
-- `--vsearch_db` and `--vsearch_tax`
-  - [`silva-138-99-seqs.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
-  - [`silva-138-99-tax.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
-- `--silva_db`
-  - [`silva_nr99_v138.1_wSpecies_train_set.fa.gz`](https://zenodo.org/record/4587955)
-- `--gtdb_db`
-  - [`GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
-- `--refseq_db`
-  - [`RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
-
-After installing Nextflow and `mamba`(Optional but recommended), clone the repository:
+After installing Nextflow and `mamba`(Optional but recommended), clone the repository and
+download databases using the following commands:
 
 ```
 git clone https://github.com/proteinosome/pb-16S-nf.git
 cd pb-16S-nf
+bash scripts/download_db.sh
 ```
+
+The taxonomy classification step of the pipeline requires a few databases that will be downloaded with the
+`download_db.sh` script above into a `references` folder. These databases can also be downloaded
+manually from the following links if the download script above does not work.
+
+- `--vsearch_db` and `--vsearch_tax` provided by the `QIIME 2` community
+  - [`silva-138-99-seqs.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
+  - [`silva-138-99-tax.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
+- `--silva_db` provided by `DADA2`
+  - [`silva_nr99_v138.1_wSpecies_train_set.fa.gz`](https://zenodo.org/record/4587955)
+- `--gtdb_db` provided by `DADA2`
+  - [`GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
+- `--refseq_db` provided by `DADA2`
+  - [`RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
 
 This repository contains a set of small test data as well as example samples and metadata
 TSV file that can be used to test the pipeline. Note that you need to change the
@@ -58,19 +63,15 @@ nextflow run main.nf --help
   Usage:
   This pipeline takes in the standard sample manifest and metadata file used in
   QIIME 2 and produces QC summary, taxonomy classification results and visualization.
-
   For samples TSV, two columns named "sample-id" and "absolute-filepath" are
   required. For metadata TSV file, at least two columns named "sample_name" and
   "condition" to separate samples into different groups.
-
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
-
   By default, sequences are first trimmed with cutadapt (higher rate compared to using DADA2
   ) using the example command below. You can skip this by specifying "--skip_primer_trim" 
   if the sequences are already trimmed. The primer sequences used are the F27 and R1492
   primers for full length 16S sequencing.
-
   Other important options:
   --filterQ    Filter input reads above this Q value (default: 30).
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
@@ -82,7 +83,7 @@ nextflow run main.nf --help
   --maxreject    max-reject parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
-                 (default: 5)
+                 (default: 100)
   --min_asv_totalfreq    Total frequency of any ASV must be above this threshold
                          across all samples to be retained. Set this to 0 to disable filtering
                          (default 5)
@@ -112,8 +113,11 @@ nextflow run main.nf --help
 ```
 
 To test the pipeline, run this example below. Note that the path of the database needs
-to be changed to their respective locations on your server. In addition, please change the
-path on "test_sample.tsv" to point to the correct absolute location of the test dataset
+to be changed to their respective locations on your server if it's different (See parameters above). If you 
+follow the command above, the databases will be downloaded into a `references` folder in the `pb-16S-nf` folder
+and you do not need to specify the path.
+
+Please change the path on "test_sample.tsv" to point to the correct absolute location of the test dataset
 (You can find it by typing `readlink -f test_data/test_1000_reads.fastq.gz` when you're in
 the cloned pb-16S-nf folder). Conda environment will by default be created at 
 `$HOME/nf_conda` folder unless changed in the `nextflow.config` file. Once the conda environment
@@ -123,16 +127,9 @@ is created it will be reused by any future run.
 # Find the path of test dataset and replace the path in test_sample.tsv
 readlink -f test_data/test_1000_reads.fastq.gz
 
-# Remember to change "/path/to//xxx" to point at the correct location of 
-# the databases
 nextflow run main.nf --input test_sample.tsv \
     --metadata test_metadata.tsv -profile conda \
     --dada2_cpu 32 --vsearch_cpu 32 --outdir results \
-    --vsearch_db /path/to/silva-138-99-seqs.qza \
-    --vsearch_tax /path/to/silva-138-99-tax.qza \
-    --silva_db /path/to/silvaDB \
-    --gtdb_db /path/to/gtdbDB \
-    --refseq_db /path/to/refseqDB
 ```
 
 To run this pipeline on your data, create the sample TSV and metadata TSV following
