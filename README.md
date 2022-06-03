@@ -238,6 +238,12 @@ primers removal?
   prone to getting filtered out. You can set the two parameters to 0 to disable
   filtering and the bacteria should pop out. However, in real dataset this 
   may result in more false-positives.
+  
+* Percentage reads classified at species is higher than genus!
+  
+  You have likely bumped into weird issues with database. For example, there are some microbes
+  that has the taxanomy populated at species level, but all the other levels are empty. Unfortunately,
+  database curation is hard, and is out of the scope of this pipeline.
 
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 
