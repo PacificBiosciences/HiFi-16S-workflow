@@ -1,11 +1,12 @@
 # TODO
 
 * Document all outputs and clean up workflow names
+* Split ASV and sample freq filtering from denoise step, so that
+  changing filtering parameters won't cause denoise to restart
 * For Krona plot pip install, can we clone the repo locally and install from that
 * Add LotuS2 for OTU-based analysis? Or just add a guide on GitHub
 * Allow using just VSEARCH result and make naive bayes optional
 * Dockerize
-* Cluster ASV into OTUs using `https://docs.qiime2.org/2022.2/plugins/available/vsearch/cluster-features-open-reference/` 
 * See `https://github.com/benjjneb/dada2/issues/1164` for discussion on losing reads in CCS
   * Setting minQ=0 and maxEE to 4 can rescue a lot of reads
     * minQ=0 and maxEE=2 is similar to minQ=3 and maxEE=2 in MSA1003
