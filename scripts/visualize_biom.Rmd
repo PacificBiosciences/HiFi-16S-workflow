@@ -217,7 +217,7 @@ asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
 * ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 4)*100`%)
 * Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_gen_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
 
-### Classification using VSEARCH with SILVA only
+### Classification using VSEARCH with a single database
 
 * ASVs classified at Species level: `r nrow(class_spec_vsearch)` (`r round(nrow(class_spec_vsearch)/total_asv, 4)*100`%)
 * ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured_vsearch)` (`r round(nrow(class_spec_uncultured_vsearch)/total_asv, 4)*100`%)
@@ -397,7 +397,7 @@ datatable(top10_gen_species,
           ))
 ```
 
-### Top 50 ASVs with VSEARCH + SILVA
+### Top 50 ASVs with VSEARCH
 ``` {r, echo=FALSE}
 vis_tab <- tab_vsearch %>% inner_join(otu_vsearch, by="OTU")
 count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
@@ -409,7 +409,7 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
             position = 'top', clear = FALSE
           ))
 ```
-### Top 10 Classified Genus (Collapsed to species) with VSEARCH + SILVA
+### Top 10 Classified Genus (Collapsed to species) with VSEARCH
 * Relative abundance is calculated by dividing the number of reads for each ASV to the
 total number of reads in each sample.
 ``` {r, echo=FALSE}
