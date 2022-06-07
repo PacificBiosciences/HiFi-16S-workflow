@@ -116,26 +116,25 @@ nextflow run main.nf --help
                         removal) (default: trim with cutadapt)
   --colorby    Columns in metadata TSV file to use for coloring the MDS plot
                in HTML report (default: condition)
+  --download_db    Download databases needed for taxonomy classification only. Will not
+                   run the pipeline. Databases will be downloaded to a folder "databases"
+                   in the Nextflow pipeline directory.
 ```
 
 To test the pipeline, run this example below. Note that the path of the database needs
 to be changed to their respective locations on your server if it's different (See parameters above). If you 
-follow the command above, the databases will be downloaded into a `references` folder in the `pb-16S-nf` folder
-and you do not need to specify the path.
-
-Please change the path on "test_sample.tsv" to point to the correct absolute location of the test dataset
-(You can find it by typing `readlink -f test_data/test_1000_reads.fastq.gz` when you're in
-the cloned pb-16S-nf folder). Conda environment will by default be created at 
+follow the command above, the databases will be downloaded into a `databases` folder in the `pb-16S-nf` folder
+and you do not need to specify the path. Conda environment will by default be created at 
 `$HOME/nf_conda` folder unless changed in the `nextflow.config` file. Once the conda environment
 is created it will be reused by any future run.
 
 ```
-# Find the path of test dataset and replace the path in test_sample.tsv
-readlink -f test_data/test_1000_reads.fastq.gz
+# Create sample TSV for testing
+echo "sample-id\tabsolute-filepath\ntest_data\t`readlink -f test_data/test_1000_reads.fastq.gz`" > test_sample.tsv
 
 nextflow run main.nf --input test_sample.tsv \
     --metadata test_metadata.tsv -profile conda \
-    --dada2_cpu 32 --vsearch_cpu 32 --outdir results \
+    --outdir results \
 ```
 
 To run this pipeline on your data, create the sample TSV and metadata TSV following
