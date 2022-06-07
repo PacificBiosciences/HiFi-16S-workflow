@@ -35,28 +35,6 @@ cd pb-16S-nf
 nextflow run main.mf --download_db
 ```
 
-The taxonomy classification step of the pipeline requires a few databases that will be downloaded with the
-command above into a "databases" folder. These databases can also be downloaded
-manually from the following links if the download script above does not work. The GTDB database
-for VSEARCH will require some processing. See `scripts/download_db.sh` for details. The links here
-for VSEARCH are for SILVA 138 databases provided by QIIME 2. You can also use these if you
-do not want to use GTDB (default if you run `--download_db` command above).
-
-- `--vsearch_db` and `--vsearch_tax` provided by the `QIIME 2` community
-  - [`silva-138-99-seqs.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
-  - [`silva-138-99-tax.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
-- `--silva_db` provided by `DADA2`
-  - [`silva_nr99_v138.1_wSpecies_train_set.fa.gz`](https://zenodo.org/record/4587955)
-- `--gtdb_db` provided by `DADA2`
-  - [`GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
-- `--refseq_db` provided by `DADA2`
-  - [`RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
-
-This repository contains a set of small test data as well as example samples and metadata
-TSV file that can be used to test the pipeline. Note that you need to change the
-path of the FASTQ in `test_samples.tsv` to point to the correct location of the
-test dataset.
-
 After downloading the databases, run the following command in the cloned folder
 to see the options for the pipeline:
 
@@ -98,7 +76,7 @@ nextflow run main.nf --help
   --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
                          automatically select a cut-off above the minimum of the denoised 
-                         reads for >90% of the samples. This cut-off is stored in a file called
+                         reads for >80% of the samples. This cut-off is stored in a file called
                          "rarefaction_depth_suggested.txt" file in the results folder
                          (default: null)
   --dada2_cpu    Number of threads for DADA2 denoising (default: 8)
@@ -247,6 +225,26 @@ primers removal?
   You have likely bumped into weird issues with database. For example, there are some microbes
   that has the taxanomy populated at species level, but all the other levels are empty. Unfortunately,
   database curation is hard, and is out of the scope of this pipeline.
+
+* Can I download the databases for taxonomic classification manually?
+
+  The taxonomy classification step of the pipeline requires a few databases that will be downloaded with the
+  `--download_db` parameters into a "databases" folder. These databases can also be downloaded
+  manually from the following links if the download script above does not work. The GTDB database
+  for VSEARCH will require some processing. See `scripts/download_db.sh` for details. The links here
+  for VSEARCH are for SILVA 138 databases provided by QIIME 2. You can also use these if you
+  do not want to use GTDB (default if you run `--download_db` command above).
+
+  - `--vsearch_db` and `--vsearch_tax` provided by the `QIIME 2` community
+    - [`silva-138-99-seqs.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
+    - [`silva-138-99-tax.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza)
+  - `--silva_db` provided by `DADA2`
+    - [`silva_nr99_v138.1_wSpecies_train_set.fa.gz`](https://zenodo.org/record/4587955)
+  - `--gtdb_db` provided by `DADA2`
+    - [`GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
+  - `--refseq_db` provided by `DADA2`
+    - [`RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
+
 
 ## DISCLAIMER
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA, 

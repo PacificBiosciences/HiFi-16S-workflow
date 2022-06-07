@@ -50,7 +50,7 @@ def helpMessage() {
   --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
                          automatically select a cut-off above the minimum of the denoised 
-                         reads for >90% of the samples. This cut-off is stored in a file called
+                         reads for >80% of the samples. This cut-off is stored in a file called
                          "rarefaction_depth_suggested.txt" file in the results folder
                          (default: null)
   --dada2_cpu    Number of threads for DADA2 denoising (default: 8)
@@ -545,7 +545,7 @@ process dada2_qc {
 
   # Get number of reads for ASV covering 90% of samples
   number=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | wc -l`
-  ninety=0.9
+  ninety=0.8
   # Handle single sample and 2 samples
   if [ \${number} == 1 ];
   then
