@@ -100,6 +100,21 @@ ASVs generated from DADA2 are classified using VSEARCH and Naive Bayes classifie
   * `taxa_barplot_vsearch.qzv`: (For VSEARCH classifier) Interactive taxonomy barplot that can be visualized with
     `QIIME 2 View`.
     
+## Phylogenetic tree and diversity metrics
+This pipeline generates simple phylogenetic tree and diversity metrics using the `qiime phylogeny align-to-tree-mafft-fasttree`
+and `diversity core-metrics-phylogenetic` plugins. Note that default parameters are used and the pipeline makes no
+attempt to optimize the steps here, but merely to provide quick results. Please refer to plugins
+documentation for more information on the methods and outputs. Output includes:
+* `$outdir/results/phylogeny_diversity`:
+  * `mafft_alignment.qza` and `mafft_alignment_masked.qza`: MAFFT alignment (masked or not) between ASVs from DADA2. 
+  * `phylotree_mafft.qza` and `phylotree_mafft_unrooted.qza`: Unrooted and rooted (midpoint-rooting) tree from FASTTREE. 
+    * `phylotree_mafft.qza` can be visualized directly using [iToL](https://itol.embl.de/upload.cgi). After
+      uploading to iToL, you can also upload `$outdir/results/taxonomy.vsearch.qza` or `$outdir/results/best_tax.qza`
+      to annotate taxonomies on the phylogenetic tree.
+  * `core-metrics-diversity`: Diversity metrics including Bray-Curtis, Jaccard index and Unifrac distances. The various
+    "Emperor" `.qzv` file can be viewed using QIIME 2 View for interactive visualization of the diversity metrics.
+    The distance matrices are used for the MDS plot in the final HTML report.
+    
 ## Report and visualization
 At the end of the pipeline, a report will be generated to report the statistics from the important
 steps. In addition, "Krona" plots will be generated to allow visualization of the communities in each
