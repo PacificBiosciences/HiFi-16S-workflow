@@ -68,27 +68,39 @@ def helpMessage() {
                         removal) (default: trim with cutadapt)
   --colorby    Columns in metadata TSV file to use for coloring the MDS plot
                in HTML report (default: condition)
+  --download_db    Download databases needed for taxonomy classification only. Will not
+                   run the pipeline. Databases will be downloaded to a folder "databases"
+                   in the Nextflow pipeline directory.
   """
 }
 
 // Show help message
 params.help = false
 if (params.help) exit 0, helpMessage()
-
+params.download_db = false
 params.skip_primer_trim = false
 params.filterQ = 30
 params.min_len = 1000
 params.max_len = 1600
 params.colorby = "condition"
 params.skip_phylotree = false
-n_sample=file(params.input).countLines() - 1
-if (n_sample == 1) {
+// Check input
+params.input = false
+if (params.input){
+  n_sample=file(params.input).countLines() - 1
+  if (n_sample == 1) {
+    params.min_asv_totalfreq = 0
+    params.min_asv_sample = 0
+    println("Only 1 sample. min_asv_sample and min_asv_totalfreq set to 0.")
+  } else {
+    params.min_asv_totalfreq = 5
+    params.min_asv_sample = 1
+  }
+} else {
+  println("No input file given to --input!")
+  n_sample=0
   params.min_asv_totalfreq = 0
   params.min_asv_sample = 0
-  println("Only 1 sample. min_asv_sample and min_asv_totalfreq set to 0.")
-} else {
-  params.min_asv_totalfreq = 5
-  params.min_asv_sample = 1
 }
 
 if (params.skip_primer_trim) {
@@ -104,11 +116,11 @@ if (params.skip_primer_trim) {
 // params.front_p = 'AGRGTTYGATYMTGGCTCAG'
 // params.adapter_p = 'RGYTACCTTGTTACGACTT'
 params.pooling_method = 'pseudo'
-params.vsearch_db = "$projectDir/references/GTDB_ssu_all_r207.qza"
-params.vsearch_tax = "$projectDir/references/GTDB_ssu_all_r207.taxonomy.qza"
-params.silva_db = "$projectDir/references/silva_nr99_v138.1_wSpecies_train_set.fa.gz"
-params.refseq_db = "$projectDir/references/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz"
-params.gtdb_db = "$projectDir/references/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz"
+params.vsearch_db = "$projectDir/databases/GTDB_ssu_all_r207.qza"
+params.vsearch_tax = "$projectDir/databases/GTDB_ssu_all_r207.taxonomy.qza"
+params.silva_db = "$projectDir/databases/silva_nr99_v138.1_wSpecies_train_set.fa.gz"
+params.refseq_db = "$projectDir/databases/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz"
+params.gtdb_db = "$projectDir/databases/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz"
 params.maxreject = 100
 params.maxaccept = 100
 params.rarefaction_depth = null
@@ -143,6 +155,9 @@ log.info """
   Minimum number of reads required to keep any ASV: $params.min_asv_totalfreq 
   Taxonomy sequence database for VSEARCH: $params.vsearch_db
   Taxonomy annotation database for VSEARCH: $params.vsearch_tax
+  SILVA database for Naive Bayes classifier: $params.silva_db
+  GTDB database for Naive Bayes classifier: $params.gtdb_db
+  RefSeq + RDP database for Naive Bayes classifier: $params.refseq_db
   VSEARCH maxreject: $params.maxreject
   VSEARCH maxaccept: $params.maxaccept
   VSEARCH perc-identity: $params.vsearch_identity
@@ -844,71 +859,106 @@ process krona_plot {
   qiime krona collapse-and-plot --i-table $asv_freq --i-taxonomy $taxonomy --o-krona-plot krona.qzv
   qiime tools export --input-path krona.qzv --output-path krona_html
   """
+}
 
+process download_db {
+  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  publishDir "$projectDir/databases", mode: "copy"
+  label 'cpu_def'
+
+  output:
+  path "*"
+
+  script:
+  """
+  echo "Downloading SILVA sequences for VSEARCH..."
+  wget -N --content-disposition 'https://zenodo.org/record/4587955/files/silva_nr99_v138.1_wSpecies_train_set.fa.gz?download=1'
+  echo "Downloading GTDB sequences for VSEARCH..."
+  wget -N --content-disposition 'https://zenodo.org/record/4735821/files/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz?download=1'
+  echo "Downloading RefSeq + RDP sequences for VSEARCH..."
+  wget -N --content-disposition 'https://zenodo.org/record/4735821/files/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz?download=1'
+
+  echo "Downloading SILVA sequences and taxonomies for Naive Bayes classifier"
+  wget -N --content-disposition 'https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza'
+  wget -N --content-disposition 'https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza'
+
+  echo "Downloading GTDB database"
+  wget -N --content-disposition 'https://data.gtdb.ecogenomic.org/releases/release207/207.0/genomic_files_all/ssu_all_r207.tar.gz'
+  tar xfz ssu_all_r207.tar.gz
+  mv ssu_all_r207.fna GTDB_ssu_all_r207.fna
+  grep "^>" GTDB_ssu_all_r207.fna | awk '{print gensub(/^>(.*)/, "\\\\1", "g", \$1),gensub(/^>.*\\ (d__.*)\\ \\[.*\\[.*\\[.*/, "\\\\1", "g", \$0)}' OFS=\$'\\t' > GTDB_ssu_all_r207.taxonomy.tsv
+  qiime tools import --type 'FeatureData[Sequence]' --input-path GTDB_ssu_all_r207.fna --output-path GTDB_ssu_all_r207.qza
+  qiime tools import --type 'FeatureData[Taxonomy]' --input-format HeaderlessTSVTaxonomyFormat \
+    --input-path GTDB_ssu_all_r207.taxonomy.tsv --output-path GTDB_ssu_all_r207.taxonomy.qza
+  """
 }
 
 workflow pb16S {
-  sample_file = channel.fromPath(params.input)
-    .splitCsv(header: ['sample', 'fastq'], skip: 1, sep: "\t")
-    .map{ row -> tuple(row.sample, file(row.fastq)) }
-  metadata_file = channel.fromPath(params.metadata)
-  QC_fastq(sample_file)
-  if (params.skip_primer_trim){
-    // kraken2(QC_fastq.out.filtered_fastq)
-    collect_QC_skip_cutadapt(QC_fastq.out.all_seqkit_stats.collect(),
-        QC_fastq.out.all_seqkit_summary.collect())
-    prepare_qiime2_manifest_skip_cutadapt(QC_fastq.out.filtered_fastq_tsv.collect())
-    cutadapt_summary = "none"
-    qiime2_manifest = prepare_qiime2_manifest_skip_cutadapt.out.sample_trimmed_file
-    collect_QC_readstats = collect_QC_skip_cutadapt.out.all_samples_readstats
-    collect_QC_summarised_sample_stats = collect_QC_skip_cutadapt.out.summarised_sample_readstats
+  if (params.download_db){
+    download_db()
   } else {
-    cutadapt(QC_fastq.out.filtered_fastq)
-    // kraken2(cutadapt.out.cutadapt_fastq)
-    collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
-        QC_fastq.out.all_seqkit_summary.collect(),
-        cutadapt.out.summary_tocollect.collect())
-    prepare_qiime2_manifest(cutadapt.out.samples_ind.collect(),
-        cutadapt.out.summary_tocollect.collect())
-    cutadapt_summary = collect_QC.out.cutadapt_summary
-    qiime2_manifest = prepare_qiime2_manifest.out.sample_trimmed_file
-    collect_QC_readstats = collect_QC.out.all_samples_readstats
-    collect_QC_summarised_sample_stats = collect_QC.out.summarised_sample_readstats
+    sample_file = channel.fromPath(params.input)
+      .splitCsv(header: ['sample', 'fastq'], skip: 1, sep: "\t")
+      .map{ row -> tuple(row.sample, file(row.fastq)) }
+    metadata_file = channel.fromPath(params.metadata)
+    QC_fastq(sample_file)
+    if (params.skip_primer_trim){
+      // kraken2(QC_fastq.out.filtered_fastq)
+      collect_QC_skip_cutadapt(QC_fastq.out.all_seqkit_stats.collect(),
+          QC_fastq.out.all_seqkit_summary.collect())
+      prepare_qiime2_manifest_skip_cutadapt(QC_fastq.out.filtered_fastq_tsv.collect())
+      cutadapt_summary = "none"
+      qiime2_manifest = prepare_qiime2_manifest_skip_cutadapt.out.sample_trimmed_file
+      collect_QC_readstats = collect_QC_skip_cutadapt.out.all_samples_readstats
+      collect_QC_summarised_sample_stats = collect_QC_skip_cutadapt.out.summarised_sample_readstats
+    } else {
+      cutadapt(QC_fastq.out.filtered_fastq)
+      // kraken2(cutadapt.out.cutadapt_fastq)
+      collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
+          QC_fastq.out.all_seqkit_summary.collect(),
+          cutadapt.out.summary_tocollect.collect())
+      prepare_qiime2_manifest(cutadapt.out.samples_ind.collect(),
+          cutadapt.out.summary_tocollect.collect())
+      cutadapt_summary = collect_QC.out.cutadapt_summary
+      qiime2_manifest = prepare_qiime2_manifest.out.sample_trimmed_file
+      collect_QC_readstats = collect_QC.out.all_samples_readstats
+      collect_QC_summarised_sample_stats = collect_QC.out.summarised_sample_readstats
+    }
+    import_qiime2(qiime2_manifest)
+    demux_summarize(import_qiime2.out)
+    dada2_denoise(import_qiime2.out)
+    dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
+    if( params.rarefaction_depth > 0 ){
+      rd = params.rarefaction_depth
+      qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
+          dada2_denoise.out.asv_freq, rd)
+      dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, rd)
+    } else {
+      qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
+          dada2_denoise.out.asv_freq, dada2_qc.out.rarefaction_depth)
+      dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
+    }
+    class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
+    dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
+    export_biom(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
+    barplot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
+    if (params.skip_primer_trim){
+      html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
+          dada2_qc.out.dada2_qc_tsv, 
+          collect_QC_readstats, collect_QC_summarised_sample_stats,
+          cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
+          qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
+          params.colorby)
+    } else {
+      html_rep(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
+          dada2_qc.out.dada2_qc_tsv, 
+          collect_QC_readstats, collect_QC_summarised_sample_stats,
+          cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
+          qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
+          params.colorby)
+    }
+    krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
   }
-  import_qiime2(qiime2_manifest)
-  demux_summarize(import_qiime2.out)
-  dada2_denoise(import_qiime2.out)
-  dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
-  if( params.rarefaction_depth > 0 ){
-    rd = params.rarefaction_depth
-    qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
-        dada2_denoise.out.asv_freq, rd)
-    dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, rd)
-  } else {
-    qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
-        dada2_denoise.out.asv_freq, dada2_qc.out.rarefaction_depth)
-    dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
-  }
-  class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
-  dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
-  export_biom(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
-  barplot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
-  if (params.skip_primer_trim){
-    html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
-        dada2_qc.out.dada2_qc_tsv, 
-        collect_QC_readstats, collect_QC_summarised_sample_stats,
-        cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
-        qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
-        params.colorby)
-  } else {
-    html_rep(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
-        dada2_qc.out.dada2_qc_tsv, 
-        collect_QC_readstats, collect_QC_summarised_sample_stats,
-        cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
-        qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
-        params.colorby)
-  }
-  krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
 }
 
 workflow {

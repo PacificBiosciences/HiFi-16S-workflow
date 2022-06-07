@@ -1,6 +1,8 @@
 # TODO
 
 * Document all outputs and clean up workflow names
+* Cite all databases and tools and provide single Zenodo location for all
+  databases.
 * Split ASV and sample freq filtering from denoise step, so that
   changing filtering parameters won't cause denoise to restart
 * For Krona plot pip install, can we clone the repo locally and install from that

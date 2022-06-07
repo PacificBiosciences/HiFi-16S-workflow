@@ -32,12 +32,15 @@ download databases using the following commands:
 ```
 git clone https://github.com/proteinosome/pb-16S-nf.git
 cd pb-16S-nf
-bash scripts/download_db.sh
+nextflow run main.mf --download_db
 ```
 
 The taxonomy classification step of the pipeline requires a few databases that will be downloaded with the
-`download_db.sh` script above into a `references` folder. These databases can also be downloaded
-manually from the following links if the download script above does not work.
+command above into a "databases" folder. These databases can also be downloaded
+manually from the following links if the download script above does not work. The GTDB database
+for VSEARCH will require some processing. See `scripts/download_db.sh` for details. The links here
+for VSEARCH are for SILVA 138 databases provided by QIIME 2. You can also use these if you
+do not want to use GTDB (default if you run `--download_db` command above).
 
 - `--vsearch_db` and `--vsearch_tax` provided by the `QIIME 2` community
   - [`silva-138-99-seqs.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
@@ -54,7 +57,7 @@ TSV file that can be used to test the pipeline. Note that you need to change the
 path of the FASTQ in `test_samples.tsv` to point to the correct location of the
 test dataset.
 
-After cloning the repository, run the following command in the cloned folder
+After downloading the databases, run the following command in the cloned folder
 to see the options for the pipeline:
 
 ```
@@ -226,8 +229,7 @@ primers removal?
   in different databases. As such, there is also a VSEARCH taxonomy classification using GTDB database (r207) only in the file called 
   `results/vsearch_merged_freq_tax.tsv` that may provide a more consistent annotation.
 
-  The final 
-  report will contain statistics from either types of assignment. If you notice a large
+  The final report will contain statistics from either types of assignment. If you notice a large
   discrepancy, it can be because one method fail to assign a large amount of ASVs from the
   same genus/species. This is likely a database-related bias.
 
