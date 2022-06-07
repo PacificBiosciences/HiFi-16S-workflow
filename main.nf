@@ -170,7 +170,7 @@ log.info """
 
 // QC before cutadapt
 process QC_fastq {
-  conda "$projectDir/pb-16s-pbtools.yml"
+  conda "$projectDir/env/pb-16s-pbtools.yml"
   label 'cpu8'
   publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*filterQ*.fastq.gz'
 
@@ -196,7 +196,7 @@ process QC_fastq {
 
 // Trim full length 16S primers with cutadapt
 process cutadapt {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/trimmed_primers_FASTQ", pattern: '*.fastq.gz'
   publishDir "$params.outdir/cutadapt_summary", pattern: '*.report'
   cpus params.cutadapt_cpu
@@ -228,7 +228,7 @@ process cutadapt {
 
 // To process with Kraken2. Deprecated.
 // process kraken2 {
-//   conda "$projectDir/pb-16s-pbtools.yml"
+//   conda "$projectDir/env/pb-16s-pbtools.yml"
 //   publishDir "$params.outdir/kraken2", pattern: '*kraken2.report'
 //   publishDir "$params.outdir/kraken2", pattern: '*kraken2.out'
 //   publishDir "$params.outdir/bracken", pattern: '*bracken.report'
@@ -260,7 +260,7 @@ process cutadapt {
 
 // Collect QC into single files
 process collect_QC {
-  conda "$projectDir/pb-16s-pbtools.yml"
+  conda "$projectDir/env/pb-16s-pbtools.yml"
   publishDir "$params.outdir/results/reads_QC"
   label 'cpu8'
 
@@ -289,7 +289,7 @@ process collect_QC {
 
 // Collect QC into single files if skipping cutadapt
 process collect_QC_skip_cutadapt {
-  conda "$projectDir/pb-16s-pbtools.yml"
+  conda "$projectDir/env/pb-16s-pbtools.yml"
   publishDir "$params.outdir/results/reads_QC"
   label 'cpu8'
 
@@ -354,7 +354,7 @@ process prepare_qiime2_manifest_skip_cutadapt {
 
 // Import data into QIIME 2
 process import_qiime2 {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/import_qiime"
   label 'cpu_def'
 
@@ -374,7 +374,7 @@ process import_qiime2 {
 }
 
 process demux_summarize {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/summary_demux"
   label 'cpu_def'
 
@@ -397,7 +397,7 @@ process demux_summarize {
 }
 
 process dada2_denoise {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/dada2"
   cpus params.dada2_cpu
 
@@ -471,7 +471,7 @@ process dada2_denoise {
 // Assign taxonomies to SILVA, GTDB and RefSeq using DADA2
 // assignTaxonomy function based on Naive Bayes classifier
 process dada2_assignTax {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   cpus params.vsearch_cpu
 
@@ -511,7 +511,7 @@ process dada2_assignTax {
 
 // QC summary for dada2
 process dada2_qc {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -568,7 +568,7 @@ process dada2_qc {
 }
 
 process qiime2_phylogeny_diversity {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results/phylogeny_diversity"
   label 'cpu8' 
 
@@ -645,7 +645,7 @@ process qiime2_phylogeny_diversity {
 
 // Rarefaction visualization
 process dada2_rarefaction {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -668,7 +668,7 @@ process dada2_rarefaction {
 
 // Classify taxonomy and export table
 process class_tax {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   cpus params.vsearch_cpu
 
@@ -713,7 +713,7 @@ process class_tax {
 
 // Export results into biom for use with phyloseq
 process export_biom {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -749,7 +749,7 @@ process export_biom {
 }
 
 process barplot {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -777,7 +777,7 @@ process barplot {
 
 // HTML report
 process html_rep {
-  conda "$projectDir/pb-16s-vis-conda.yml"
+  conda "$projectDir/env/pb-16s-vis-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -808,7 +808,7 @@ process html_rep {
 
 // HTML report
 process html_rep_skip_cutadapt {
-  conda "$projectDir/pb-16s-vis-conda.yml"
+  conda "$projectDir/env/pb-16s-vis-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -839,7 +839,7 @@ process html_rep_skip_cutadapt {
 
 // Krona plot
 process krona_plot {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$params.outdir/results"
   label 'cpu_def'
   // Ignore if this fail
@@ -862,7 +862,7 @@ process krona_plot {
 }
 
 process download_db {
-  conda "$projectDir/qiime2-2022.2-py38-linux-conda.yml"
+  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
   publishDir "$projectDir/databases", mode: "copy"
   label 'cpu_def'
 
