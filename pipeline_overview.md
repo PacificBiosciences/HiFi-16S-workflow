@@ -122,4 +122,4 @@ sample. All HTML files should open in modern internet browser such as Chrome/Saf
 * `$outdir/results/visualize_biom.html`: Main HTML report containing many useful statistics and tables of top taxonomies.
 * `$outdir/results/krona.qzv`: Krona plots that can be opened using `QIIME 2 View`. There is also
   a separate folder named "krona_html" containing standalone HTMLs if you prefer to open directly in browser without
-  using `QIIME 2 View`
+  using `QIIME 2 View`. By default this uses the VSEARCH taxonomy output.
