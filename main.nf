@@ -137,8 +137,6 @@ params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
 params.dadaAssign_script = "$projectDir/scripts/dada2_assign_tax.R"
 
-
-
 log.info """
   Parameters set for pb-16S-nf pipeline for PacBio HiFi 16S
   =========================================================
@@ -168,7 +166,8 @@ log.info """
 
 // QC before cutadapt
 process QC_fastq {
-  conda "$projectDir/env/pb-16s-pbtools.yml"
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-pbtools.sif"
   label 'cpu8'
   publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*filterQ*.fastq.gz'
 
@@ -194,7 +193,8 @@ process QC_fastq {
 
 // Trim full length 16S primers with cutadapt
 process cutadapt {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/trimmed_primers_FASTQ", pattern: '*.fastq.gz'
   publishDir "$params.outdir/cutadapt_summary", pattern: '*.report'
   cpus params.cutadapt_cpu
@@ -226,7 +226,8 @@ process cutadapt {
 
 // Collect QC into single files
 process collect_QC {
-  conda "$projectDir/env/pb-16s-pbtools.yml"
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-pbtools.sif"
   publishDir "$params.outdir/results/reads_QC"
   label 'cpu8'
 
@@ -255,7 +256,8 @@ process collect_QC {
 
 // Collect QC into single files if skipping cutadapt
 process collect_QC_skip_cutadapt {
-  conda "$projectDir/env/pb-16s-pbtools.yml"
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-pbtools.sif"
   publishDir "$params.outdir/results/reads_QC"
   label 'cpu8'
 
@@ -317,7 +319,8 @@ process prepare_qiime2_manifest_skip_cutadapt {
 
 // Import data into QIIME 2
 process import_qiime2 {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/import_qiime"
   label 'cpu_def'
 
@@ -337,7 +340,8 @@ process import_qiime2 {
 }
 
 process demux_summarize {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/summary_demux"
   label 'cpu_def'
 
@@ -360,7 +364,8 @@ process demux_summarize {
 }
 
 process dada2_denoise {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/dada2"
   cpus params.dada2_cpu
 
@@ -434,7 +439,8 @@ process dada2_denoise {
 // Assign taxonomies to SILVA, GTDB and RefSeq using DADA2
 // assignTaxonomy function based on Naive Bayes classifier
 process dada2_assignTax {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/results"
   cpus params.vsearch_cpu
 
@@ -442,6 +448,10 @@ process dada2_assignTax {
   path asv_seq_fasta
   path asv_seq
   path asv_freq
+  path silva_db
+  path gtdb_db
+  path refseq_db
+  path assign_script
 
   output:
   path "best_tax.qza", emit:best_nb_tax_qza
@@ -451,7 +461,7 @@ process dada2_assignTax {
 
   script:
   """
-  Rscript --vanilla $params.dadaAssign_script $asv_seq_fasta $task.cpus $params.silva_db $params.gtdb_db $params.refseq_db 80
+  Rscript --vanilla $assign_script $asv_seq_fasta $task.cpus $silva_db $gtdb_db $refseq_db 80
 
   qiime feature-table transpose --i-table $asv_freq \
     --o-transposed-feature-table transposed-asv.qza
@@ -474,7 +484,8 @@ process dada2_assignTax {
 
 // QC summary for dada2
 process dada2_qc {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -531,7 +542,8 @@ process dada2_qc {
 }
 
 process qiime2_phylogeny_diversity {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/results/phylogeny_diversity"
   label 'cpu8' 
 
@@ -608,7 +620,8 @@ process qiime2_phylogeny_diversity {
 
 // Rarefaction visualization
 process dada2_rarefaction {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -631,13 +644,16 @@ process dada2_rarefaction {
 
 // Classify taxonomy and export table
 process class_tax {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/results"
   cpus params.vsearch_cpu
 
   input:
   path asv_seq
   path asv_freq
+  path vsearch_db
+  path vsearch_tax
 
   output:
   path "taxonomy.vsearch.qza", emit: tax_vsearch
@@ -649,8 +665,8 @@ process class_tax {
   """
   qiime feature-classifier classify-consensus-vsearch --i-query $asv_seq \
     --o-classification taxonomy.vsearch.qza \
-    --i-reference-reads $params.vsearch_db \
-    --i-reference-taxonomy $params.vsearch_tax \
+    --i-reference-reads $vsearch_db \
+    --i-reference-taxonomy $vsearch_tax \
     --p-threads $task.cpus \
     --p-maxrejects $params.maxreject \
     --p-maxaccepts $params.maxaccept \
@@ -676,7 +692,8 @@ process class_tax {
 
 // Export results into biom for use with phyloseq
 process export_biom {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -712,7 +729,8 @@ process export_biom {
 }
 
 process barplot {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -740,7 +758,8 @@ process barplot {
 
 // HTML report
 process html_rep {
-  conda "$projectDir/env/pb-16s-vis-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-vis-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-vis-conda.sif"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -771,7 +790,8 @@ process html_rep {
 
 // HTML report
 process html_rep_skip_cutadapt {
-  conda "$projectDir/env/pb-16s-vis-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-vis-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-vis-conda.sif"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -802,7 +822,8 @@ process html_rep_skip_cutadapt {
 
 // Krona plot
 process krona_plot {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$params.outdir/results"
   label 'cpu_def'
   // Ignore if this fail
@@ -817,15 +838,23 @@ process krona_plot {
   path "krona_html"
 
   script:
+  if (params.enable_conda){
   """
-  pip install git+https://github.com/kaanb93/q2-krona.git
-  qiime krona collapse-and-plot --i-table $asv_freq --i-taxonomy $taxonomy --o-krona-plot krona.qzv
-  qiime tools export --input-path krona.qzv --output-path krona_html
+    pip install git+https://github.com/kaanb93/q2-krona.git
+    qiime krona collapse-and-plot --i-table $asv_freq --i-taxonomy $taxonomy --o-krona-plot krona.qzv
+    qiime tools export --input-path krona.qzv --output-path krona_html
   """
+  } else {
+  """
+    qiime krona collapse-and-plot --i-table $asv_freq --i-taxonomy $taxonomy --o-krona-plot krona.qzv
+    qiime tools export --input-path krona.qzv --output-path krona_html
+  """
+  }
 }
 
 process download_db {
-  conda "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
   publishDir "$projectDir/databases", mode: "copy"
   label 'cpu_def'
 
@@ -898,8 +927,9 @@ workflow pb16S {
           dada2_denoise.out.asv_freq, dada2_qc.out.rarefaction_depth)
       dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
     }
-    class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
-    dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq)
+    class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq, params.vsearch_db, params.vsearch_tax)
+    dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq,
+        params.silva_db, params.gtdb_db, params.refseq_db, params.dadaAssign_script)
     export_biom(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
     barplot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
     if (params.skip_primer_trim){
