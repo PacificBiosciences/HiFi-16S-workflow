@@ -368,7 +368,8 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
 ### Top 10 Classified Genus (Collapsed to species) with Naive Bayes Classifier
 * Relative abundance is calculated by dividing the number of reads for each ASV to the
 total number of reads in each sample.
-* Heatmap contains only species with >1% abundance in at least 2 samples.
+* Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
+genus.
 ``` {r, echo=FALSE}
 # Display top 10
 top10_genus <- merge_tab_genus %>% 
@@ -432,7 +433,8 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
 ### Top 10 Classified Genus (Collapsed to species) with VSEARCH
 * Relative abundance is calculated by dividing the number of reads for each ASV to the
 total number of reads in each sample.
-* Heatmap contains only species with >1% abundance in at least 2 samples.
+* Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
+genus.
 ``` {r, echo=FALSE}
 # Display top 10
 top10_genus <- merge_tab_genus %>% 
