@@ -8,4 +8,4 @@ dependencies:
   - bioconductor-phyloseq=1.38.0
   - r-cowplot=1.1.1
   - bioconductor-complexheatmap=2.10.0
-  - r-viridis=0.3.1
+  - r-viridis=0.6.2
