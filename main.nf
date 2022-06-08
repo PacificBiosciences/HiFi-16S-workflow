@@ -286,16 +286,13 @@ process prepare_qiime2_manifest {
 
   input: 
   path "sample_ind_*.tsv"
-  path "cutadapt_summary_*.tsv"
 
   output:
   path "samplefile.txt", emit: sample_trimmed_file
-  path "samples_demux_rate.tsv"
 
   """
   echo -e "sample-id\tabsolute-filepath" > samplefile.txt
   cat sample_ind_*.tsv >> samplefile.txt
-  cat cutadapt_summary_*.tsv > samples_demux_rate.tsv
   """
 
 }
@@ -881,8 +878,7 @@ workflow pb16S {
       collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
           QC_fastq.out.all_seqkit_summary.collect(),
           cutadapt.out.summary_tocollect.collect())
-      prepare_qiime2_manifest(cutadapt.out.samples_ind.collect(),
-          cutadapt.out.summary_tocollect.collect())
+      prepare_qiime2_manifest(cutadapt.out.samples_ind.collect())
       cutadapt_summary = collect_QC.out.cutadapt_summary
       qiime2_manifest = prepare_qiime2_manifest.out.sample_trimmed_file
       collect_QC_readstats = collect_QC.out.all_samples_readstats
