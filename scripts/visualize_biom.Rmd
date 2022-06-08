@@ -34,6 +34,8 @@ library(knitr)
 library(rmarkdown)
 library(DT)
 library(biomformat)
+library(ComplexHeatmap)
+library(viridis)
 # Source the function that can handle single sample or single OTU biom
 source('import_biom.R')
 options(dplyr.summarise.inform = FALSE)
@@ -298,7 +300,7 @@ datatable(dada2_qc,
 * For interactive view, use the Emperor QZV output from QIIME2 in `results/core-metrics-diversity` folder with QIIME2 View
 * Note that if the distances between all samples are zero for a specific method, the plots will not be shown.
 
-### Bray-Curtis MDS plot
+### Bray-Curtis MDS plot (Based on VSEARCH taxonomy assignment)
 ``` {r, echo=FALSE, warning=FALSE, message=FALSE}
 # Calculate distance matrix
 iDist <- read_tsv(params$bray_mat)
@@ -366,6 +368,7 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
 ### Top 10 Classified Genus (Collapsed to species) with Naive Bayes Classifier
 * Relative abundance is calculated by dividing the number of reads for each ASV to the
 total number of reads in each sample.
+* Heatmap contains only species with >1% abundance in at least 2 samples.
 ``` {r, echo=FALSE}
 # Display top 10
 top10_genus <- merge_tab_genus %>% 
@@ -395,6 +398,23 @@ datatable(top10_gen_species,
           filter = list(
             position = 'top', clear = FALSE
           ))
+# Make heatmap. Filter out ultra low abundance species
+toplot <- merge_tab_spec %>% 
+  filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Species),
+         Species %in% top10_gen_species$Species) %>% 
+  dplyr::select(-Abundance, method) %>% 
+  pivot_wider(names_from = "Sample", values_from = "Relative Abundance")
+mat_to_plot <- as.matrix(toplot %>% select(sample_data(physeq)$sample.id))
+rownames(mat_to_plot) <- toplot$Species
+# More than 1% in two samples
+mat_to_plot <- mat_to_plot[rowSums(mat_to_plot > 0.01) > 2, ]
+min_abundance <- min(mat_to_plot, na.rm = TRUE)
+max_abundance <- max(mat_to_plot, na.rm = TRUE)
+mean_abundance <- mean(mat_to_plot, na.rm = TRUE)
+Heatmap(mat_to_plot, 
+        col=circlize::colorRamp2(c(min_abundance, mean_abundance, max_abundance), 
+                                 viridis(3)),
+        name = "Relative abundance")
 ```
 
 ### Top 50 ASVs with VSEARCH
@@ -412,6 +432,7 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
 ### Top 10 Classified Genus (Collapsed to species) with VSEARCH
 * Relative abundance is calculated by dividing the number of reads for each ASV to the
 total number of reads in each sample.
+* Heatmap contains only species with >1% abundance in at least 2 samples.
 ``` {r, echo=FALSE}
 # Display top 10
 top10_genus <- merge_tab_genus %>% 
@@ -441,6 +462,24 @@ datatable(top10_gen_species,
           filter = list(
             position = 'top', clear = FALSE
           ))
+
+# Make heatmap. Filter out ultra low abundance species
+toplot <- merge_tab_spec %>% 
+  filter(method=="vsearch", !grepl("Unclassified|uncultured|metagenome", Species),
+         Species %in% top10_gen_species$Species) %>% 
+  dplyr::select(-Abundance, method) %>% 
+  pivot_wider(names_from = "Sample", values_from = "Relative Abundance")
+mat_to_plot <- as.matrix(toplot %>% select(sample_data(physeq)$sample.id))
+rownames(mat_to_plot) <- toplot$Species
+# More than 1% in two samples
+mat_to_plot <- mat_to_plot[rowSums(mat_to_plot > 0.01) > 2, ]
+min_abundance <- min(mat_to_plot, na.rm = TRUE)
+max_abundance <- max(mat_to_plot, na.rm = TRUE)
+mean_abundance <- mean(mat_to_plot, na.rm = TRUE)
+Heatmap(mat_to_plot, 
+        col=circlize::colorRamp2(c(min_abundance, mean_abundance, max_abundance), 
+                                 viridis(3)),
+        name = "Relative abundance")
 ```
 
 <!-- ### Full table -->
