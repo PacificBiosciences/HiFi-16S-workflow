@@ -370,7 +370,7 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
 total number of reads in each sample.
 * Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
 genus.
-``` {r, echo=FALSE, fig.width = 13, fig.height = 6, out.width = "100%"}
+``` {r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
 # Display top 10
 top10_genus <- merge_tab_genus %>% 
   filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
@@ -435,7 +435,7 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
 total number of reads in each sample.
 * Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
 genus.
-``` {r, echo=FALSE, fig.width = 13, fig.height = 6, out.width = "100%"}
+``` {r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
 # Display top 10
 top10_genus <- merge_tab_genus %>% 
   filter(method=="vsearch", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
