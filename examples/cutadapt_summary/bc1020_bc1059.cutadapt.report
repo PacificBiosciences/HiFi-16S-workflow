@@ -6,7 +6,7 @@
   "command_line_arguments": [
     "-a",
     "^AGRGTTYGATYMTGGCTCAG...AAGTCGTAACAAGGTARCY$",
-    "bc1020_bc1059.filterQ30.fastq.gz",
+    "bc1020_bc1059.filterQ20.fastq.gz",
     "-o",
     "bc1020_bc1059.trimmed.fastq.gz",
     "-j",
@@ -20,12 +20,12 @@
   ],
   "cores": 16,
   "input": {
-    "path1": "bc1020_bc1059.filterQ30.fastq.gz",
+    "path1": "bc1020_bc1059.filterQ20.fastq.gz",
     "path2": null,
     "paired": false
   },
   "read_counts": {
-    "input": 11181,
+    "input": 13703,
     "filtered": {
       "too_short": null,
       "too_long": null,
@@ -33,29 +33,29 @@
       "too_many_expected_errors": null,
       "casava_filtered": null,
       "discard_trimmed": null,
-      "discard_untrimmed": 123
+      "discard_untrimmed": 201
     },
-    "output": 11058,
-    "reverse_complemented": 5933,
-    "read1_with_adapter": 11058,
+    "output": 13502,
+    "reverse_complemented": 7174,
+    "read1_with_adapter": 13502,
     "read2_with_adapter": null
   },
   "basepair_counts": {
-    "input": 16713330,
-    "input_read1": 16713330,
+    "input": 20496012,
+    "input_read1": 20496012,
     "input_read2": null,
     "quality_trimmed": null,
     "quality_trimmed_read1": null,
     "quality_trimmed_read2": null,
-    "output": 16103034,
-    "output_read1": 16103034,
+    "output": 19675154,
+    "output_read1": 19675154,
     "output_read2": null
   },
   "adapters_read1": [
     {
       "name": "1",
-      "total_matches": 22116,
-      "on_reverse_complement": 5933,
+      "total_matches": 27004,
+      "on_reverse_complement": 7174,
       "linked": true,
       "five_prime_end": {
         "type": "anchored_five_prime",
@@ -63,15 +63,15 @@
         "error_rate": 0.1,
         "indels": true,
         "error_lengths": null,
-        "matches": 11058,
+        "matches": 13502,
         "adjacent_bases": null,
         "dominant_adjacent_base": null,
         "trimmed_lengths": [
-          {"len": 18, "expect": 0.0, "counts": [0, 0, 10]},
-          {"len": 19, "expect": 0.0, "counts": [0, 328, 24]},
-          {"len": 20, "expect": 0.0, "counts": [7490, 1471, 59, 3]},
-          {"len": 21, "expect": 0.0, "counts": [0, 1361, 68]},
-          {"len": 22, "expect": 0.0, "counts": [0, 0, 234, 10]}
+          {"len": 18, "expect": 0.0, "counts": [0, 0, 16, 1]},
+          {"len": 19, "expect": 0.0, "counts": [0, 438, 41]},
+          {"len": 20, "expect": 0.0, "counts": [8920, 1903, 82, 4]},
+          {"len": 21, "expect": 0.0, "counts": [0, 1669, 127]},
+          {"len": 22, "expect": 0.0, "counts": [0, 0, 285, 16]}
         ]
       },
       "three_prime_end": {
@@ -80,19 +80,19 @@
         "error_rate": 0.1,
         "indels": true,
         "error_lengths": null,
-        "matches": 11058,
+        "matches": 13502,
         "adjacent_bases": {
-          "A": 4,
+          "A": 21,
           "C": 0,
-          "G": 9426,
-          "T": 1628,
+          "G": 11516,
+          "T": 1965,
           "": 0
         },
         "dominant_adjacent_base": "G",
         "trimmed_lengths": [
-          {"len": 18, "expect": 0.0, "counts": [0, 233, 14, 4]},
-          {"len": 19, "expect": 0.0, "counts": [7490, 1915, 326, 1]},
-          {"len": 20, "expect": 0.0, "counts": [0, 1012, 55, 8]}
+          {"len": 18, "expect": 0.0, "counts": [0, 302, 24, 5]},
+          {"len": 19, "expect": 0.0, "counts": [8920, 2406, 418, 1]},
+          {"len": 20, "expect": 0.0, "counts": [0, 1302, 109, 15]}
         ]
       }
     }
