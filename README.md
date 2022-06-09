@@ -7,6 +7,8 @@
   * [References](#references)
   * [DISCLAIMER](#disclaimer)
 
+## Pipeline is under active development and we welcome feedbacks to improve.
+
 ## Workflow overview and output
 This Nextflow pipeline is designed to process PacBio HiFi full-length 16S data into a set of high
 quality amplicon sequence variants (ASVs) using `QIIME 2` and `DADA2`. It provides a set of visualization 
@@ -21,7 +23,9 @@ your computer, then double click to open it. All other important outputs from th
 in the [`examples`](https://github.com/proteinosome/pb-16S-nf/tree/main/examples) folder when you clone this repository.
 
 ## Installation and usage
-This pipeline runs using Nextflow (Version 22 and above). All softwares dependencies are
+This pipeline runs using Nextflow (Version 22 and above). If you have Singularity on your
+cluster, we recommend using Singularity to run the pipeline by specifying `-profile singularity`
+when running the pipeline. By default all softwares dependencies are
 managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
 to speed up the conda environment installation. The default `nextflow.config` file 
 enables the use of `mamba` by default. You can install Nextflow following the instruction
@@ -120,6 +124,12 @@ echo "sample-id\tabsolute-filepath\ntest_data\t`readlink -f test_data/test_1000_
 nextflow run main.nf --input test_data/test_sample.tsv \
     --metadata test_data/test_metadata.tsv -profile conda \
     --outdir results \
+
+# To test using Singularity
+nextflow run main.nf --input test_data/test_sample.tsv \
+    --metadata test_data/test_metadata.tsv -profile singularity \
+    --outdir results \
+
 ```
 
 To run this pipeline on your data, create the sample TSV and metadata TSV following
@@ -127,14 +137,17 @@ the test data format (For metadata, if you do not have any grouping, you can jus
 put any words in the "condition" column) and run the workflow similar to the above. 
 Remember to specify the `--outdir` directory to avoid overwriting existing results.
 
-The pipeline uses Slurm scheduler by default to run jobs on HPC. This can be changed
-in the `nextflow.config` file under `executor`. See Nextflow 
+The pipeline uses "Local" by default to run jobs on HPC. This can be changed
+in the `nextflow.config` file under `executor` to utilize HPC scheduler such as
+Slurm, SGE etc using Nextflow's native support. For example, to use Slurm, simply 
+open `nextflow.config` file and change `executor = 'Local'` to `executor = 'slurm'` and 
+specify the partition to be used using `queue = PARTITION`. See Nextflow 
 [documentation](https://www.nextflow.io/docs/latest/executor.html) on the available
-executors. CPUs for `VSEARCH`, `DADA2` and `cutadapt` can be specified as command line
-parameters as shown above. For all the other processes, they use any of the default
+executors and parameters. CPUs for `VSEARCH`, `DADA2` and `cutadapt` can be specified as command line
+parameters using command line parameters. For all the other processes, they use any of the default
 labels in `nextflow.config` and can be changed according to your need.
 
-Pipeline is still under active development. The nextflow.config file by default will 
+Note that the `nextflow.config` file by default will 
 generate workflow DAG and resources report to help benchmarking the resources
 required. See the `report_results` folder created after the pipeline finishes running 
 for DAG and resources report.

@@ -31,7 +31,7 @@ def helpMessage() {
   primers for full length 16S sequencing.
 
   Other important options:
-  --filterQ    Filter input reads above this Q value (default: 30).
+  --filterQ    Filter input reads above this Q value (default: 20).
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
               this value will be discarded (default: 2)
   --min_len    Minimum length of sequences to keep (default: 1000)
@@ -79,7 +79,7 @@ params.help = false
 if (params.help) exit 0, helpMessage()
 params.download_db = false
 params.skip_primer_trim = false
-params.filterQ = 30
+params.filterQ = 20
 params.min_len = 1000
 params.max_len = 1600
 params.colorby = "condition"
@@ -167,7 +167,7 @@ log.info """
 // QC before cutadapt
 process QC_fastq {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-pbtools.sif"
+  container "docker://kpinpb/pb-16s-nf-tools"
   label 'cpu8'
   publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*filterQ*.fastq.gz'
 
@@ -194,7 +194,7 @@ process QC_fastq {
 // Trim full length 16S primers with cutadapt
 process cutadapt {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/trimmed_primers_FASTQ", pattern: '*.fastq.gz'
   publishDir "$params.outdir/cutadapt_summary", pattern: '*.report'
   cpus params.cutadapt_cpu
@@ -227,7 +227,7 @@ process cutadapt {
 // Collect QC into single files
 process collect_QC {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-pbtools.sif"
+  container "docker://kpinpb/pb-16s-nf-tools"
   publishDir "$params.outdir/results/reads_QC"
   label 'cpu8'
 
@@ -257,7 +257,7 @@ process collect_QC {
 // Collect QC into single files if skipping cutadapt
 process collect_QC_skip_cutadapt {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-pbtools.sif"
+  container "docker://kpinpb/pb-16s-nf-tools"
   publishDir "$params.outdir/results/reads_QC"
   label 'cpu8'
 
@@ -320,7 +320,7 @@ process prepare_qiime2_manifest_skip_cutadapt {
 // Import data into QIIME 2
 process import_qiime2 {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/import_qiime"
   label 'cpu_def'
 
@@ -341,7 +341,7 @@ process import_qiime2 {
 
 process demux_summarize {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/summary_demux"
   label 'cpu_def'
 
@@ -365,7 +365,7 @@ process demux_summarize {
 
 process dada2_denoise {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/dada2"
   cpus params.dada2_cpu
 
@@ -440,7 +440,7 @@ process dada2_denoise {
 // assignTaxonomy function based on Naive Bayes classifier
 process dada2_assignTax {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/results"
   cpus params.vsearch_cpu
 
@@ -485,7 +485,7 @@ process dada2_assignTax {
 // QC summary for dada2
 process dada2_qc {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -543,7 +543,7 @@ process dada2_qc {
 
 process qiime2_phylogeny_diversity {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/results/phylogeny_diversity"
   label 'cpu8' 
 
@@ -621,7 +621,7 @@ process qiime2_phylogeny_diversity {
 // Rarefaction visualization
 process dada2_rarefaction {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -645,7 +645,7 @@ process dada2_rarefaction {
 // Classify taxonomy and export table
 process class_tax {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/results"
   cpus params.vsearch_cpu
 
@@ -693,7 +693,7 @@ process class_tax {
 // Export results into biom for use with phyloseq
 process export_biom {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -730,7 +730,7 @@ process export_biom {
 
 process barplot {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -759,7 +759,7 @@ process barplot {
 // HTML report
 process html_rep {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-vis-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-vis-conda.sif"
+  container "docker://kpinpb/pb-16s-vis"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -791,7 +791,7 @@ process html_rep {
 // HTML report
 process html_rep_skip_cutadapt {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-vis-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/pb-16s-vis-conda.sif"
+  container "docker://kpinpb/pb-16s-vis"
   publishDir "$params.outdir/results"
   label 'cpu_def'
 
@@ -823,7 +823,7 @@ process html_rep_skip_cutadapt {
 // Krona plot
 process krona_plot {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "/home/kpin/gitlab/pacbio/singularity/qiime2-2022.2-py38-linux-conda.sif"
+  container "docker://kpinpb/pb-16s-nf-qiime"
   publishDir "$params.outdir/results"
   label 'cpu_def'
   // Ignore if this fail
