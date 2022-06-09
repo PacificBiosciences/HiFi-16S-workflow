@@ -3,6 +3,7 @@
 - Table of Contents
   * [Workflow overview and output](#workflow-overview-and-output)
   * [Installation and usage](#installation-and-usage)
+  * [HPC and job scheduler usage](#HPC-and-job-scheduler-usage)
   * [Frequently asked questions (FAQ)](#faq)
   * [References](#references)
   * [DISCLAIMER](#disclaimer)
@@ -136,6 +137,8 @@ To run this pipeline on your data, create the sample TSV and metadata TSV follow
 the test data format (For metadata, if you do not have any grouping, you can just
 put any words in the "condition" column) and run the workflow similar to the above. 
 Remember to specify the `--outdir` directory to avoid overwriting existing results.
+
+## HPC and job scheduler usage
 
 The pipeline uses "Local" by default to run jobs on HPC. This can be changed
 in the `nextflow.config` file under `executor` to utilize HPC scheduler such as
