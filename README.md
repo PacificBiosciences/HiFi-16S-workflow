@@ -47,7 +47,7 @@ simply type `git pull`.
 ```
 git clone https://github.com/proteinosome/pb-16S-nf.git
 cd pb-16S-nf
-nextflow run main.mf --download_db
+nextflow run main.nf --download_db
 ```
 
 After downloading the databases, run the following command in the cloned folder
