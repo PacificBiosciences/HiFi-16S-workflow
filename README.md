@@ -26,7 +26,9 @@ in the [`examples`](https://github.com/proteinosome/pb-16S-nf/tree/main/examples
 ## Installation and usage
 This pipeline runs using Nextflow (Version 22 and above). If you have Singularity on your
 cluster, we recommend using Singularity to run the pipeline by specifying `-profile singularity`
-when running the pipeline. By default all softwares dependencies are
+when running the pipeline. Singularity will pull the docker images to the folder `$HOME/nf_conda/singularity`.
+
+By default all softwares dependencies are
 managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
 to speed up the conda environment installation. The default `nextflow.config` file 
 enables the use of `mamba` by default. You can install Nextflow following the instruction
