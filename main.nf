@@ -383,7 +383,7 @@ process dada2_denoise {
   script:
   """
   # Use custom script that can skip primer trimming
-  cp $dada_ccs_script run_dada_ccs.R
+  # cp $dada_ccs_script run_dada_ccs.R
   chmod +x run_dada_ccs.R
   export PATH="./:\$PATH"
   which run_dada_ccs.R

@@ -59,20 +59,21 @@ nextflow run main.nf --help
   Usage:
   This pipeline takes in the standard sample manifest and metadata file used in
   QIIME 2 and produces QC summary, taxonomy classification results and visualization.
+
   For samples TSV, two columns named "sample-id" and "absolute-filepath" are
   required. For metadata TSV file, at least two columns named "sample_name" and
   "condition" to separate samples into different groups.
-  
+
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
-    
+
   By default, sequences are first trimmed with cutadapt (higher rate compared to using DADA2
   ) using the example command below. You can skip this by specifying "--skip_primer_trim" 
   if the sequences are already trimmed. The primer sequences used are the F27 and R1492
   primers for full length 16S sequencing.
-  
+
   Other important options:
-  --filterQ    Filter input reads above this Q value (default: 30).
+  --filterQ    Filter input reads above this Q value (default: 20).
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
               this value will be discarded (default: 2)
   --min_len    Minimum length of sequences to keep (default: 1000)
@@ -87,7 +88,7 @@ nextflow run main.nf --help
                          across all samples to be retained. Set this to 0 to disable filtering
                          (default 5)
   --min_asv_sample    ASV must exist in at least min_asv_sample to be retained. 
-                      Set this to 0 to disable. (default 2)
+                      Set this to 0 to disable. (default 1)
   --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
                          automatically select a cut-off above the minimum of the denoised 
