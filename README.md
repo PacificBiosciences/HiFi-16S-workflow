@@ -24,9 +24,9 @@ your computer, then double click to open it. All other important outputs from th
 in the [`examples`](https://github.com/proteinosome/pb-16S-nf/tree/main/examples) folder when you clone this repository.
 
 ## Installation and usage
-This pipeline runs using Nextflow (Version 22 and above). If you have Singularity on your
-cluster, we recommend using Singularity to run the pipeline by specifying `-profile singularity`
-when running the pipeline. Singularity will pull the docker images to the folder `$HOME/nf_conda/singularity`.
+This pipeline runs using Nextflow (Version 22 and above). If you have Singularity or Docker on your
+cluster, we recommend using Singularity or Docker to run the pipeline by specifying `-profile singularity` or
+`-profile docker` when running the pipeline. Singularity will pull the docker images to the folder `$HOME/nf_conda/singularity`.
 
 By default all softwares dependencies are
 managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
@@ -129,7 +129,7 @@ nextflow run main.nf --input test_data/test_sample.tsv \
     --metadata test_data/test_metadata.tsv -profile conda \
     --outdir results \
 
-# To test using Singularity
+# To test using Singularity or docker (change singularity to docker)
 nextflow run main.nf --input test_data/test_sample.tsv \
     --metadata test_data/test_metadata.tsv -profile singularity \
     --outdir results \
