@@ -218,9 +218,9 @@ primers removal?
 
 * How does the taxonomy classification work?
 
-  We use the `assignTaxonomy` function from DADA2 to carry out taxonomy assignment.
-  This pipeline uses 3 databases to classify the ASVs (requiring a minimum bootstrap of 80 using
-  the minBoot parameter) and the priority of assignment
+  The "besttax" assignment uses the `assignTaxonomy` Naive-Bayes classifier function from DADA2 
+  to carry out taxonomy assignment. It uses 3 databases to classify the ASVs 
+  (requiring a minimum bootstrap of 80 using the minBoot parameter) and the priority of assignment
   is Silva 138, followed by GTDB r202, then lastly RefSeq + RDP. This means for example
   if an ASV is not assigned at Species level using Silva, it will check if it can be assigned
   with GTDB. This ensure we assign as many ASVs as possible.
