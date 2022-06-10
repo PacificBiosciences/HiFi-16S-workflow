@@ -39,7 +39,8 @@ conda install -c bioconda nextflow
 ```
 
 After installing Nextflow and `mamba`(Optional but recommended), clone the repository and
-download databases using the following commands:
+download databases using the following commands. To update the pipeline in the future, 
+simply type `git pull`.
 
 ```
 git clone https://github.com/proteinosome/pb-16S-nf.git
@@ -130,7 +131,6 @@ nextflow run main.nf --input test_data/test_sample.tsv \
 nextflow run main.nf --input test_data/test_sample.tsv \
     --metadata test_data/test_metadata.tsv -profile singularity \
     --outdir results \
-
 ```
 
 To run this pipeline on your data, create the sample TSV and metadata TSV following
