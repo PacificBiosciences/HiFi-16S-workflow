@@ -371,6 +371,7 @@ process dada2_denoise {
 
   input:
   path samples_qza
+  path dada_ccs_script
 
   output:
   path "dada2-ccs_rep_filtered.qza", emit: asv_seq
@@ -382,7 +383,7 @@ process dada2_denoise {
   script:
   """
   # Use custom script that can skip primer trimming
-  cp $params.dadaCCS_script run_dada_ccs.R
+  cp $dada_ccs_script run_dada_ccs.R
   chmod +x run_dada_ccs.R
   export PATH="./:\$PATH"
   which run_dada_ccs.R
@@ -915,7 +916,7 @@ workflow pb16S {
     }
     import_qiime2(qiime2_manifest)
     demux_summarize(import_qiime2.out)
-    dada2_denoise(import_qiime2.out)
+    dada2_denoise(import_qiime2.out, params.dadaCCS_script)
     dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
     if( params.rarefaction_depth > 0 ){
       rd = params.rarefaction_depth
