@@ -271,6 +271,12 @@ primers removal?
   - `--refseq_db` provided by `DADA2`
     - [`RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
 
+* I want to understand more about OTU vs ASV.
+
+  Zymo Research provides a good article on the difference between ASV and OTU [here](https://www.zymoresearch.com/blogs/blog/microbiome-informatics-otu-vs-asv).
+  In addition, [this thread](https://forum.qiime2.org/t/esv-vs-otu-deflation-qiime1-vs-2/14867/2) on
+  `QIIME 2` forum discusses the difference in numbers through traditional OTU compared
+  to ASV approach.
 
 ## References
 ### QIIME 2
