@@ -893,7 +893,7 @@ process download_db {
   wget -N --content-disposition 'https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza'
 
   echo "Downloading GTDB database"
-  wget -N --content-disposition 'https://data.gtdb.ecogenomic.org/releases/release207/207.0/genomic_files_all/ssu_all_r207.tar.gz'
+  wget -N --content-disposition --no-check-certificate 'https://data.gtdb.ecogenomic.org/releases/release207/207.0/genomic_files_all/ssu_all_r207.tar.gz'
   tar xfz ssu_all_r207.tar.gz
   mv ssu_all_r207.fna GTDB_ssu_all_r207.fna
   grep "^>" GTDB_ssu_all_r207.fna | awk '{print gensub(/^>(.*)/, "\\\\1", "g", \$1),gensub(/^>.*\\ (d__.*)\\ \\[.*\\[.*\\[.*/, "\\\\1", "g", \$0)}' OFS=\$'\\t' > GTDB_ssu_all_r207.taxonomy.tsv
