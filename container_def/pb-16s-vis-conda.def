@@ -1,0 +1,14 @@
+Bootstrap: docker
+
+From: continuumio/miniconda3
+
+%files
+  pb-16s-vis-conda.yml
+
+%post
+  /opt/conda/bin/conda env create -f pb-16s-vis-conda.yml
+  echo ". /opt/conda/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
+  echo "conda activate pb-16S-vis" >> $SINGULARITY_ENVIRONMENT
+
+%runscript
+  exec "$@"
