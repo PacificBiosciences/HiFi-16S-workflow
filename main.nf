@@ -162,6 +162,7 @@ log.info """
   Number of threads specified for DADA2: $params.dada2_cpu
   Number of threads specified for VSEARCH: $params.vsearch_cpu
   Script location for HTML report generation: $params.rmd_vis_biom_script
+  Container enabled via docker/singularity: $params.enable_container
 """
 
 // QC before cutadapt
@@ -782,6 +783,14 @@ process html_rep {
   path "visualize_biom.html", emit: html_report
 
   script:
+  if (params.enable_container)
+  """
+  export R_LIBS_USER="/opt/conda/envs/pb-16S-vis/lib/R/library"
+  cp $params.rmd_vis_biom_script visualize_biom.Rmd
+  cp $params.rmd_helper import_biom.R
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat"), output_dir="./")'
+  """
+  else
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
