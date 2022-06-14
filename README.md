@@ -124,7 +124,7 @@ is created it will be reused by any future run.
 
 ```
 # Create sample TSV for testing
-echo -e "sample-id\tabsolute-filepath\ntest_data\t`readlink -f test_data/test_1000_reads.fastq.gz`" > test_data/test_sample.tsv
+echo -e "sample-id\tabsolute-filepath\ntest_data\t$(readlink -f test_data/test_1000_reads.fastq.gz)" > test_data/test_sample.tsv
 
 nextflow run main.nf --input test_data/test_sample.tsv \
     --metadata test_data/test_metadata.tsv -profile conda \
