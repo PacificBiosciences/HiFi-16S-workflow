@@ -38,6 +38,9 @@ from Nextflow [documentation](https://www.nextflow.io/docs/latest/getstarted.htm
 # (Optional but recommended) Install mamba
 conda install mamba -n base -c conda-forge
 conda install -c bioconda nextflow
+
+# If this is your first time using conda/mamba
+mamba init
 ```
 
 After installing Nextflow and `mamba`(Optional but recommended), clone the repository and
