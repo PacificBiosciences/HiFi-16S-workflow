@@ -232,8 +232,12 @@ primers removal?
   is assigned as "uncultured" or "metagenome", it will go through the iterative assignment
   process just like the unclassified ASVs. Note that while this method will assign
   a high amount of ASVs, there may be issues such as how the taxonomy is annotated
-  in different databases. As such, there is also a VSEARCH taxonomy classification using GTDB database (r207) only in the file called 
-  `results/vsearch_merged_freq_tax.tsv` that may provide a more consistent annotation.
+  in different databases. 
+
+  As such, there is also a VSEARCH taxonomy classification using GTDB database (r207) only in the file called 
+  `results/vsearch_merged_freq_tax.tsv` that may provide a more consistent annotation. This uses
+  the `classify-consensus-vsearch` plugin from `QIIME 2` and we use the "top-hits" approach
+  with a stringent default hit criteria (97% identity) to classify the taxonomy of ASVs.
 
   The final report will contain statistics from either types of assignment. If you notice a large
   discrepancy, it can be because one method fail to assign a large amount of ASVs from the
