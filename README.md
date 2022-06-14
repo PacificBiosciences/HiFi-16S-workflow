@@ -188,8 +188,10 @@ for DAG and resources report.
 
   This can happen in extremely diverse community such as soil where the ASVs are of very low abundance.
   In each sample, the reads supporting the ASV are very low and may not pass DADA2 threshold to qualify
-  as a cluster. See [here](https://github.com/benjjneb/dada2/issues/841) for a discussion on
-  the algorithm.
+  as a cluster. In addition, DADA2 has a strict reads quality filter (maxEE parameter) that will filter
+  away reads with relatively low accuracy. 
+  See [here](https://github.com/benjjneb/dada2/issues/841) and [here](https://github.com/benjjneb/dada2/issues/1164) 
+  for discussions on DADA2 algorithm and reads loss. 
 
 * I'm getting `Conda` "Safety" error indicating corrupted package or that some
 pipeline steps are not able to find specific command line tools (e.g. qiime).

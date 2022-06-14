@@ -1,17 +1,6 @@
 # TODO
 
-* Document all outputs and clean up workflow names
-* Cite all databases and tools and provide single Zenodo location for all
-  databases.
-* For Krona plot pip install, can we clone the repo locally and install from that
-* Add LotuS2 for OTU-based analysis? Or just add a guide on GitHub
 * Allow using just VSEARCH result and make naive bayes optional
-* Dockerize
-* See `https://github.com/benjjneb/dada2/issues/1164` for discussion on losing reads in CCS
-  * Setting minQ=0 and maxEE to 4 can rescue a lot of reads
-    * minQ=0 and maxEE=2 is similar to minQ=3 and maxEE=2 in MSA1003
-  * Expose minQ?
-* Clean up import qiime manifest do not need to put samples_demux_rate file
 * Parallelize classify step by splitting the ASV FASTA files into fixed number of ASV chunks
 * Guide on how to BLAST ASVs for strain level assignment
 
@@ -45,3 +34,12 @@ to freeze it (avoiding risk of repo going down)
 * DONE: Phylo tree and PCoA and diversity analysis
 * DONE: Split ASV and sample freq filtering from denoise step, so that
   changing filtering parameters won't cause denoise to restart
+* DONE: Document all outputs and clean up workflow names
+* DONE: Cite all databases and tools and provide single Zenodo location for all
+  databases.
+  * Use Nextflow to handle database download instead.
+* DONE: For Krona plot pip install, can we clone the repo locally and install from that
+  * Conda method continue to install from GitHub but docker container will come with
+  it. Forked q2-krona in case of code-deletion in the future.
+* ABANDON: Add LotuS2 for OTU-based analysis? Or just add a guide on GitHub
+* DONE: Dockerize
