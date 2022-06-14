@@ -3,8 +3,6 @@
 * Document all outputs and clean up workflow names
 * Cite all databases and tools and provide single Zenodo location for all
   databases.
-* Split ASV and sample freq filtering from denoise step, so that
-  changing filtering parameters won't cause denoise to restart
 * For Krona plot pip install, can we clone the repo locally and install from that
 * Add LotuS2 for OTU-based analysis? Or just add a guide on GitHub
 * Allow using just VSEARCH result and make naive bayes optional
@@ -45,3 +43,5 @@ to freeze it (avoiding risk of repo going down)
 * DONE: Remove ASV in only one samples and less than 5 reads
 * DONE: Handle one sample workflow
 * DONE: Phylo tree and PCoA and diversity analysis
+* DONE: Split ASV and sample freq filtering from denoise step, so that
+  changing filtering parameters won't cause denoise to restart
