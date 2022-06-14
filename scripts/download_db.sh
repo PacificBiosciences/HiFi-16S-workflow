@@ -16,5 +16,7 @@ wget -N -P databases/ --content-disposition 'https://data.gtdb.ecogenomic.org/re
 tar xfz databases/ssu_all_r207.tar.gz
 mv ssu_all_r207.fna databases/GTDB_ssu_all_r207.fna
 grep "^>" databases/GTDB_ssu_all_r207.fna | awk '{print gensub(/^>(.*)/, "\\1", "g", $1),gensub(/^>.*\ (d__.*)\ \[.*\[.*\[.*/, "\\1", "g", $0)}' OFS=$'\t' > databases/ssu_all_r207.taxonomy.tsv
+# Activate QIIME 2 to import
+conda activate qiime2-2022.2
 qiime tools import --type 'FeatureData[Sequence]' --input-path databases/GTDB_ssu_all_r207.fna --output-path databases/GTDB_ssu_all_r207.qza
-qiime tools import --type 'FeatureData[Taxonomy]' --input-path databases/GTDB_ssu_all_r207.taxonomy.tsv --output-path databases/GTDB_ssu_all_r207.taxonomy.qza
+qiime tools import --type 'FeatureData[Taxonomy]' --input-format HeaderlessTSVTaxonomyFormat --input-path databases/GTDB_ssu_all_r207.taxonomy.tsv --output-path databases/GTDB_ssu_all_r207.taxonomy.qza
