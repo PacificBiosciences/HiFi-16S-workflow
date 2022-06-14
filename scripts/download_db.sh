@@ -12,7 +12,7 @@ wget -N -P databases/ --content-disposition 'https://data.qiime2.org/2022.2/comm
 wget -N -P databases/ --content-disposition 'https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza'
 
 echo "Downloading GTDB database"
-wget -N -P databases/ --content-disposition 'https://data.gtdb.ecogenomic.org/releases/release207/207.0/genomic_files_all/ssu_all_r207.tar.gz'
+wget -N -P databases/ --content-disposition --no-check-certificate 'https://data.gtdb.ecogenomic.org/releases/release207/207.0/genomic_files_all/ssu_all_r207.tar.gz'
 tar xfz databases/ssu_all_r207.tar.gz
 mv ssu_all_r207.fna databases/GTDB_ssu_all_r207.fna
 grep "^>" databases/GTDB_ssu_all_r207.fna | awk '{print gensub(/^>(.*)/, "\\1", "g", $1),gensub(/^>.*\ (d__.*)\ \[.*\[.*\[.*/, "\\1", "g", $0)}' OFS=$'\t' > databases/ssu_all_r207.taxonomy.tsv
