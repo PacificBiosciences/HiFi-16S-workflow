@@ -3,18 +3,18 @@ b80a1bd6b19379171cafb03a4ddb26a3	d__Bacteria; p__Proteobacteria; c__Alphaproteob
 61de72098cbf9f693f09c863d1c5a586	d__Bacteria; p__Bacteroidota; c__Bacteroidia; o__Bacteroidales; f__Porphyromonadaceae; g__Porphyromonas; s__Porphyromonas gingivalis	100
 a0530711bdec8d611872863731f96dde	d__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus; s__Streptococcus mutans	100
 bc7d5e82dae59e2e5e8321bb5c5eae4b	d__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus; s__Streptococcus mutans	100
-13bc41e35faa4f40a01de5a972c0c4ac	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella coli	92
-f3cfb383dcfb753cad226072f6665784	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	100
-7dcace79bc8188077e07b0085aa57b7f	d__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus; s__Bacillus anthracis	86
+13bc41e35faa4f40a01de5a972c0c4ac	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella coli	91
+f3cfb383dcfb753cad226072f6665784	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	99
+7dcace79bc8188077e07b0085aa57b7f	d__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus; s__Bacillus anthracis	88
 09a8fa70427aa68f16934c729b826071	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella coli	100
-3b44c0cd22f7eeac2386b9f2d475930a	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella Unclassified	55
-0bf3e0641c88ec588bc66b567c3fa63d	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella coli	94
-dd586a1ae04ed2d129d944286ae71f61	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	96
-c0089458dae2c0559162e58eb2661873	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella Unclassified	46
-9fc4609d84db9e441de7db46d7172ae4	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella Unclassified	64
-d3eab112b21cbea371f808f940fa4b0c	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	99
+3b44c0cd22f7eeac2386b9f2d475930a	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella Unclassified	60
+0bf3e0641c88ec588bc66b567c3fa63d	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella coli	92
+dd586a1ae04ed2d129d944286ae71f61	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	100
+c0089458dae2c0559162e58eb2661873	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella Unclassified	52
+9fc4609d84db9e441de7db46d7172ae4	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia-Shigella; s__Escherichia-Shigella Unclassified	62
+d3eab112b21cbea371f808f940fa4b0c	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	98
 aab4d379026eb5e6a7e2b32ec4c715e7	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	100
-34babcf1732962962d2fbbbadf3af637	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	99
+34babcf1732962962d2fbbbadf3af637	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus epidermidis	100
 07b2978940b50886f3866b04b7f982cf	d__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Streptococcaceae; g__Streptococcus; s__Streptococcus agalactiae	100
 a0ec2668157ffb2374ece8cad58ecc5f	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Pseudomonadales; f__Pseudomonadaceae; g__Pseudomonas; s__Pseudomonas aeruginosa	100
 21b49156bf40185385c31d7db91a5ad5	d__Bacteria; p__Firmicutes; c__Bacilli; o__Bacillales; f__Bacillaceae; g__Bacillus; s__Bacillus cereus	100
@@ -28,7 +28,7 @@ efe5e4e4ba300f45c88da09e3e9cd3e4	d__Bacteria; p__Proteobacteria; c__Gammaproteob
 1f1158dbb4126e5a7f04094b61700493	d__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Clostridiaceae; g__Clostridium sensu stricto 1; s__Clostridium sensu stricto 1 beijerinckii	100
 cd1af128eb857acddb168e57245021ec	d__Bacteria; p__Firmicutes; c__Bacilli; o__Staphylococcales; f__Staphylococcaceae; g__Staphylococcus; s__Staphylococcus aureus	100
 0ed2d53fd823b2ef922b6f349cade1cd	d__Bacteria; p__Proteobacteria; c__Gammaproteobacteria; o__Burkholderiales; f__Neisseriaceae; g__Neisseria; s__Neisseria meningitidis	100
-fce86ef2355971d83413788cbb660531	d__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Lactobacillaceae; g__Lactobacillus; s__Lactobacillus gasseri	98
+fce86ef2355971d83413788cbb660531	d__Bacteria; p__Firmicutes; c__Bacilli; o__Lactobacillales; f__Lactobacillaceae; g__Lactobacillus; s__Lactobacillus gasseri	97
 7932226c8cd025d2ea117b03d48f63e8	d__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Clostridiaceae; g__Clostridium sensu stricto 1; s__Clostridium sensu stricto 1 beijerinckii	100
 070e52443d30c5d9e99c8cb06412db1a	d__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Clostridiaceae; g__Clostridium sensu stricto 1; s__Clostridium sensu stricto 1 beijerinckii	100
 7809550a0f7794b926ffcebad7542089	d__Bacteria; p__Firmicutes; c__Clostridia; o__Clostridiales; f__Clostridiaceae; g__Clostridium sensu stricto 1; s__Clostridium sensu stricto 1 beijerinckii	100
@@ -50,5 +50,5 @@ b2ef16dee036f7ce8b9b74a7234111c1	d__Bacteria; p__Firmicutes; c__Clostridia; o__C
 339aac7377a0d948a52bc0b2bf3dfda8	d__Bacteria; p__Bacteroidota; c__Bacteroidia; o__Bacteroidales; f__Bacteroidaceae; g__Bacteroides; s__Bacteroides vulgatus	100
 9f3938b0148e6fa857077444480b6fd3	d__Bacteria; p__Bacteroidota; c__Bacteroidia; o__Bacteroidales; f__Bacteroidaceae; g__Bacteroides; s__Bacteroides vulgatus	100
 3cc006600b219858ac3c647f2613a32a	d__Bacteria; p__Bacteroidota; c__Bacteroidia; o__Bacteroidales; f__Bacteroidaceae; g__Bacteroides; s__Bacteroides vulgatus	100
-04d3de55f475a0888205c9507901a096	d__Bacteria; p__Actinobacteriota; c__Actinomycetia; o__Actinomycetales; f__Actinomycetaceae; g__Pauljensenia; s__Pauljensenia odontolytica	94
+04d3de55f475a0888205c9507901a096	d__Bacteria; p__Actinobacteriota; c__Actinomycetia; o__Actinomycetales; f__Actinomycetaceae; g__Pauljensenia; s__Pauljensenia odontolytica	99
 d5cb708aa8b5ddc54ca7e0528124fe20	d__Bacteria; p__Deinococcota; c__Deinococci; o__Deinococcales; f__Deinococcaceae; g__Deinococcus; s__Deinococcus radiodurans	100
