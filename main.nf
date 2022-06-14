@@ -375,10 +375,9 @@ process dada2_denoise {
   path dada_ccs_script
 
   output:
-  path "dada2-ccs_rep_filtered.qza", emit: asv_seq
-  path "dada2-ccs_table_filtered.qza", emit: asv_freq
+  path "dada2-ccs_rep.qza", emit: asv_seq
+  path "dada2-ccs_table.qza", emit: asv_freq
   path "dada2-ccs_stats.qza", emit:asv_stats
-  path "dada2_ASV.fasta", emit:asv_seq_fasta
   path "seqtab_nochim.rds", emit: dada2_rds
 
   script:
@@ -399,11 +398,31 @@ process dada2_denoise {
     --p-n-threads $task.cpus \
     --p-pooling-method \'$params.pooling_method\'
 
+  """
+}
+
+process filter_dada2 {
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime"
+  publishDir "$params.outdir/dada2"
+  cpus params.dada2_cpu
+
+  input:
+  path asv_table
+  path asv_seq
+
+  output:
+  path "dada2-ccs_rep_filtered.qza", emit: asv_seq
+  path "dada2-ccs_table_filtered.qza", emit: asv_freq
+  path "dada2_ASV.fasta", emit:asv_seq_fasta
+
+  script:
+  """
   if [ $params.min_asv_sample -gt 0 ] && [ $params.min_asv_totalfreq -gt 0 ]
   then
     # Filter ASVs and sequences
     qiime feature-table filter-features \
-      --i-table dada2-ccs_table.qza \
+      --i-table $asv_table \
       --p-min-frequency $params.min_asv_totalfreq \
       --p-min-samples $params.min_asv_sample \
       --p-filter-empty-samples \
@@ -411,14 +430,14 @@ process dada2_denoise {
   elif [ $params.min_asv_sample -gt 0 ] && [ $params.min_asv_totalfreq -eq 0 ]
   then
     qiime feature-table filter-features \
-      --i-table dada2-ccs_table.qza \
+      --i-table $asv_table \
       --p-min-samples $params.min_asv_sample \
       --p-filter-empty-samples \
       --o-filtered-table dada2-ccs_table_filtered.qza
   elif [ $params.min_asv_sample -eq 0 ] && [ $params.min_asv_totalfreq -gt 0 ]
   then
     qiime feature-table filter-features \
-      --i-table dada2-ccs_table.qza \
+      --i-table $asv_table \
       --p-min-frequency $params.min_asv_totalfreq \
       --p-filter-empty-samples \
       --o-filtered-table dada2-ccs_table_filtered.qza
@@ -426,7 +445,7 @@ process dada2_denoise {
     mv dada2-ccs_table.qza dada2-ccs_table_filtered.qza
   fi
   qiime feature-table filter-seqs \
-    --i-data dada2-ccs_rep.qza \
+    --i-data $asv_seq \
     --i-table dada2-ccs_table_filtered.qza \
     --o-filtered-data dada2-ccs_rep_filtered.qza
 
@@ -436,7 +455,6 @@ process dada2_denoise {
   mv dna-sequences.fasta dada2_ASV.fasta
   """
 }
-
 
 // Assign taxonomies to SILVA, GTDB and RefSeq using DADA2
 // assignTaxonomy function based on Naive Bayes classifier
@@ -934,22 +952,23 @@ workflow pb16S {
     import_qiime2(qiime2_manifest)
     demux_summarize(import_qiime2.out)
     dada2_denoise(import_qiime2.out, params.dadaCCS_script)
-    dada2_qc(dada2_denoise.out.asv_stats, dada2_denoise.out.asv_freq, metadata_file)
+    filter_dada2(dada2_denoise.out.asv_freq, dada2_denoise.out.asv_seq)
+    dada2_qc(dada2_denoise.out.asv_stats, filter_dada2.out.asv_freq, metadata_file)
     if( params.rarefaction_depth > 0 ){
       rd = params.rarefaction_depth
-      qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
-          dada2_denoise.out.asv_freq, rd)
-      dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, rd)
+      qiime2_phylogeny_diversity(metadata_file, filter_dada2.out.asv_seq,
+          filter_dada2.out.asv_freq, rd)
+      dada2_rarefaction(filter_dada2.out.asv_freq, metadata_file, rd)
     } else {
-      qiime2_phylogeny_diversity(metadata_file, dada2_denoise.out.asv_seq,
-          dada2_denoise.out.asv_freq, dada2_qc.out.rarefaction_depth)
-      dada2_rarefaction(dada2_denoise.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
+      qiime2_phylogeny_diversity(metadata_file, filter_dada2.out.asv_seq,
+          filter_dada2.out.asv_freq, dada2_qc.out.rarefaction_depth)
+      dada2_rarefaction(filter_dada2.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
     }
-    class_tax(dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq, params.vsearch_db, params.vsearch_tax)
-    dada2_assignTax(dada2_denoise.out.asv_seq_fasta, dada2_denoise.out.asv_seq, dada2_denoise.out.asv_freq,
+    class_tax(filter_dada2.out.asv_seq, filter_dada2.out.asv_freq, params.vsearch_db, params.vsearch_tax)
+    dada2_assignTax(filter_dada2.out.asv_seq_fasta, filter_dada2.out.asv_seq, filter_dada2.out.asv_freq,
         params.silva_db, params.gtdb_db, params.refseq_db, params.dadaAssign_script)
-    export_biom(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
-    barplot(dada2_denoise.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
+    export_biom(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
+    barplot(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
     if (params.skip_primer_trim){
       html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
           dada2_qc.out.dada2_qc_tsv, 
@@ -965,7 +984,7 @@ workflow pb16S {
           qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
           params.colorby)
     }
-    krona_plot(dada2_denoise.out.asv_freq, class_tax.out.tax_vsearch)
+    krona_plot(filter_dada2.out.asv_freq, class_tax.out.tax_vsearch)
   }
 }
 
