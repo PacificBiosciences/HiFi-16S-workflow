@@ -210,15 +210,6 @@ asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
 * Average number of ASVs per sample: `r asv_persample`
 * Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 4)*100`% of all input reads)
 
-### Classification using Naive Bayes classifier with SILVA, GTDB and RefSeq + RDP
-
-* ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 4)*100`%)
-* ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 4)*100`%)
-* Percentage reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_spec_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
-* ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 4)*100`%)
-* ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 4)*100`%)
-* Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_gen_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
-
 ### Classification using VSEARCH with a single database
 
 * ASVs classified at Species level: `r nrow(class_spec_vsearch)` (`r round(nrow(class_spec_vsearch)/total_asv, 4)*100`%)
@@ -227,6 +218,15 @@ asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
 * ASVs classified at Genus level: `r nrow(class_gen_vsearch)` (`r round(nrow(class_gen_vsearch)/total_asv, 4)*100`%)
 * ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured_vsearch)` (`r round(nrow(class_gen_uncultured_vsearch)/total_asv, 4)*100`%)
 * Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["vsearch"]])[class_gen_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
+
+### Classification using Naive Bayes classifier with SILVA, GTDB and RefSeq + RDP
+
+* ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 4)*100`%)
+* ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 4)*100`%)
+* Percentage reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_spec_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
+* ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 4)*100`%)
+* ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 4)*100`%)
+* Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_gen_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
 
 ## Overall reads filtering and number of full-length reads
 * Full-length reads are defined as reads with both F27 and R1492 primers
@@ -299,8 +299,9 @@ datatable(dada2_qc,
 
 * For interactive view, use the Emperor QZV output from QIIME2 in `results/core-metrics-diversity` folder with QIIME2 View
 * Note that if the distances between all samples are zero for a specific method, the plots will not be shown.
+* MDS plots use ASVs as input
 
-### Bray-Curtis MDS plot (Based on VSEARCH taxonomy assignment)
+### Bray-Curtis MDS plot
 ``` {r, echo=FALSE, warning=FALSE, message=FALSE}
 # Calculate distance matrix
 iDist <- read_tsv(params$bray_mat)
@@ -353,72 +354,7 @@ if (! is_empty(iDist2)){
 
 ```
 
-### Top 50 ASVs with Naive Bayes Classifier
-``` {r, echo=FALSE}
-vis_tab <- tab_besttax %>% inner_join(otu_besttax, by="OTU")
-count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
-rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
-mean_rel_abundance <- apply(rel_abundance, 1, mean)
-datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
-          options = list(scrollX = TRUE), 
-          filter = list(
-            position = 'top', clear = FALSE
-          ))
-```
-### Top 10 Classified Genus (Collapsed to species) with Naive Bayes Classifier
-* Relative abundance is calculated by dividing the number of reads for each ASV to the
-total number of reads in each sample.
-* Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
-genus.
-``` {r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
-# Display top 10
-top10_genus <- merge_tab_genus %>% 
-  filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
-  group_by(Genus) %>% 
-  summarise("Mean supporting reads across samples" = round(mean(Abundance), 2),
-            "Mean relative abundance across samples" = round(mean(`Relative Abundance`), 2)) %>% 
-  top_n(10, wt = `Mean relative abundance across samples`) %>% 
-  arrange(desc(`Mean relative abundance across samples`)) 
-
-top10_gen_species <- vis_tab %>% 
-  select(OTU, Genus, Species, sample_data(physeq)$sample.id) %>% 
-  filter(Genus %in% top10_genus$Genus) %>% 
-  group_by(Genus, Species) %>% 
-  summarise(across(sample_data(physeq)$sample.id, sum)) %>% 
-  ungroup() %>% 
-  arrange(factor(Genus, levels=top10_genus$Genus))
-
-datatable(top10_genus,
-          options = list(scrollX = TRUE), 
-          filter = list(
-            position = 'top', clear = FALSE
-          ))
-
-datatable(top10_gen_species,
-          options = list(scrollX = TRUE), 
-          filter = list(
-            position = 'top', clear = FALSE
-          ))
-# Make heatmap. Filter out ultra low abundance species
-toplot <- merge_tab_spec %>% 
-  filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Species),
-         Species %in% top10_gen_species$Species) %>% 
-  dplyr::select(-Abundance, method) %>% 
-  pivot_wider(names_from = "Sample", values_from = "Relative Abundance")
-mat_to_plot <- as.matrix(toplot %>% select(sample_data(physeq)$sample.id))
-rownames(mat_to_plot) <- toplot$Species
-# More than 1% in two samples
-mat_to_plot <- mat_to_plot[rowSums(mat_to_plot > 0.01) > 2, ]
-min_abundance <- min(mat_to_plot, na.rm = TRUE)
-max_abundance <- max(mat_to_plot, na.rm = TRUE)
-mean_abundance <- mean(mat_to_plot, na.rm = TRUE)
-Heatmap(mat_to_plot, 
-        col=circlize::colorRamp2(c(min_abundance, mean_abundance, max_abundance), 
-                                 viridis(3)),
-        name = "Relative abundance")
-```
-
-### Top 50 ASVs with VSEARCH
+### Top 50 ASVs (VSEARCH classification)
 ``` {r, echo=FALSE}
 vis_tab <- tab_vsearch %>% inner_join(otu_vsearch, by="OTU")
 count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
@@ -468,6 +404,71 @@ datatable(top10_gen_species,
 # Make heatmap. Filter out ultra low abundance species
 toplot <- merge_tab_spec %>% 
   filter(method=="vsearch", !grepl("Unclassified|uncultured|metagenome", Species),
+         Species %in% top10_gen_species$Species) %>% 
+  dplyr::select(-Abundance, method) %>% 
+  pivot_wider(names_from = "Sample", values_from = "Relative Abundance")
+mat_to_plot <- as.matrix(toplot %>% select(sample_data(physeq)$sample.id))
+rownames(mat_to_plot) <- toplot$Species
+# More than 1% in two samples
+mat_to_plot <- mat_to_plot[rowSums(mat_to_plot > 0.01) > 2, ]
+min_abundance <- min(mat_to_plot, na.rm = TRUE)
+max_abundance <- max(mat_to_plot, na.rm = TRUE)
+mean_abundance <- mean(mat_to_plot, na.rm = TRUE)
+Heatmap(mat_to_plot, 
+        col=circlize::colorRamp2(c(min_abundance, mean_abundance, max_abundance), 
+                                 viridis(3)),
+        name = "Relative abundance")
+```
+
+### Top 50 ASVs (Naive Bayes Classifier)
+``` {r, echo=FALSE}
+vis_tab <- tab_besttax %>% inner_join(otu_besttax, by="OTU")
+count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
+rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
+mean_rel_abundance <- apply(rel_abundance, 1, mean)
+datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+```
+### Top 10 Classified Genus (Collapsed to species) with Naive Bayes Classifier
+* Relative abundance is calculated by dividing the number of reads for each ASV to the
+total number of reads in each sample.
+* Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
+genus.
+``` {r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
+# Display top 10
+top10_genus <- merge_tab_genus %>% 
+  filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
+  group_by(Genus) %>% 
+  summarise("Mean supporting reads across samples" = round(mean(Abundance), 2),
+            "Mean relative abundance across samples" = round(mean(`Relative Abundance`), 2)) %>% 
+  top_n(10, wt = `Mean relative abundance across samples`) %>% 
+  arrange(desc(`Mean relative abundance across samples`)) 
+
+top10_gen_species <- vis_tab %>% 
+  select(OTU, Genus, Species, sample_data(physeq)$sample.id) %>% 
+  filter(Genus %in% top10_genus$Genus) %>% 
+  group_by(Genus, Species) %>% 
+  summarise(across(sample_data(physeq)$sample.id, sum)) %>% 
+  ungroup() %>% 
+  arrange(factor(Genus, levels=top10_genus$Genus))
+
+datatable(top10_genus,
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+
+datatable(top10_gen_species,
+          options = list(scrollX = TRUE), 
+          filter = list(
+            position = 'top', clear = FALSE
+          ))
+# Make heatmap. Filter out ultra low abundance species
+toplot <- merge_tab_spec %>% 
+  filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Species),
          Species %in% top10_gen_species$Species) %>% 
   dplyr::select(-Abundance, method) %>% 
   pivot_wider(names_from = "Sample", values_from = "Relative Abundance")
