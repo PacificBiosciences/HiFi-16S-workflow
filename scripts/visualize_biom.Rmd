@@ -195,11 +195,11 @@ class_gen_uncultured_vsearch <- tab_vsearch %>% filter(Genus != "", !grepl("Uncl
 asv_sample <- colSums(otu_table(phyloseq) > 0)
 asv_persample <- floor(mean(asv_sample, na.rm = TRUE))
 asv_tab <- tibble(
-  sample = names(asv_sample),
+  `sample-id` = names(asv_sample),
   n_ASV = asv_sample
 ) 
-all_read_count <- all_read_count %>% 
-  inner_join(asv_tab, by="sample")
+dada2_qc <- dada2_qc %>% 
+  inner_join(asv_tab, by="sample-id")
 ```
 
 ## Summary QC statistics
@@ -239,9 +239,9 @@ all_read_count <- all_read_count %>%
 ```{r, echo=FALSE}
 if (skip_cutadapt != "Yes") {
   colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter", 
-                                "Full-length Reads", "Full-length Reads Percent", "Number of ASVs")
+                                "Full-length Reads", "Full-length Reads Percent")
 } else {
-  colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter", "Number of ASVs")
+  colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter")
 }
 datatable(all_read_count, 
           options = list(scrollX = TRUE), 
@@ -277,11 +277,6 @@ ggplot(reads_qc, aes(x = length, y = ..density..)) +
                         round((reads_qc %>% filter(length > 3000) %>% nrow())/nrow(reads_qc), 4), 
                         "%"))
 
-ggplot(all_read_count %>% 
-         inner_join(as_tibble(metadata, rownames = "Sample")),
-       aes(x = `Reads after quality filter`, y = `Number of ASVs`)) +
-  geom_point(aes_string(color = params$colorby))
-
 colnames(summarise_qc) <- c("Sample", "Length 1st Quartile (bp)", "Length 3rd Quartile (bp)",
                             "Median Length (bp)", "Read Quality 1st Quartile (bp)", "Read Quality 3rd Quartile (bp)",
                             "Median Read Quality")
@@ -301,6 +296,12 @@ datatable(dada2_qc,
           filter = list(
             position = 'top', clear = FALSE
           ))
+
+ggplot(dada2_qc %>% 
+         inner_join(as_tibble(metadata, rownames = "sample-id"), by="sample-id"),
+       aes(x = `non-chimeric`, y = `n_ASV`)) +
+  geom_point(aes_string(color = params$colorby)) +
+  labs(x = "Non-chimeric Denoised Reads", y = "Number of ASVs")
 ```
 
 ## Top Taxa and Plots
