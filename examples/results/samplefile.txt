@@ -1,9 +1,9 @@
 sample-id	absolute-filepath
-bc1005_bc1100	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/b5/9169819454207e1764f8d1c6feb2c5/bc1005_bc1100.trimmed.fastq.gz
-bc1005_bc1057	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/bc/fec30f6959acae7f6fd8bba0590ea8/bc1005_bc1057.trimmed.fastq.gz
-bc1024_bc1111	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/f0/ae7a21632d458910fd638340d17b8e/bc1024_bc1111.trimmed.fastq.gz
-bc1005_bc1056	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/4c/d792d266a96da440f149b84d1c2c06/bc1005_bc1056.trimmed.fastq.gz
-bc1005_bc1075	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/92/60fc404976dcf2a915bccefbfc07a0/bc1005_bc1075.trimmed.fastq.gz
-bc1005_bc1062	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/8c/dd46151ee738f6b7c3e36b8279fbed/bc1005_bc1062.trimmed.fastq.gz
-bc1020_bc1059	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/37/5896c8be06bdb24890bbdfbff56cac/bc1020_bc1059.trimmed.fastq.gz
-bc1007_bc1075	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/45/2c9dbe810be4306e6b75b7d487b4aa/bc1007_bc1075.trimmed.fastq.gz
+bc1020_bc1059	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/90/d8a3f1906fb354afd864c268b3edb3/bc1020_bc1059.trimmed.fastq.gz
+bc1005_bc1057	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/da/f17b4e2660a399a472c8b45a303b56/bc1005_bc1057.trimmed.fastq.gz
+bc1005_bc1100	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/02/7aa6080f5ca804a218fca0a9513876/bc1005_bc1100.trimmed.fastq.gz
+bc1024_bc1111	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/ba/d91af480c3bdc7b9ee347a6be059e9/bc1024_bc1111.trimmed.fastq.gz
+bc1005_bc1075	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/66/13daa9a2348b6a28b0b3882e7d9248/bc1005_bc1075.trimmed.fastq.gz
+bc1005_bc1056	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/ec/6bb6b9dfec1da2a116d47af883721b/bc1005_bc1056.trimmed.fastq.gz
+bc1007_bc1075	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/3d/2e60080817c1dbd880637f390640a0/bc1007_bc1075.trimmed.fastq.gz
+bc1005_bc1062	/localdisk/home/kpin/downstream/metagenomics/2022-5-10_test_pb16S-nf_ATCC_MSA1003/work/60/83ede1a1529cef59b71fe5387a6256/bc1005_bc1062.trimmed.fastq.gz
