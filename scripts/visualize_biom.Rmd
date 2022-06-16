@@ -43,9 +43,7 @@ options(dplyr.summarise.inform = FALSE)
 theme_set(theme_bw(base_size = 14))
 
 # Load data
-dada2_qc <- read_tsv(params$dada2_qc)
-# QIIME weird formatting, remove the second line...
-dada2_qc <- dada2_qc[2:nrow(dada2_qc),, drop=FALSE]
+dada2_qc <- read_tsv(params$dada2_qc, comment="#")
 physeq_list <- list()
 
 mapping_file <- import_qiime_sample_data(mapfilename = params$sample_file)
@@ -194,7 +192,14 @@ class_spec_uncultured_vsearch <- tab_vsearch %>% filter(Species != "", !grepl("U
 class_gen_uncultured_vsearch <- tab_vsearch %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
 
 # ASV per sample
-asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
+asv_sample <- colSums(otu_table(phyloseq) > 0)
+asv_persample <- floor(mean(asv_sample, na.rm = TRUE))
+asv_tab <- tibble(
+  sample = names(asv_sample),
+  n_ASV = asv_sample
+) 
+all_read_count <- all_read_count %>% 
+  inner_join(asv_tab, by="sample")
 ```
 
 ## Summary QC statistics
@@ -234,9 +239,9 @@ asv_persample <- floor(mean(colSums(otu_table(phyloseq) > 0), na.rm = TRUE))
 ```{r, echo=FALSE}
 if (skip_cutadapt != "Yes") {
   colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter", 
-                                "Full-length Reads", "Full-length Reads Percent")
+                                "Full-length Reads", "Full-length Reads Percent", "Number of ASVs")
 } else {
-  colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter")
+  colnames(all_read_count) <- c("Sample", "Reads before quality filter", "Reads after quality filter", "Number of ASVs")
 }
 datatable(all_read_count, 
           options = list(scrollX = TRUE), 
@@ -272,6 +277,11 @@ ggplot(reads_qc, aes(x = length, y = ..density..)) +
                         round((reads_qc %>% filter(length > 3000) %>% nrow())/nrow(reads_qc), 4), 
                         "%"))
 
+ggplot(all_read_count %>% 
+         inner_join(as_tibble(metadata, rownames = "Sample")),
+       aes(x = `Reads after quality filter`, y = `Number of ASVs`)) +
+  geom_point(aes_string(color = params$colorby))
+
 colnames(summarise_qc) <- c("Sample", "Length 1st Quartile (bp)", "Length 3rd Quartile (bp)",
                             "Median Length (bp)", "Read Quality 1st Quartile (bp)", "Read Quality 3rd Quartile (bp)",
                             "Median Read Quality")
@@ -282,8 +292,6 @@ datatable(summarise_qc,
           filter = list(
             position = 'top', clear = FALSE
           ))
-
-
 ```
 
 ## DADA2 QC metrics
