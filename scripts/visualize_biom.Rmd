@@ -308,7 +308,9 @@ ggplot(dada2_qc %>%
 
 * For interactive view, use the Emperor QZV output from QIIME2 in `results/core-metrics-diversity` folder with QIIME2 View
 * Note that if the distances between all samples are zero for a specific method, the plots will not be shown.
-* MDS plots use ASVs as input
+* MDS plots use ASVs as input.
+* Samples might be missing due to choice of rarefecation depth. Rerun pipeline
+  with `-resume --rarefaction_depth X` to choose a custom rarefecation depth X.
 
 ### Bray-Curtis MDS plot
 ``` {r, echo=FALSE, warning=FALSE, message=FALSE}
