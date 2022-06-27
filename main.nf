@@ -521,6 +521,7 @@ process dada2_qc {
   path "dada2_qc.tsv", emit: dada2_qc_tsv
   env(int_rarefaction_d), emit: rarefaction_depth
   path "rarefaction_depth_suggested.txt"
+  env(int_alpha_d), emit:alpha_depth
 
   script:
   """
@@ -540,20 +541,39 @@ process dada2_qc {
   # Get number of reads for ASV covering 90% of samples
   number=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | wc -l`
   ninety=0.8
-  # Handle single sample and 2 samples
+  # Handle single sample and 2 samples. Use lowest depth in both cases
   if [ \${number} == 1 ];
   then
     result=1
+    rarefaction_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
+      tail -n1 | cut -f2 -d,`
+    int_rarefaction_d=\${rarefaction_d%%.*}
+    echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
+    alpha_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
+      tail -n1 | cut -f2 -d,`
+    int_alpha_d=\${$alpha_d%%.*}
   elif [ \${number} == 2 ];
   then
     result=2
+    rarefaction_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
+      tail -n1 | cut -f2 -d,`
+    int_rarefaction_d=\${rarefaction_d%%.*}
+    echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
+    alpha_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
+      tail -n1 | cut -f2 -d,`
+    int_alpha_d=\${$alpha_d%%.*}
   else
     result=`echo "(\$number * \$ninety)" | bc -l` 
+    rarefaction_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
+      head -n \${result%%.*} | tail -n1 | cut -f2 -d,`
+    int_rarefaction_d=\${rarefaction_d%%.*}
+    echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
+    # Use lowest depth covering just 20% of sample for alpha rarefaction curve
+    alpha_res=`echo "(\$number * 0.2)" | bc -l`
+    alpha_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
+      head -n \${alpha_res%%.*} | tail -n1 | cut -f2 -d,`
+    int_alpha_d=\${$alpha_d%%.*}
   fi
-  rarefaction_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
-    head -n \${result%%.*} | tail -n1 | cut -f2 -d,`
-  int_rarefaction_d=\${rarefaction_d%%.*}
-  echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
 
   qiime tools export --input-path dada2_stats.qzv \
     --output-path ./dada2_stats
@@ -648,7 +668,7 @@ process dada2_rarefaction {
   input:
   path asv_freq
   path metadata
-  val(rarefaction_depth)
+  val(alpha_d)
 
   output:
   path "*"
@@ -658,7 +678,7 @@ process dada2_rarefaction {
   qiime diversity alpha-rarefaction --i-table $asv_freq \
     --m-metadata-file $metadata \
     --o-visualization alpha-rarefaction-curves.qzv \
-    --p-min-depth 10 --p-max-depth $rarefaction_depth
+    --p-min-depth 10 --p-max-depth $alpha_d
   """
 }
 
@@ -958,12 +978,11 @@ workflow pb16S {
       rd = params.rarefaction_depth
       qiime2_phylogeny_diversity(metadata_file, filter_dada2.out.asv_seq,
           filter_dada2.out.asv_freq, rd)
-      dada2_rarefaction(filter_dada2.out.asv_freq, metadata_file, rd)
     } else {
       qiime2_phylogeny_diversity(metadata_file, filter_dada2.out.asv_seq,
           filter_dada2.out.asv_freq, dada2_qc.out.rarefaction_depth)
-      dada2_rarefaction(filter_dada2.out.asv_freq, metadata_file, dada2_qc.out.rarefaction_depth)
     }
+    dada2_rarefaction(filter_dada2.out.asv_freq, metadata_file, dada2_qc.out.alpha_depth)
     class_tax(filter_dada2.out.asv_seq, filter_dada2.out.asv_freq, params.vsearch_db, params.vsearch_tax)
     dada2_assignTax(filter_dada2.out.asv_seq_fasta, filter_dada2.out.asv_seq, filter_dada2.out.asv_freq,
         params.silva_db, params.gtdb_db, params.refseq_db, params.dadaAssign_script)
