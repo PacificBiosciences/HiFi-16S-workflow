@@ -551,7 +551,7 @@ process dada2_qc {
     echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
     alpha_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
       tail -n1 | cut -f2 -d,`
-    int_alpha_d=\${$alpha_d%%.*}
+    int_alpha_d=\${alpha_d%%.*}
   elif [ \${number} == 2 ];
   then
     result=2
@@ -561,7 +561,7 @@ process dada2_qc {
     echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
     alpha_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
       tail -n1 | cut -f2 -d,`
-    int_alpha_d=\${$alpha_d%%.*}
+    int_alpha_d=\${alpha_d%%.*}
   else
     result=`echo "(\$number * \$ninety)" | bc -l` 
     rarefaction_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
@@ -572,7 +572,7 @@ process dada2_qc {
     alpha_res=`echo "(\$number * 0.2)" | bc -l`
     alpha_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
       head -n \${alpha_res%%.*} | tail -n1 | cut -f2 -d,`
-    int_alpha_d=\${$alpha_d%%.*}
+    int_alpha_d=\${alpha_d%%.*}
   fi
 
   qiime tools export --input-path dada2_stats.qzv \
