@@ -49,7 +49,10 @@ However, small modification in the `DADA2` script from the plugin was done in or
 to allow using reads without trimming primers. This is because many publicly available datasets
 already have their primers trimmed. By default the plugin will not work with them. With
 the modification, user can specify `--skip_primer_trim` when running the pipeline to directly
-use trimmed FASTQ files. 
+use trimmed FASTQ files. In addition, we set the default parameter for minQ in
+DADA2 filtering step to 0 which is the default DADA2 parameter (but set to 3 by QIIME 2 authors)
+in favor of the maxEE filter (See discussion `https://github.com/benjjneb/dada2/issues/1125` and
+`https://github.com/benjjneb/dada2/issues/1216`).
 
 Note that after denoising into ASVs, the pipeline by default will filter to ASVs that
 exist in a minimum of 2 samples and must have at least 5 supporting reads. These can be
