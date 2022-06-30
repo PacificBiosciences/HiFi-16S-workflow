@@ -215,7 +215,7 @@ cat("2) Filtering\n")
 filts <- file.path(filtered.dir, basename(nop))
 out <- suppressWarnings(filterAndTrim(nop, filts, truncLen = truncLen, trimLeft = trimLeft,
                                       maxEE = maxEE, truncQ = truncQ, rm.phix = FALSE,
-                                      multithread = multithread, maxLen = maxLen, minLen = minLen, minQ = 3))
+                                      multithread = multithread, maxLen = maxLen, minLen = minLen, minQ = 0))
 cat(ifelse(file.exists(filts), ".", "x"), sep="")
 filts <- list.files(filtered.dir, pattern=".fastq.gz$", full.names=TRUE)
 cat("\n")
