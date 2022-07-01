@@ -9,28 +9,30 @@
   * [References](#references)
   * [DISCLAIMER](#disclaimer)
 
-## Pipeline is under active development and we welcome feedbacks to improve.
+## Pipeline is currently under active development and we welcome feedbacks to improve.
 
 ## Workflow overview and output
-This Nextflow pipeline is designed to process PacBio HiFi full-length 16S data into a set of high
+
+![alt text](misc/pipeline_workflow.png "Workflow diagram")
+
+This Nextflow pipeline is designed to process PacBio HiFi full-length 16S data into high
 quality amplicon sequence variants (ASVs) using `QIIME 2` and `DADA2`. It provides a set of visualization 
-through the `QIIME 2 framework` for interactive plotting, but also generates a HTML report to report
-the important statistics and top taxonomies for the 16S communities. The outputs and stages of this pipeline 
-are documented [here](https://github.com/proteinosome/pb-16S-nf/blob/main/pipeline_overview.md).
+through the `QIIME 2` framework for interactive plotting. The pipeline generates a HTML report for
+the important statistics and top taxonomies. The outputs and stages of this pipeline 
+are documented [here](pipeline_overview.md).
 
 We provide an example of report generated using this pipeline based on 8 replicates from the ATCC MSA-1003 
-mock community sequenced on Sequel II. Right click this 
-[link](https://github.com/proteinosome/pb-16S-nf/raw/main/examples/results/visualize_biom.html) and save it on 
-your computer, then double click to open it. All other important outputs from the pipeline are available
-in the [`examples`](https://github.com/proteinosome/pb-16S-nf/tree/main/examples) folder when you clone this repository.
+mock community sequenced on Sequel II ([Link](https://www.pacb.com/connect/datasets/)). Right click this 
+[link](examples/results/visualize_biom.html?raw=1) and save it on 
+your computer, then double click to open the example report. All other important outputs from the pipeline are available
+in the [`examples`](examples) folder when you clone this repository.
 
 ## Installation and usage
 This pipeline runs using Nextflow (Version 22 and above). If you have Singularity or Docker on your
 cluster, we recommend using Singularity or Docker to run the pipeline by specifying `-profile singularity` or
 `-profile docker` when running the pipeline. Singularity will pull the docker images to the folder `$HOME/nf_conda/singularity`.
 
-By default all softwares dependencies are
-managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
+By default all softwares dependencies are managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
 to speed up the conda environment installation. The default `nextflow.config` file 
 enables the use of `mamba` by default. You can install Nextflow following the instruction
 from Nextflow [documentation](https://www.nextflow.io/docs/latest/getstarted.html) or via Conda:
@@ -68,11 +70,11 @@ nextflow run main.nf --help
   required. For metadata TSV file, at least two columns named "sample_name" and
   "condition" to separate samples into different groups.
 
-  nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
+  nextflow run main.nf --input samples.tsv --metadata metadata.tsv \
     --dada2_cpu 8 --vsearch_cpu 8
 
   By default, sequences are first trimmed with cutadapt (higher rate compared to using DADA2
-  ) using the example command below. You can skip this by specifying "--skip_primer_trim" 
+  ) using the example command below. You can skip this by specifying "--skip_primer_trim"
   if the sequences are already trimmed. The primer sequences used are the F27 and R1492
   primers for full length 16S sequencing.
 
@@ -80,10 +82,12 @@ nextflow run main.nf --help
   --filterQ    Filter input reads above this Q value (default: 20).
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
               this value will be discarded (default: 2)
+  --minQ    DADA2 minQ parameter. Reads with any base lower than this score
+            will be removed (default: 0)
   --min_len    Minimum length of sequences to keep (default: 1000)
   --max_len    Maximum length of sequences to keep (default: 1600)
-  --pooling_method    QIIME 2 pooling method for DADA2 denoise (default: "pseudo"),
-                      see QIIME 2 documentation for more details
+  --pooling_method    QIIME 2 pooling method for DADA2 denoise see QIIME 2
+                      documentation for more details (default: "pseudo", alternative: "independent")
   --maxreject    max-reject parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
@@ -91,11 +95,11 @@ nextflow run main.nf --help
   --min_asv_totalfreq    Total frequency of any ASV must be above this threshold
                          across all samples to be retained. Set this to 0 to disable filtering
                          (default 5)
-  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained. 
+  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained.
                       Set this to 0 to disable. (default 1)
   --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
-                         automatically select a cut-off above the minimum of the denoised 
+                         automatically select a cut-off above the minimum of the denoised
                          reads for >80% of the samples. This cut-off is stored in a file called
                          "rarefaction_depth_suggested.txt" file in the results folder
                          (default: null)
@@ -103,11 +107,11 @@ nextflow run main.nf --help
   --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default: 8)
   --cutadapt_cpu    Number of threads for primer removal using cutadapt (default: 16)
   --outdir    Output directory name (default: "results")
-  --vsearch_db	Location of VSEARCH database (e.g. silva-138-99-seqs.qza can be
+  --vsearch_db  Location of VSEARCH database (e.g. silva-138-99-seqs.qza can be
                 downloaded from QIIME database)
   --vsearch_tax    Location of VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
-  --silva_db   Location of Silva 138 database for taxonomy classification 
+  --silva_db   Location of Silva 138 database for taxonomy classification
   --gtdb_db    Location of GTDB r202 for taxonomy classification
   --refseq_db    Location of RefSeq+RDP database for taxonomy classification
   --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
@@ -119,7 +123,7 @@ nextflow run main.nf --help
                    in the Nextflow pipeline directory.
 ```
 
-To test the pipeline, run this example below. Note that the path of the database needs
+To test the pipeline, run the example below. Note that the path of the database needs
 to be changed to their respective locations on your server if it's different (See parameters above). If you 
 follow the command above, the databases will be downloaded into a `databases` folder in the `pb-16S-nf` folder
 and you do not need to specify the path. Conda environment will by default be created at 
@@ -282,9 +286,10 @@ primers removal?
   The taxonomy classification step of the pipeline requires a few databases that will be downloaded with the
   `--download_db` parameters into a "databases" folder. These databases can also be downloaded
   manually from the following links if the download script above does not work. The GTDB database
-  for VSEARCH will require some processing. See `scripts/download_db.sh` for details. The links here
-  for VSEARCH are for SILVA 138 databases provided by QIIME 2. You can also use these if you
-  do not want to use GTDB (default if you run `--download_db` command above).
+  for VSEARCH will require some processing using the `QIIME 2` package. See `scripts/download_db.sh` for details.
+  
+  The links for VSEARCH here are for SILVA 138 databases provided by QIIME 2 and do not require further processing. 
+  You can also use these if you do not want to use GTDB (default if you run `--download_db` command above).
 
   - `--vsearch_db` and `--vsearch_tax` provided by the `QIIME 2` community
     - [`silva-138-99-seqs.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
