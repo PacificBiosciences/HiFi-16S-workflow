@@ -3,7 +3,8 @@
 - Table of Contents
   * [Workflow overview and output](#workflow-overview-and-output)
   * [Installation and usage](#installation-and-usage)
-  * [HPC and job scheduler usage](#HPC-and-job-scheduler-usage)
+  * [HPC and job scheduler usage](#hpc)
+  * [Run time and compute requirements](#runtime)
   * [Frequently asked questions (FAQ)](#faq)
   * [References](#references)
   * [DISCLAIMER](#disclaimer)
@@ -144,7 +145,7 @@ the test data format (For metadata, if you do not have any grouping, you can jus
 put any words in the "condition" column) and run the workflow similar to the above. 
 Remember to specify the `--outdir` directory to avoid overwriting existing results.
 
-## HPC and job scheduler usage
+## HPC and job scheduler usage <a name="hpc"></a>
 
 The pipeline uses "Local" by default to run jobs on HPC. This can be changed
 in the `nextflow.config` file under `executor` to utilize HPC scheduler such as
@@ -160,6 +161,21 @@ Note that the `nextflow.config` file by default will
 generate workflow DAG and resources report to help benchmarking the resources
 required. See the `report_results` folder created after the pipeline finishes running 
 for DAG and resources report.
+
+## Run time and compute requirements <a name="runtime"></a>
+
+We recommend at least 32 CPUs for most sample type. The run time depends highly on the
+complexity of the samples in addition to the total number of reads. Shown here are examples of
+run time for some data that was tested with this pipeline using 32 CPUs:
+
+|     Sample types      |     Number of samples    |     Number of FL reads    |     Total ASVs    |     Pipeline run time    |     Pipeline max memory    |
+|-----------------------|--------------------------|---------------------------|-------------------|--------------------------|----------------------------|
+|     Oral              |     891                  |     8.3m                  |     5417          |     2.5h                 |     34 GB                  |
+|     Gut               |     192                  |     2.2m                  |     1593          |     2h                   |     30 GB                  |
+|     Gut               |     192                  |     2.2m                  |     10917         |     5.5h                 |     30 GB                  |
+|     Gut               |     192                  |     16.7m                 |     17293         |     13h                  |     87 GB                  |
+|     Wastewater        |     33                   |     2.14m                 |     11462         |     12h                  |     47 GB                  |
+|     Mock community    |     264                  |     12.8m                 |     84            |     4h                   |     44 GB                  |
 
 ## Frequently asked questions (FAQ) <a name="faq"></a>
 * Can I restart the pipeline?
