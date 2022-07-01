@@ -34,10 +34,12 @@ def helpMessage() {
   --filterQ    Filter input reads above this Q value (default: 20).
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
               this value will be discarded (default: 2)
+  --minQ    DADA2 minQ parameter. Reads with any base lower than this score 
+            will be removed (default: 0)
   --min_len    Minimum length of sequences to keep (default: 1000)
   --max_len    Maximum length of sequences to keep (default: 1600)
-  --pooling_method    QIIME 2 pooling method for DADA2 denoise (default: "pseudo"),
-                      see QIIME 2 documentation for more details
+  --pooling_method    QIIME 2 pooling method for DADA2 denoise see QIIME 2 
+                      documentation for more details (default: "pseudo", alternative: "independent") 
   --maxreject    max-reject parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
@@ -84,6 +86,7 @@ params.min_len = 1000
 params.max_len = 1600
 params.colorby = "condition"
 params.skip_phylotree = false
+params.minQ = 0
 // Check input
 params.input = false
 if (params.input){
@@ -373,6 +376,7 @@ process dada2_denoise {
   input:
   path samples_qza
   path dada_ccs_script
+  val(minQ)
 
   output:
   path "dada2-ccs_rep.qza", emit: asv_seq
@@ -383,9 +387,12 @@ process dada2_denoise {
   script:
   """
   # Use custom script that can skip primer trimming
-  # cp $dada_ccs_script run_dada_ccs.R
-  chmod +x run_dada_ccs.R
-  export PATH="./:\$PATH"
+  mkdir -p dada2_custom_script
+  cp $dada_ccs_script dada2_custom_script/run_dada_ccs_original.R
+  sed 's/minQ\\ =\\ 0/minQ=$minQ/g' dada2_custom_script/run_dada_ccs_original.R > \
+    dada2_custom_script/run_dada_ccs.R
+  chmod +x dada2_custom_script/run_dada_ccs.R
+  export PATH="./dada2_custom_script:\$PATH"
   which run_dada_ccs.R
   qiime dada2 denoise-ccs --i-demultiplexed-seqs $samples_qza \
     --o-table dada2-ccs_table.qza \
@@ -971,7 +978,7 @@ workflow pb16S {
     }
     import_qiime2(qiime2_manifest)
     demux_summarize(import_qiime2.out)
-    dada2_denoise(import_qiime2.out, params.dadaCCS_script)
+    dada2_denoise(import_qiime2.out, params.dadaCCS_script, params.minQ)
     filter_dada2(dada2_denoise.out.asv_freq, dada2_denoise.out.asv_seq)
     dada2_qc(dada2_denoise.out.asv_stats, filter_dada2.out.asv_freq, metadata_file)
     if( params.rarefaction_depth > 0 ){
