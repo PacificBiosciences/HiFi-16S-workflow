@@ -545,13 +545,13 @@ process dada2_qc {
   qiime tools export --input-path $asv_stats \
     --output-path ./
 
-  # Get number of reads for ASV covering 90% of samples
+  # Get number of reads for ASV covering 80% of samples
   number=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | wc -l`
   ninety=0.8
-  # Handle single sample and 2 samples. Use lowest depth in both cases
-  if [ \${number} == 1 ];
+  # Handle samples less than 5 as we are using at least 20% of samples for
+  # rarefaction sampling depth (i.e. if sample is less than 5 the math result is 0)
+  if [ \${number} -le 2 ];
   then
-    result=1
     rarefaction_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
       tail -n1 | cut -f2 -d,`
     int_rarefaction_d=\${rarefaction_d%%.*}
@@ -559,11 +559,11 @@ process dada2_qc {
     alpha_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
       tail -n1 | cut -f2 -d,`
     int_alpha_d=\${alpha_d%%.*}
-  elif [ \${number} == 2 ];
+  elif [ \${number} -gt 2 ] && [ \${number} -lt 5 ];
   then
-    result=2
+    result=`echo "(\$number * \$ninety)" | bc -l` 
     rarefaction_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
-      tail -n1 | cut -f2 -d,`
+      head -n \${result%%.*} | tail -n1 | cut -f2 -d,`
     int_rarefaction_d=\${rarefaction_d%%.*}
     echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
     alpha_d=`tail -n+2 dada2_table_summary/sample-frequency-detail.csv | sort -t, -k2 -nr | \
