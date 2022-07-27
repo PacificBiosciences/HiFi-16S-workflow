@@ -247,15 +247,15 @@ primers removal?
   The "besttax" assignment uses the `assignTaxonomy` Naive-Bayes classifier function from DADA2 
   to carry out taxonomy assignment. It uses 3 databases to classify the ASVs 
   (requiring a minimum bootstrap of 80 using the minBoot parameter) and the priority of assignment
-  is Silva 138, followed by GTDB r202, then lastly RefSeq + RDP. This means for example
-  if an ASV is not assigned at Species level using Silva, it will check if it can be assigned
-  with GTDB. This ensure we assign as many ASVs as possible.
+  is GTDB r207, followed by Silva v138, then lastly RefSeq + RDP. This means for example
+  if an ASV is not assigned at Species level using GTDB, it will check if it can be assigned
+  with Silva. This ensure we assign as many ASVs as possible.
 
   This process is done first at Species level, then at Genus level. In addition, if any ASV
-  is assigned as "uncultured" or "metagenome", it will go through the iterative assignment
-  process just like the unclassified ASVs. Note that while this method will assign
-  a high amount of ASVs, there may be issues such as how the taxonomy is annotated
-  in different databases. 
+  is assigned as "uncultured" or "metagenome" (many entries like this in Silva), 
+  it will go through the iterative assignment process just like the unclassified ASVs. 
+  Note that while this method will assign a high amount of ASVs, there may be issues 
+  such as how the taxonomy is annotated in different databases. 
 
   As such, there is also a VSEARCH taxonomy classification using GTDB database (r207) only in the file called 
   `results/vsearch_merged_freq_tax.tsv` that may provide a more consistent annotation. This uses
