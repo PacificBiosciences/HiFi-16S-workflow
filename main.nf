@@ -81,7 +81,7 @@ def helpMessage() {
 params.help = false
 if (params.help) exit 0, helpMessage()
 params.version = false
-version = "0.2"
+version = "0.3"
 if (params.version) exit 0, log.info("$version")
 params.download_db = false
 params.skip_primer_trim = false
