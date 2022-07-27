@@ -32,8 +32,8 @@ gtdb_spec <- as.data.frame(gtdb_spec)
 colnames(gtdb_spec)[grepl("tax.", colnames(gtdb_spec))] <-
   gsub("tax\\.(.*)", "\\1", colnames(gtdb_spec)[grepl("tax.", colnames(gtdb_spec))])
 # Rename species
-gtdb_spec[, 'Species'] <- gsub("(.*)\\ (.*)\\(.*\\)", "\\2", gtdb_spec[, 'Species'])
-buf <- data.frame("Assignment" = rep("GTDB r202", nrow(gtdb_spec)))
+gtdb_spec[, 'Species'] <- gsub("(.*)_(.*)\\(.*\\)", "\\2", gtdb_spec[, 'Species'])
+buf <- data.frame("Assignment" = rep("GTDB r207", nrow(gtdb_spec)))
 gtdb_spec <- cbind(gtdb_spec, buf)
 refseq_spec <- assignTaxonomy(seqs, refFasta = refseq_db, minBoot = minBoot_num,
                               multithread = threads, outputBootstraps = TRUE)
@@ -46,37 +46,29 @@ buf <- data.frame("Assignment" = rep("RefSeq + RDP", nrow(refseq_spec)))
 refseq_spec <- cbind(refseq_spec, buf)
 
 # Iteratively join at species level
-final_spec <- silva_spec
-final_spec[is.na(final_spec[, 'Species']), ] <- gtdb_spec[is.na(final_spec[, 'Species']), ]
+final_spec <- gtdb_spec
+final_spec[is.na(final_spec[, 'Species']), ] <- silva_spec[is.na(final_spec[, 'Species']), ]
 final_spec[is.na(final_spec[, 'Species']), ] <- refseq_spec[is.na(final_spec[, 'Species']), ]
 
 # Iteratively join at genus level
-final_spec[is.na(final_spec[, 'Genus']), ] <- gtdb_spec[is.na(final_spec[, 'Genus']), ]
+final_spec[is.na(final_spec[, 'Genus']), ] <- silva_spec[is.na(final_spec[, 'Genus']), ]
 final_spec[is.na(final_spec[, 'Genus']), ] <- refseq_spec[is.na(final_spec[, 'Genus']), ]
 
 # uncultured or metagenome
 final_spec[grepl("uncultured", final_spec[, 'Species'], ignore.case = TRUE)] <- 
-  gtdb_spec[grepl("uncultured", final_spec[, 'Species'], ignore.case = TRUE)]
-final_spec[grepl("uncultured", final_spec[, 'Species'], ignore.case = TRUE)] <- 
   refseq_spec[grepl("uncultured", final_spec[, 'Species'], ignore.case = TRUE)]
-final_spec[grepl("metagenome", final_spec[, 'Species'], ignore.case = TRUE)] <- 
-  gtdb_spec[grepl("metagenome", final_spec[, 'Species'], ignore.case = TRUE)]
 final_spec[grepl("metagenome", final_spec[, 'Species'], ignore.case = TRUE)] <- 
   refseq_spec[grepl("metagenome", final_spec[, 'Species'], ignore.case = TRUE)]
 
 # uncultured or metagenome at genus level
 final_spec[grepl("uncultured", final_spec[, 'Genus'], ignore.case = TRUE)] <- 
   gtdb_spec[grepl("uncultured", final_spec[, 'Genus'], ignore.case = TRUE)]
-final_spec[grepl("uncultured", final_spec[, 'Genus'], ignore.case = TRUE)] <- 
-  refseq_spec[grepl("uncultured", final_spec[, 'Genus'], ignore.case = TRUE)]
 final_spec[grepl("metagenome", final_spec[, 'Genus'], ignore.case = TRUE)] <- 
   gtdb_spec[grepl("metagenome", final_spec[, 'Genus'], ignore.case = TRUE)]
-final_spec[grepl("metagenome", final_spec[, 'Genus'], ignore.case = TRUE)] <- 
-  refseq_spec[grepl("metagenome", final_spec[, 'Genus'], ignore.case = TRUE)]
 
-# If still NA, revert back to Silva
-final_spec[is.na(final_spec[, 'Species']), ] <- silva_spec[is.na(final_spec[, 'Species']), ]
-final_spec[is.na(final_spec[, 'Genus']), ] <- silva_spec[is.na(final_spec[, 'Genus']), ]
+# If still NA, revert back to GTDB
+final_spec[is.na(final_spec[, 'Species']), ] <- gtdb_spec[is.na(final_spec[, 'Species']), ]
+final_spec[is.na(final_spec[, 'Genus']), ] <- gtdb_spec[is.na(final_spec[, 'Genus']), ]
 rownames(final_spec) <- otu_id
 
 # For each row, look for the deepest level assigned and assign confidence value
