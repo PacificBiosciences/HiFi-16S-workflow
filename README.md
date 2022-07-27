@@ -285,7 +285,8 @@ primers removal?
 * Can I download the databases for taxonomic classification manually?
 
   The taxonomy classification step of the pipeline requires a few databases that will be downloaded with the
-  `--download_db` parameters into a "databases" folder. These databases can also be downloaded
+  `--download_db` parameters into a "databases" folder. All the databases are also 
+  collected on [Zenodo](https://zenodo.org/record/6912512). These databases can also be downloaded
   manually from the following links if the download script above does not work. The GTDB database
   for VSEARCH will require some processing using the `QIIME 2` package. See `scripts/download_db.sh` for details.
   
