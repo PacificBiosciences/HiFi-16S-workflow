@@ -73,12 +73,16 @@ def helpMessage() {
   --download_db    Download databases needed for taxonomy classification only. Will not
                    run the pipeline. Databases will be downloaded to a folder "databases"
                    in the Nextflow pipeline directory.
+  --version    Output version
   """
 }
 
 // Show help message
 params.help = false
 if (params.help) exit 0, helpMessage()
+params.version = false
+version = "0.2"
+if (params.version) exit 0, log.info("$version")
 params.download_db = false
 params.skip_primer_trim = false
 params.filterQ = 20
@@ -149,6 +153,7 @@ log.info """
   Minimum amplicon length filtered in DADA2: $params.min_len
   Maximum amplicon length filtered in DADA2: $params.max_len
   maxEE parameter for DADA2 filterAndTrim: $params.max_ee
+  minQ parameter for DADA2 filterAndTrim: $params.minQ
   Pooling method for DADA2 denoise process: $params.pooling_method
   Minimum number of samples required to keep any ASV: $params.min_asv_sample
   Minimum number of reads required to keep any ASV: $params.min_asv_totalfreq 
@@ -166,6 +171,7 @@ log.info """
   Number of threads specified for VSEARCH: $params.vsearch_cpu
   Script location for HTML report generation: $params.rmd_vis_biom_script
   Container enabled via docker/singularity: $params.enable_container
+  Version of Nextflow pipeline: $version
 """
 
 // QC before cutadapt

@@ -51,7 +51,7 @@ download databases using the following commands. To update the pipeline in the f
 simply type `git pull`.
 
 ```
-git clone https://github.com/proteinosome/pb-16S-nf.git
+git clone https://github.com/PacificBiosciences/pb-16S-nf.git
 cd pb-16S-nf
 nextflow run main.nf --download_db
 ```
@@ -121,6 +121,7 @@ nextflow run main.nf --help
   --download_db    Download databases needed for taxonomy classification only. Will not
                    run the pipeline. Databases will be downloaded to a folder "databases"
                    in the Nextflow pipeline directory.
+  --version    Output version
 ```
 
 To test the pipeline, run the example below. Note that the path of the database needs

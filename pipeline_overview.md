@@ -83,7 +83,7 @@ Output from DADA2 includes:
     
 ## Taxonomy classification and barplots
 ASVs generated from DADA2 are classified using VSEARCH and Naive Bayes classifier 
-(See FAQ [here](https://github.com/proteinosome/pb-16S-nf)). Output includes:
+(See FAQ [here](https://github.com/PacificBiosciences/pb-16S-nf)). Output includes:
 * `$outdir/results`:
   * `best_tax_merged_freq_tax.tsv`: (For Naive Bayes classifier) Table containing 
     ASV ID, sequences, taxonomy, assignment confidence and the counts of the ASVs in each sample.
