@@ -81,7 +81,7 @@ def helpMessage() {
 params.help = false
 if (params.help) exit 0, helpMessage()
 params.version = false
-version = "0.3"
+version = "0.2"
 if (params.version) exit 0, log.info("$version")
 params.download_db = false
 params.skip_primer_trim = false
@@ -127,7 +127,7 @@ params.vsearch_db = "$projectDir/databases/GTDB_ssu_all_r207.qza"
 params.vsearch_tax = "$projectDir/databases/GTDB_ssu_all_r207.taxonomy.qza"
 params.silva_db = "$projectDir/databases/silva_nr99_v138.1_wSpecies_train_set.fa.gz"
 params.refseq_db = "$projectDir/databases/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz"
-params.gtdb_db = "$projectDir/databases/GTDB_bac120_arc53_ssu_r207_fullTaxo.fa.gz"
+params.gtdb_db = "$projectDir/databases/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz"
 params.maxreject = 100
 params.maxaccept = 100
 params.rarefaction_depth = null
@@ -935,7 +935,7 @@ process download_db {
   echo "Downloading SILVA sequences for VSEARCH..."
   wget -N --content-disposition 'https://zenodo.org/record/4587955/files/silva_nr99_v138.1_wSpecies_train_set.fa.gz?download=1'
   echo "Downloading GTDB sequences for VSEARCH..."
-  wget -N --content-disposition 'https://zenodo.org/record/6655692/files/GTDB_bac120_arc53_ssu_r207_fullTaxo.fa.gz?download=1'
+  wget -N --content-disposition 'https://zenodo.org/record/4735821/files/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz?download=1'
   echo "Downloading RefSeq + RDP sequences for VSEARCH..."
   wget -N --content-disposition 'https://zenodo.org/record/4735821/files/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz?download=1'
 
