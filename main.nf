@@ -781,6 +781,28 @@ process export_biom {
   """
 }
 
+process picrust2 {
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
+  container "kpinpb/pb-16s-nf-tools:latest"
+  label 'cpu32'
+  publishDir "$params.outdir/results/picrust2"
+
+  input:
+  path dada2_asv
+  path vsearch_biom
+
+  output:
+  path "picrust2"
+
+  script:
+  """
+  picrust2_pipeline.py -s $dada2_asv -i $vsearch_biom \
+    -o picrust2 \
+    --in_traits EC,KO \
+    --verbose -p $task.cpus
+  """
+}
+
 process barplot {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
@@ -1000,6 +1022,7 @@ workflow pb16S {
     dada2_assignTax(filter_dada2.out.asv_seq_fasta, filter_dada2.out.asv_seq, filter_dada2.out.asv_freq,
         params.silva_db, params.gtdb_db, params.refseq_db, params.dadaAssign_script)
     export_biom(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
+    picrust2(filter_dada2.out.asv_seq_fasta, export_biom.biom_vsearch)
     barplot(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
     if (params.skip_primer_trim){
       html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
