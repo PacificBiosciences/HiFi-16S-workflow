@@ -234,6 +234,10 @@ cat("3) Learning Error Rates\n")
 err <- suppressWarnings(learnErrors(filts, nreads=nreads.learn,
                                     errorEstimationFunction=dada2:::PacBioErrfun,
                                     multithread=multithread, BAND_SIZE=32))
+err_plot <- plotErrors(err)
+pdf("plot_error_model.pdf", width=12, height=8, useDingbats=FALSE)
+err_plot
+dev.off()
 
 ### PROCESS ALL SAMPLES ###
 # Loop over rest in streaming fashion with learned error rates

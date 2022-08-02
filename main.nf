@@ -391,6 +391,7 @@ process dada2_denoise {
   path "dada2-ccs_table.qza", emit: asv_freq
   path "dada2-ccs_stats.qza", emit:asv_stats
   path "seqtab_nochim.rds", emit: dada2_rds
+  path "plot_error_model.pdf"
 
   script:
   """
