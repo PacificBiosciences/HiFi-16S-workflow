@@ -125,6 +125,11 @@
 #
 #
 
+# Added by Khi Pin to save all outputs from script
+con <- file("dada2.log")
+sink(con, append=TRUE)
+sink(con, append=TRUE, type="message")
+
 cat(R.version$version.string, "\n")
 errQuit <- function(mesg, status=1) { message("Error: ", mesg); q(status=status) }
 args <- commandArgs(TRUE)

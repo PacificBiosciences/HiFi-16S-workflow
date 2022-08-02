@@ -70,6 +70,7 @@ def helpMessage() {
                         removal) (default: trim with cutadapt)
   --colorby    Columns in metadata TSV file to use for coloring the MDS plot
                in HTML report (default: condition)
+  --run_picrust2    Run PICRUSt2 pipeline (default: false)
   --download_db    Download databases needed for taxonomy classification only. Will not
                    run the pipeline. Databases will be downloaded to a folder "databases"
                    in the Nextflow pipeline directory.
@@ -85,6 +86,7 @@ version = "0.3"
 if (params.version) exit 0, log.info("$version")
 params.download_db = false
 params.skip_primer_trim = false
+params.run_picrust2 = false
 params.filterQ = 20
 params.min_len = 1000
 params.max_len = 1600
@@ -1022,7 +1024,9 @@ workflow pb16S {
     dada2_assignTax(filter_dada2.out.asv_seq_fasta, filter_dada2.out.asv_seq, filter_dada2.out.asv_freq,
         params.silva_db, params.gtdb_db, params.refseq_db, params.dadaAssign_script)
     export_biom(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
-    picrust2(filter_dada2.out.asv_seq_fasta, export_biom.out.biom_vsearch)
+    if (params.run_picrust2){
+      picrust2(filter_dada2.out.asv_seq_fasta, export_biom.out.biom_vsearch)
+    }
     barplot(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
     if (params.skip_primer_trim){
       html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
