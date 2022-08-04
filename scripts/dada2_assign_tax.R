@@ -32,8 +32,10 @@ gtdb_spec <- as.data.frame(gtdb_spec)
 colnames(gtdb_spec)[grepl("tax.", colnames(gtdb_spec))] <-
   gsub("tax\\.(.*)", "\\1", colnames(gtdb_spec)[grepl("tax.", colnames(gtdb_spec))])
 # Rename species
-gtdb_spec[, 'Species'] <- gsub("(.*)\\ (.*)\\(.*\\)", "\\2", gtdb_spec[, 'Species'])
-buf <- data.frame("Assignment" = rep("GTDB r202", nrow(gtdb_spec)))
+gtdb_spec[, 'Species'] <- gsub("(.*)\\(.*\\)", "\\1", gtdb_spec[, 'Species'])
+# Replace GTDB underscore with space
+gtdb_spec[, 'Species'] <- gsub("_", "\\ ", gtdb_spec[, 'Species'])
+buf <- data.frame("Assignment" = rep("GTDB r207", nrow(gtdb_spec)))
 gtdb_spec <- cbind(gtdb_spec, buf)
 refseq_spec <- assignTaxonomy(seqs, refFasta = refseq_db, minBoot = minBoot_num,
                               multithread = threads, outputBootstraps = TRUE)
@@ -46,37 +48,35 @@ buf <- data.frame("Assignment" = rep("RefSeq + RDP", nrow(refseq_spec)))
 refseq_spec <- cbind(refseq_spec, buf)
 
 # Iteratively join at species level
-final_spec <- silva_spec
-final_spec[is.na(final_spec[, 'Species']), ] <- gtdb_spec[is.na(final_spec[, 'Species']), ]
+final_spec <- gtdb_spec
+final_spec[is.na(final_spec[, 'Species']), ] <- silva_spec[is.na(final_spec[, 'Species']), ]
 final_spec[is.na(final_spec[, 'Species']), ] <- refseq_spec[is.na(final_spec[, 'Species']), ]
+# For those that's been replaced by either SILVA or refSeq, paste species name
+class_nonGTDB <- final_spec[is.na(gtdb_spec[, 'Species']), ]
+class_nonGTDB <- class_nonGTDB[!is.na(class_nonGTDB[, 'Species']),]
+final_spec[rownames(class_nonGTDB), 'Species'] <-
+  paste(final_spec[rownames(class_nonGTDB), 'Genus', drop=TRUE],
+        final_spec[rownames(class_nonGTDB), 'Species', drop=TRUE], sep=" ")
 
 # Iteratively join at genus level
-final_spec[is.na(final_spec[, 'Genus']), ] <- gtdb_spec[is.na(final_spec[, 'Genus']), ]
+final_spec[is.na(final_spec[, 'Genus']), ] <- silva_spec[is.na(final_spec[, 'Genus']), ]
 final_spec[is.na(final_spec[, 'Genus']), ] <- refseq_spec[is.na(final_spec[, 'Genus']), ]
 
 # uncultured or metagenome
 final_spec[grepl("uncultured", final_spec[, 'Species'], ignore.case = TRUE)] <- 
-  gtdb_spec[grepl("uncultured", final_spec[, 'Species'], ignore.case = TRUE)]
-final_spec[grepl("uncultured", final_spec[, 'Species'], ignore.case = TRUE)] <- 
   refseq_spec[grepl("uncultured", final_spec[, 'Species'], ignore.case = TRUE)]
-final_spec[grepl("metagenome", final_spec[, 'Species'], ignore.case = TRUE)] <- 
-  gtdb_spec[grepl("metagenome", final_spec[, 'Species'], ignore.case = TRUE)]
 final_spec[grepl("metagenome", final_spec[, 'Species'], ignore.case = TRUE)] <- 
   refseq_spec[grepl("metagenome", final_spec[, 'Species'], ignore.case = TRUE)]
 
 # uncultured or metagenome at genus level
 final_spec[grepl("uncultured", final_spec[, 'Genus'], ignore.case = TRUE)] <- 
   gtdb_spec[grepl("uncultured", final_spec[, 'Genus'], ignore.case = TRUE)]
-final_spec[grepl("uncultured", final_spec[, 'Genus'], ignore.case = TRUE)] <- 
-  refseq_spec[grepl("uncultured", final_spec[, 'Genus'], ignore.case = TRUE)]
 final_spec[grepl("metagenome", final_spec[, 'Genus'], ignore.case = TRUE)] <- 
   gtdb_spec[grepl("metagenome", final_spec[, 'Genus'], ignore.case = TRUE)]
-final_spec[grepl("metagenome", final_spec[, 'Genus'], ignore.case = TRUE)] <- 
-  refseq_spec[grepl("metagenome", final_spec[, 'Genus'], ignore.case = TRUE)]
 
-# If still NA, revert back to Silva
-final_spec[is.na(final_spec[, 'Species']), ] <- silva_spec[is.na(final_spec[, 'Species']), ]
-final_spec[is.na(final_spec[, 'Genus']), ] <- silva_spec[is.na(final_spec[, 'Genus']), ]
+# If still NA, revert back to GTDB
+final_spec[is.na(final_spec[, 'Species']), ] <- gtdb_spec[is.na(final_spec[, 'Species']), ]
+final_spec[is.na(final_spec[, 'Genus']), ] <- gtdb_spec[is.na(final_spec[, 'Genus']), ]
 rownames(final_spec) <- otu_id
 
 # For each row, look for the deepest level assigned and assign confidence value
@@ -105,7 +105,7 @@ for (i in 1:nrow(final_spec)){
   tosave_row <- data.frame(
     "Feature ID" = rownames(row),
     "Taxon" = paste(
-      paste(c("d__", "p__", "c__", "o__", "f__", "g__", "s__"), c(row[, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus")], paste(row[, "Genus"], row[, "Species"], sep=" ")), sep = ""), 
+      paste(c("d__", "p__", "c__", "o__", "f__", "g__", "s__"), c(row[, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")]), sep=""), 
       collapse = "; "),
     "Confidence" = conf,
     "Assignment Database" = row['Assignment']

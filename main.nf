@@ -70,6 +70,8 @@ def helpMessage() {
                         removal) (default: trim with cutadapt)
   --colorby    Columns in metadata TSV file to use for coloring the MDS plot
                in HTML report (default: condition)
+  --run_picrust2    Run PICRUSt2 pipeline. Note that pathway inference with 16S using PICRUSt2
+                    has not been tested systematically (default: false)
   --download_db    Download databases needed for taxonomy classification only. Will not
                    run the pipeline. Databases will be downloaded to a folder "databases"
                    in the Nextflow pipeline directory.
@@ -81,10 +83,11 @@ def helpMessage() {
 params.help = false
 if (params.help) exit 0, helpMessage()
 params.version = false
-version = "0.2"
+version = "0.3"
 if (params.version) exit 0, log.info("$version")
 params.download_db = false
 params.skip_primer_trim = false
+params.run_picrust2 = false
 params.filterQ = 20
 params.min_len = 1000
 params.max_len = 1600
@@ -127,7 +130,7 @@ params.vsearch_db = "$projectDir/databases/GTDB_ssu_all_r207.qza"
 params.vsearch_tax = "$projectDir/databases/GTDB_ssu_all_r207.taxonomy.qza"
 params.silva_db = "$projectDir/databases/silva_nr99_v138.1_wSpecies_train_set.fa.gz"
 params.refseq_db = "$projectDir/databases/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz"
-params.gtdb_db = "$projectDir/databases/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz"
+params.gtdb_db = "$projectDir/databases/GTDB_bac120_arc53_ssu_r207_fullTaxo.fa.gz"
 params.maxreject = 100
 params.maxaccept = 100
 params.rarefaction_depth = null
@@ -389,6 +392,7 @@ process dada2_denoise {
   path "dada2-ccs_table.qza", emit: asv_freq
   path "dada2-ccs_stats.qza", emit:asv_stats
   path "seqtab_nochim.rds", emit: dada2_rds
+  path "plot_error_model.pdf"
 
   script:
   """
@@ -781,6 +785,28 @@ process export_biom {
   """
 }
 
+process picrust2 {
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
+  container "kpinpb/pb-16s-nf-tools:latest"
+  label 'cpu32'
+  publishDir "$params.outdir/results"
+
+  input:
+  path dada2_asv
+  path vsearch_biom
+
+  output:
+  path "picrust2"
+
+  script:
+  """
+  picrust2_pipeline.py -s $dada2_asv -i $vsearch_biom \
+    -o picrust2 \
+    --in_traits EC,KO \
+    --verbose -p $task.cpus
+  """
+}
+
 process barplot {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
@@ -935,7 +961,7 @@ process download_db {
   echo "Downloading SILVA sequences for VSEARCH..."
   wget -N --content-disposition 'https://zenodo.org/record/4587955/files/silva_nr99_v138.1_wSpecies_train_set.fa.gz?download=1'
   echo "Downloading GTDB sequences for VSEARCH..."
-  wget -N --content-disposition 'https://zenodo.org/record/4735821/files/GTDB_bac120_arc122_ssu_r202_fullTaxo.fa.gz?download=1'
+  wget -N --content-disposition 'https://zenodo.org/record/6655692/files/GTDB_bac120_arc53_ssu_r207_fullTaxo.fa.gz?download=1'
   echo "Downloading RefSeq + RDP sequences for VSEARCH..."
   wget -N --content-disposition 'https://zenodo.org/record/4735821/files/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz?download=1'
 
@@ -944,13 +970,15 @@ process download_db {
   wget -N --content-disposition 'https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza'
 
   echo "Downloading GTDB database"
-  wget -N --content-disposition --no-check-certificate 'https://data.gtdb.ecogenomic.org/releases/release207/207.0/genomic_files_all/ssu_all_r207.tar.gz'
-  tar xfz ssu_all_r207.tar.gz
-  mv ssu_all_r207.fna GTDB_ssu_all_r207.fna
-  grep "^>" GTDB_ssu_all_r207.fna | awk '{print gensub(/^>(.*)/, "\\\\1", "g", \$1),gensub(/^>.*\\ (d__.*)\\ \\[.*\\[.*\\[.*/, "\\\\1", "g", \$0)}' OFS=\$'\\t' > GTDB_ssu_all_r207.taxonomy.tsv
-  qiime tools import --type 'FeatureData[Sequence]' --input-path GTDB_ssu_all_r207.fna --output-path GTDB_ssu_all_r207.qza
-  qiime tools import --type 'FeatureData[Taxonomy]' --input-format HeaderlessTSVTaxonomyFormat \
-    --input-path GTDB_ssu_all_r207.taxonomy.tsv --output-path GTDB_ssu_all_r207.taxonomy.qza
+  wget -N --content-disposition --no-check-certificate 'https://zenodo.org/record/6912512/files/GTDB_ssu_all_r207.taxonomy.qza?download=1'
+  wget -N --content-disposition --no-check-certificate 'https://zenodo.org/record/6912512/files/GTDB_ssu_all_r207.qza?download=1'
+  #   wget -N --content-disposition --no-check-certificate 'https://data.gtdb.ecogenomic.org/releases/release207/207.0/genomic_files_all/ssu_all_r207.tar.gz'
+  #   tar xfz ssu_all_r207.tar.gz
+  #   mv ssu_all_r207.fna GTDB_ssu_all_r207.fna
+  #   grep "^>" GTDB_ssu_all_r207.fna | awk '{print gensub(/^>(.*)/, "\\\\1", "g", \$1),gensub(/^>.*\\ (d__.*)\\ \\[.*\\[.*\\[.*/, "\\\\1", "g", \$0)}' OFS=\$'\\t' > GTDB_ssu_all_r207.taxonomy.tsv
+  #   qiime tools import --type 'FeatureData[Sequence]' --input-path GTDB_ssu_all_r207.fna --output-path GTDB_ssu_all_r207.qza
+  #   qiime tools import --type 'FeatureData[Taxonomy]' --input-format HeaderlessTSVTaxonomyFormat \
+  #     --input-path GTDB_ssu_all_r207.taxonomy.tsv --output-path GTDB_ssu_all_r207.taxonomy.qza
   """
 }
 
@@ -1000,6 +1028,9 @@ workflow pb16S {
     dada2_assignTax(filter_dada2.out.asv_seq_fasta, filter_dada2.out.asv_seq, filter_dada2.out.asv_freq,
         params.silva_db, params.gtdb_db, params.refseq_db, params.dadaAssign_script)
     export_biom(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
+    if (params.run_picrust2){
+      picrust2(filter_dada2.out.asv_seq_fasta, export_biom.out.biom_vsearch)
+    }
     barplot(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
     if (params.skip_primer_trim){
       html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
