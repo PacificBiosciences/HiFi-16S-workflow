@@ -195,7 +195,7 @@ process QC_fastq {
 
   script:
   """
-  seqkit fx2tab -j $task.cpus -q --gc -l -H -n $sampleFASTQ |\
+  seqkit fx2tab -j $task.cpus -q --gc -l -H -n -i $sampleFASTQ |\
     csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.readstats.tsv
   seqkit stats -T -j $task.cpus -a ${sampleFASTQ} |\
     csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.summarystats.tsv
