@@ -93,15 +93,18 @@ ASVs generated from DADA2 are classified using VSEARCH and Naive Bayes classifie
   * `best_taxonomy_withDB.tsv`: (For Naive Bayes classifier) Taxonomy assigned to each ASV.
     This file contains the information on which database was used to assign a specific ASV and
     can be useful for understanding differences in assignments.
-  * `taxa_barplot.qzv`: (For Naive Bayes classifier) Interactive taxonomy barplot that can be visualized with
-    `QIIME 2 View`.
   * `vsearch_merged_freq_tax.tsv`: (For VSEARCH classifier) Table containing 
     ASV ID, sequences, taxonomy, assignment confidence and the counts of the ASVs in each sample.
   * `feature-table-tax_vsearch.biom`: (For VSEARCH classifier) BIOM format containing ASVs count and 
     taxonomy information. Can be imported into popular packages such as `phyloseq` for downstream
     processing and visualization.
-  * `taxa_barplot_vsearch.qzv`: (For VSEARCH classifier) Interactive taxonomy barplot that can be visualized with
+  * `taxonomy_barplot_vsearch.qzv`: (For VSEARCH classifier) Interactive taxonomy barplot that can be visualized with
     `QIIME 2 View`.
+  * `taxanomy_barplot_nb.qzv`: (For Naive Bayes classifier) Interactive taxonomy barplot that can be visualized with
+    `QIIME 2 View`.
+* `$ourdir/nb_tax` contains classification results using Naive-Bayes approach (`assignTaxonomy` in `DADA2`):
+  * The individual `tsv` file represents classification with a single database. E.g.
+    `gtdb_nb.tsv` refers to classification with just GTDB.
     
 ## Phylogenetic tree and diversity metrics
 This pipeline generates simple phylogenetic tree and diversity metrics using the `qiime phylogeny align-to-tree-mafft-fasttree`

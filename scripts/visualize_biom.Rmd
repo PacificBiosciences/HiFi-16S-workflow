@@ -2,18 +2,19 @@
 title: "HiFi Full-length 16S Analysis Report"
 output: html_document
 params:
-  merged_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/e6/780cbb51343ad6a296c8513937f4d1/best_tax_merged_freq_tax.tsv"
-  metadata: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/macrogen_metadata.tsv"
-  sample_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/05/3ee15f598c0513df6860d6696351a1/samplefile.txt"
-  dada2_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/58/d5f8550d1cd5f0249b50d5cb4e6c51/dada2_qc.tsv" 
-  reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/b3/68b3cb52af795013be0de09399ce07/all_samples_seqkit.readstats.tsv"
-  summarised_reads_qc: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/b3/68b3cb52af795013be0de09399ce07/seqkit.summarised_stats.group_by_samples.tsv"
+  merged_tax_tab_file: ""
+  metadata: ""
+  sample_file: ""
+  dada2_qc: "" 
+  reads_qc: ""
+  summarised_reads_qc: ""
   cutadapt_qc: "none"
-  vsearch_tax_tab_file: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/16/b8a1c18524f00c837258dc8d6e71af/vsearch_merged_freq_tax.tsv"
+  vsearch_tax_tab_file: ""
   colorby: "condition"
-  bray_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/35/d873756c9b50ea805a92e26aa17bb1/core-metrics-diversity/bray_curtis_distance_matrix.tsv"
-  wunifrac_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/35/d873756c9b50ea805a92e26aa17bb1/core-metrics-diversity/unweighted_unifrac_distance_matrix.tsv"
-  unifrac_mat: "/localdisk/home/kpin/downstream/metagenomics/2022-5-31_pb-16S-nf_macrogen/work/35/d873756c9b50ea805a92e26aa17bb1/core-metrics-diversity/weighted_unifrac_distance_matrix.tsv"
+  bray_mat: ""
+  wunifrac_mat: ""
+  unifrac_mat: ""
+  post_trim_readstats: ""
 ---
 
 <style type="text/css">
@@ -72,49 +73,56 @@ if (params$cutadapt_qc != "none") {
 }
 
 # Try importing from TSV
-tax_tsv <-  read_tsv(params$merged_tax_tab_file)
-tax_tsv <- tax_tsv[2:nrow(tax_tsv), ]
+if(params$merged_tax_tab_file != "none"){
+  tax_tsv <-  read_tsv(params$merged_tax_tab_file)
+  tax_tsv <- tax_tsv[2:nrow(tax_tsv), ]
+}
 tax_tsv_vsearch <- read_tsv(params$vsearch_tax_tab_file)
 tax_tsv_vsearch <- tax_tsv_vsearch[2:nrow(tax_tsv_vsearch), ]
 
 # Sometimes samples get removed. Record this
-sample_final <- intersect(mapping_file$sample.id, colnames(tax_tsv))
+sample_final <- intersect(mapping_file$sample.id, colnames(tax_tsv_vsearch))
 # Samples filtered out
 removed_sample <- setdiff(mapping_file$sample.id, sample_final)
 
-otu_tab <- as.matrix(tax_tsv %>% select(all_of(sample_final)) %>% mutate_all(as.numeric))
-rownames(otu_tab) <- tax_tsv$id
-tax_tab <- str_split(tax_tsv$Taxon, ";", simplify = TRUE)
-rownames(tax_tab) <- tax_tsv$id
+otu_tab_vsearch <- as.matrix(tax_tsv_vsearch %>% select(all_of(sample_final)) %>% mutate_all(as.numeric))
+rownames(otu_tab_vsearch) <- tax_tsv_vsearch$id
+
+if(params$merged_tax_tab_file != "none"){
+  otu_tab <- as.matrix(tax_tsv %>% select(all_of(sample_final)) %>% mutate_all(as.numeric))
+  rownames(otu_tab) <- tax_tsv$id
+  tax_tab <- str_split(tax_tsv$Taxon, ";", simplify = TRUE)
+  rownames(tax_tab) <- tax_tsv$id
+  qiime2_8plex <- phyloseq(otu_table(otu_tab, taxa_are_rows = TRUE),
+                         # phy_tree(phylotree), 
+                         tax_table(tax_tab))
+
+  phyloseq <- merge_phyloseq(qiime2_8plex, mapping_file, metadata)
+  colnames(tax_table(phyloseq))= c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
+  for (i in 1:ncol(tax_table(phyloseq))){
+    tax_table(phyloseq)[, i] <- gsub(".*__(.*)", "\\1", tax_table(phyloseq)[, i])
+    tax_table(phyloseq)[, i] <- gsub("_", " ", tax_table(phyloseq)[, i])
+  }
+  physeq_list["besttax"] <- phyloseq
+}
 
 # For VSEARCH only taxonomy
 tax_tab_vsearch <- str_split(tax_tsv_vsearch$Taxon, ";", simplify = TRUE)
 rownames(tax_tab_vsearch) <- tax_tsv_vsearch$id
 tax_tab_vsearch <- tax_table(tax_tab_vsearch)
 colnames(tax_tab_vsearch) <- c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
-qiime2_8plex_vsearch <- phyloseq(otu_table(otu_tab, taxa_are_rows = TRUE),
+qiime2_8plex_vsearch <- phyloseq(otu_table(otu_tab_vsearch, taxa_are_rows = TRUE),
                          # phy_tree(phylotree), 
                          tax_tab_vsearch)
 
 tax_tab_vsearch <- tax_table(tax_tab_vsearch) %>% as("matrix") %>% as_tibble(rownames = "OTU")
-
-qiime2_8plex <- phyloseq(otu_table(otu_tab, taxa_are_rows = TRUE),
-                         # phy_tree(phylotree), 
-                         tax_table(tax_tab))
-
-phyloseq <- merge_phyloseq(qiime2_8plex, mapping_file, metadata)
 phyloseq_vsearch <- merge_phyloseq(qiime2_8plex_vsearch, mapping_file, metadata)
-colnames(tax_table(phyloseq))= c("Kingdom","Phylum","Class","Order","Family","Genus", "Species")
-for (i in 1:ncol(tax_table(phyloseq))){
-  tax_table(phyloseq)[, i] <- gsub(".*__(.*)", "\\1", tax_table(phyloseq)[, i])
-  tax_table(phyloseq)[, i] <- gsub("_", " ", tax_table(phyloseq)[, i])
-}
+
 for (i in 1:ncol(tax_table(phyloseq_vsearch))){
   tax_table(phyloseq_vsearch)[, i] <- gsub(".*__(.*)", "\\1", tax_table(phyloseq_vsearch)[, i])
   tax_table(phyloseq_vsearch)[, i] <- gsub("_", " ", tax_table(phyloseq_vsearch)[, i])
 }
 
-physeq_list["besttax"] <- phyloseq
 physeq_list["vsearch"] <- phyloseq_vsearch
 
 merge_tab_spec <- tibble()
@@ -170,16 +178,19 @@ for (i in 1:length(physeq_list)){
   merge_tab_genus <- bind_rows(merge_tab_genus, full_tab_genus)
 }
 
-total_asv <- nrow(otu_table(physeq_list[["besttax"]]))
-tab_besttax <- as_tibble(as.data.frame(tax_table(physeq_list[["besttax"]])), rownames="OTU")
-otu_besttax <- as_tibble(as.data.frame(otu_table(physeq_list[["besttax"]])), rownames="OTU")
-class_spec <- tab_besttax %>% filter(!grepl("Unclassified", Species))
-class_gen <-  tab_besttax %>% filter(!grepl("Unclassified", Genus))
-## Commented out. If use QIIME 2 vsearch, uncomment
-# class_spec <- tax_tab %>% filter(Species != "")
-# class_gen <-  tax_tab %>% filter(Genus != "")
-class_spec_uncultured <- tab_besttax %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
-class_gen_uncultured <- tab_besttax %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
+total_asv <- nrow(otu_table(physeq_list[["vsearch"]]))
+
+if(params$merged_tax_tab_file != "none"){
+  tab_besttax <- as_tibble(as.data.frame(tax_table(physeq_list[["besttax"]])), rownames="OTU")
+  otu_besttax <- as_tibble(as.data.frame(otu_table(physeq_list[["besttax"]])), rownames="OTU")
+  class_spec <- tab_besttax %>% filter(!grepl("Unclassified", Species))
+  class_gen <-  tab_besttax %>% filter(!grepl("Unclassified", Genus))
+  ## Commented out. If use QIIME 2 vsearch, uncomment
+  # class_spec <- tax_tab %>% filter(Species != "")
+  # class_gen <-  tax_tab %>% filter(Genus != "")
+  class_spec_uncultured <- tab_besttax %>% filter(Species != "", !grepl("Unclassified", Species), !grepl("uncultured|metagenome", Species, ignore.case = TRUE))
+  class_gen_uncultured <- tab_besttax %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
+}
 
 tab_vsearch <- as_tibble(as.data.frame(tax_table(physeq_list[["vsearch"]])), rownames="OTU")
 otu_vsearch <- as_tibble(as.data.frame(otu_table(physeq_list[["vsearch"]])), rownames="OTU")
@@ -192,7 +203,7 @@ class_spec_uncultured_vsearch <- tab_vsearch %>% filter(Species != "", !grepl("U
 class_gen_uncultured_vsearch <- tab_vsearch %>% filter(Genus != "", !grepl("Unclassified", Genus), !grepl("uncultured|metagenome", Genus, ignore.case = TRUE))
 
 # ASV per sample
-asv_sample <- colSums(otu_table(phyloseq) > 0)
+asv_sample <- colSums(otu_table(phyloseq_vsearch) > 0)
 asv_persample <- floor(mean(asv_sample, na.rm = TRUE))
 asv_tab <- tibble(
   `sample-id` = names(asv_sample),
@@ -213,7 +224,7 @@ dada2_qc <- dada2_qc %>%
 * Total number of reads after primers trimming (DADA2 input): `r if (skip_cutadapt != "Yes") {sum(all_read_count$demuxed_reads)} else {paste0("Skipped cutadapt trimming")}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 4)*100, "%")} else {paste0("Skipped cutadapt trimming")}`)
 * Total number of ASVs found: `r total_asv`
 * Average number of ASVs per sample: `r asv_persample`
-* Total number of reads in `r nrow(otu_table(phyloseq))` ASVs: `r round(sum(otu_table(phyloseq)), 20)` (`r round(sum(otu_table(phyloseq))/sum(as.numeric(dada2_qc$input)), 4)*100`% of all input reads)
+* Total number of reads in `r nrow(otu_table(phyloseq_vsearch))` ASVs: `r round(sum(otu_table(phyloseq_vsearch)), 20)` (`r round(sum(otu_table(phyloseq_vsearch))/sum(as.numeric(dada2_qc$input)), 4)*100`% of all input reads)
 
 ### Classification using VSEARCH with a single database
 
@@ -224,14 +235,17 @@ dada2_qc <- dada2_qc %>%
 * ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured_vsearch)` (`r round(nrow(class_gen_uncultured_vsearch)/total_asv, 4)*100`%)
 * Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["vsearch"]])[class_gen_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
 
-### Classification using Naive Bayes classifier with SILVA, GTDB and RefSeq + RDP
-
-* ASVs classified at Species level: `r nrow(class_spec)` (`r round(nrow(class_spec)/total_asv, 4)*100`%)
-* ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured)` (`r round(nrow(class_spec_uncultured)/total_asv, 4)*100`%)
-* Percentage reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_spec_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
-* ASVs classified at Genus level: `r nrow(class_gen)` (`r round(nrow(class_gen)/total_asv, 4)*100`%)
-* ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured)` (`r round(nrow(class_gen_uncultured)/total_asv, 4)*100`%)
-* Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["besttax"]])[class_gen_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100`%
+```{r results="asis", echo=FALSE}
+if(params$merged_tax_tab_file != "none"){
+  cat("### Classification using Naive Bayes classifier with SILVA, GTDB and RefSeq + RDP  \n")
+  cat(paste0("* ASVs classified at Species level: ", nrow(class_spec), " (", round(nrow(class_spec)/total_asv, 4)*100, "%)  \n"))
+  cat(paste0("* ASVs classified at Species level (Excluding metagenome/uncultured entries): ", nrow(class_spec_uncultured), " (", round(nrow(class_spec_uncultured)/total_asv, 4)*100, "%)  \n"))
+  cat(paste0("* Percentage reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): ", round(sum(otu_table(physeq_list[["besttax"]])[class_spec_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100, "%  \n"))
+  cat(paste0("* ASVs classified at Genus level: ", nrow(class_gen), " (", round(nrow(class_gen)/total_asv, 4)*100, "%)  \n"))
+  cat(paste0("* ASVs classified at Genus level (Excluding metagenome/uncultured entries): ", nrow(class_gen_uncultured), " (", round(nrow(class_gen_uncultured)/total_asv, 4)*100, "%)  \n"))
+  cat(paste0("* Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): ", round(sum(otu_table(physeq_list[["besttax"]])[class_gen_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100, "%  \n"))
+}
+```
 
 ## Overall reads filtering and number of full-length reads
 * Full-length reads are defined as reads with both F27 and R1492 primers
@@ -270,12 +284,31 @@ ggplot(reads_qc, aes(x = avg.qual, y = ..density..)) +
 ggplot(reads_qc, aes(x = length, y = ..density..)) + 
     geom_histogram(alpha =0.5, binwidth = 100, na.rm=TRUE) + 
     geom_density(color="red", adjust = 4, na.rm=TRUE) +
-    labs(x = "Reads length (bp)", y = "Density", title = "Read Length Distribution") +
+    labs(x = "Reads length (bp)", y = "Density", title = "Read Length Distribution before Primers Trimmed") +
     scale_x_continuous(breaks = c(100, 500, 1000, 1500, 2000, 3000), limits = c(0, 3000)) +
   annotate("text", x = Inf, y = Inf, vjust="inward", hjust="inward",
            label=paste0("Number of reads above 3000bp: ", 
                         round((reads_qc %>% filter(length > 3000) %>% nrow())/nrow(reads_qc), 4), 
                         "%"))
+rm(reads_qc)
+if (params$post_trim_readstats != "none") {
+  post_trim_reads_qc <- read_tsv(params$post_trim_readstats, col_types = cols())
+  plot_post_qc <- ggplot(post_trim_reads_qc, aes(x = length, y = ..density..)) +
+    geom_histogram(alpha = 0.5, binwidth = 100, na.rm = TRUE) +
+    geom_density(color = "red", adjust = 4, na.rm = TRUE) +
+    labs(x = "Reads length (bp)", y = "Density", title = "Read Length Distribution after Primers Trimmed") +
+    scale_x_continuous(breaks = c(100, 500, 1000, 1500, 2000, 3000), limits = c(0, 3000)) +
+    annotate("text",
+      x = Inf, y = Inf, vjust = "inward", hjust = "inward",
+      label = paste0(
+        "Number of reads above 3000bp: ",
+        round((post_trim_reads_qc %>% filter(length > 3000) %>% nrow()) / nrow(post_trim_reads_qc), 4),
+        "%"
+      )
+    )
+  print(plot_post_qc)
+  rm(post_trim_reads_qc)
+}
 
 colnames(summarise_qc) <- c("Sample", "Length 1st Quartile (bp)", "Length 3rd Quartile (bp)",
                             "Median Length (bp)", "Read Quality 1st Quartile (bp)", "Read Quality 3rd Quartile (bp)",
@@ -322,9 +355,9 @@ if (! is_empty(iDist)){
   # Calculate ordination
   # If all samples are identical, don't do anything!
   if(sum(iDist) != 0){
-    iMDS  <- ordinate(phyloseq, "MDS", distance=iDist)
+    iMDS  <- ordinate(phyloseq_vsearch, "MDS", distance=iDist)
     ## Make plot
-    plot_ordination(phyloseq, iMDS, color=params$colorby, title = "Bray-Curtis MDS")
+    plot_ordination(phyloseq_vsearch, iMDS, color=params$colorby, title = "Bray-Curtis MDS")
   } else {
     print("All samples have distances of zero in Bray-Curtis matrix")
   }
@@ -340,8 +373,8 @@ iDist <- read_tsv(params$wunifrac_mat)
 if (! is_empty(iDist)) {
   iDist <- as.dist(iDist[, 2:ncol(iDist)])
   if(sum(iDist) != 0){
-    iMDS  <- ordinate(phyloseq, "MDS", distance=iDist)
-    plot_ordination(phyloseq, iMDS, color=params$colorby, title = "Weighted Unifrac MDS")
+    iMDS  <- ordinate(phyloseq_vsearch, "MDS", distance=iDist)
+    plot_ordination(phyloseq_vsearch, iMDS, color=params$colorby, title = "Weighted Unifrac MDS")
   } else {
     print("All samples have distances of zero in weighted Unifrac matrix")
   }
@@ -354,8 +387,8 @@ if (! is_empty(iDist2)){
   iDist2 <- as.dist(iDist2[, 2:ncol(iDist2)])
   #Calculate ordination
   if(sum(iDist2) != 0){
-    iMDS2  <- ordinate(phyloseq, "MDS", distance=iDist2)
-    plot_ordination(phyloseq, iMDS2, color=params$colorby, title = "Unweighted Unifrac MDS")
+    iMDS2  <- ordinate(phyloseq_vsearch, "MDS", distance=iDist2)
+    plot_ordination(phyloseq_vsearch, iMDS2, color=params$colorby, title = "Unweighted Unifrac MDS")
   } else {
     print("All samples have distances of zero in unweighted Unifrac matrix")
   }
@@ -382,7 +415,7 @@ datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
 total number of reads in each sample.
 * Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
 genus.
-``` {r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
+```{r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
 # Display top 10
 top10_genus <- merge_tab_genus %>% 
   filter(method=="vsearch", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
@@ -420,8 +453,10 @@ toplot <- merge_tab_spec %>%
   pivot_wider(names_from = "Sample", values_from = "Relative Abundance")
 mat_to_plot <- as.matrix(toplot %>% select(sample_data(physeq)$sample.id))
 rownames(mat_to_plot) <- toplot$Species
-# More than 1% in two samples
-mat_to_plot <- mat_to_plot[rowSums(mat_to_plot > 0.01) > 2, ]
+# More than 1% in two samples, unless only 1 or 2 samples
+if(dim(mat_to_plot)[2] > 2){
+  mat_to_plot <- mat_to_plot[rowSums(mat_to_plot > 0.01) > 2, ,drop=FALSE]
+}
 min_abundance <- min(mat_to_plot, na.rm = TRUE)
 max_abundance <- max(mat_to_plot, na.rm = TRUE)
 mean_abundance <- mean(mat_to_plot, na.rm = TRUE)
@@ -431,26 +466,41 @@ Heatmap(mat_to_plot,
         name = "Relative abundance")
 ```
 
-### Top 50 ASVs (Naive Bayes Classifier)
-``` {r, echo=FALSE}
-vis_tab <- tab_besttax %>% inner_join(otu_besttax, by="OTU")
-count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
-rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
-mean_rel_abundance <- apply(rel_abundance, 1, mean)
-datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
-          options = list(scrollX = TRUE), 
-          filter = list(
-            position = 'top', clear = FALSE
-          ))
+
+```{r results="asis", echo=FALSE}
+if(params$merged_tax_tab_file != "none"){
+  cat("### Top 50 ASVs (Naive Bayes Classifier)  \n")
+}
 ```
-### Top 10 Classified Genus (Collapsed to species) with Naive Bayes Classifier
-* Relative abundance is calculated by dividing the number of reads for each ASV to the
-total number of reads in each sample.
-* Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
-genus.
-``` {r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
+
+```{r, echo=FALSE}
+if(params$merged_tax_tab_file != "none"){
+  vis_tab <- tab_besttax %>% inner_join(otu_besttax, by="OTU")
+  count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
+  rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
+  mean_rel_abundance <- apply(rel_abundance, 1, mean)
+  datatable(vis_tab[order(mean_rel_abundance, decreasing = TRUE) <= 50, ],
+            options = list(scrollX = TRUE), 
+            filter = list(
+              position = 'top', clear = FALSE
+            ))
+}
+```
+
+```{r results="asis", echo=FALSE}
+if(params$merged_tax_tab_file != "none"){
+  cat("### Top 10 Classified Genus (Collapsed to species) with Naive Bayes Classifier  \n")
+  cat("* Relative abundance is calculated by dividing the number of reads for each ASV to the
+total number of reads in each sample.  \n")
+  cat("* Heatmap contains only species with >1% abundance in at least 2 samples for the top 10
+genus.  \n")
+}
+```
+
+```{r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
 # Display top 10
-top10_genus <- merge_tab_genus %>% 
+if(params$merged_tax_tab_file != "none"){
+  top10_genus <- merge_tab_genus %>% 
   filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
   group_by(Genus) %>% 
   summarise("Mean supporting reads across samples" = round(mean(Abundance), 2),
@@ -458,49 +508,52 @@ top10_genus <- merge_tab_genus %>%
   top_n(10, wt = `Mean relative abundance across samples`) %>% 
   arrange(desc(`Mean relative abundance across samples`)) 
 
-top10_gen_species <- vis_tab %>% 
-  select(OTU, Genus, Species, sample_data(physeq)$sample.id) %>% 
-  filter(Genus %in% top10_genus$Genus) %>% 
-  group_by(Genus, Species) %>% 
-  summarise(across(sample_data(physeq)$sample.id, sum)) %>% 
-  ungroup() %>% 
-  arrange(factor(Genus, levels=top10_genus$Genus))
+  top10_gen_species <- vis_tab %>% 
+    select(OTU, Genus, Species, sample_data(physeq)$sample.id) %>% 
+    filter(Genus %in% top10_genus$Genus) %>% 
+    group_by(Genus, Species) %>% 
+    summarise(across(sample_data(physeq)$sample.id, sum)) %>% 
+    ungroup() %>% 
+    arrange(factor(Genus, levels=top10_genus$Genus))
+}
 
-datatable(top10_genus,
-          options = list(scrollX = TRUE), 
-          filter = list(
-            position = 'top', clear = FALSE
-          ))
+# Weird issue where I can't put the data table into the same if condition
+# otherwise they won't display in the HTML...
+if(params$merged_tax_tab_file != "none"){
+  datatable(top10_genus,
+            options = list(scrollX = TRUE), 
+            filter = list(
+              position = 'top', clear = FALSE
+            ))
+}
 
-datatable(top10_gen_species,
-          options = list(scrollX = TRUE), 
-          filter = list(
-            position = 'top', clear = FALSE
-          ))
-# Make heatmap. Filter out ultra low abundance species
-toplot <- merge_tab_spec %>% 
-  filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Species),
-         Species %in% top10_gen_species$Species) %>% 
-  dplyr::select(-Abundance, method) %>% 
-  pivot_wider(names_from = "Sample", values_from = "Relative Abundance")
-mat_to_plot <- as.matrix(toplot %>% select(sample_data(physeq)$sample.id))
-rownames(mat_to_plot) <- toplot$Species
-# More than 1% in two samples
-mat_to_plot <- mat_to_plot[rowSums(mat_to_plot > 0.01) > 2, ]
-min_abundance <- min(mat_to_plot, na.rm = TRUE)
-max_abundance <- max(mat_to_plot, na.rm = TRUE)
-mean_abundance <- mean(mat_to_plot, na.rm = TRUE)
-Heatmap(mat_to_plot, 
-        col=circlize::colorRamp2(c(min_abundance, mean_abundance, max_abundance), 
-                                 viridis(3)),
-        name = "Relative abundance")
+if(params$merged_tax_tab_file != "none"){
+  datatable(top10_gen_species,
+            options = list(scrollX = TRUE), 
+            filter = list(
+              position = 'top', clear = FALSE
+            ))
+}
+
+if(params$merged_tax_tab_file != "none"){
+  # Make heatmap. Filter out ultra low abundance species
+  toplot <- merge_tab_spec %>% 
+    filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Species),
+          Species %in% top10_gen_species$Species) %>% 
+    dplyr::select(-Abundance, method) %>% 
+    pivot_wider(names_from = "Sample", values_from = "Relative Abundance")
+  mat_to_plot <- as.matrix(toplot %>% select(sample_data(physeq)$sample.id))
+  rownames(mat_to_plot) <- toplot$Species
+  # More than 1% in two samples, unless only 1 or 2 samples
+  if(dim(mat_to_plot)[2] > 2){
+    mat_to_plot <- mat_to_plot[rowSums(mat_to_plot > 0.01) > 2, ,drop=FALSE]
+  }
+  min_abundance <- min(mat_to_plot, na.rm = TRUE)
+  max_abundance <- max(mat_to_plot, na.rm = TRUE)
+  mean_abundance <- mean(mat_to_plot, na.rm = TRUE)
+  Heatmap(mat_to_plot, 
+          col=circlize::colorRamp2(c(min_abundance, mean_abundance, max_abundance), 
+                                  viridis(3)),
+          name = "Relative abundance")
+}
 ```
-
-<!-- ### Full table -->
-<!-- ``` {r, echo=FALSE} -->
-<!-- datatable(vis_tab, -->
-<!--           options = list(scrollX = TRUE),  -->
-<!--           filter = list( -->
-<!--             position = 'top', clear = FALSE -->
-<!--           )) -->
-<!-- ``` -->

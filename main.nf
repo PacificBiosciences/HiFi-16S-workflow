@@ -25,12 +25,12 @@ def helpMessage() {
   nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
-  By default, sequences are first trimmed with cutadapt (higher rate compared to using DADA2
-  ) using the example command below. You can skip this by specifying "--skip_primer_trim" 
-  if the sequences are already trimmed. The primer sequences used are the F27 and R1492
-  primers for full length 16S sequencing.
+  By default, sequences are first trimmed with cutadapt. If adapters are already trimmed, you can skip 
+  cutadapt by specifying "--skip_primer_trim".
 
   Other important options:
+  --front_p    Forward primer sequence. Default to F27. (default: AGRGTTYGATYMTGGCTCAG)
+  --adapter_p    Reverse primer sequence. Default to R1492. (default: AAGTCGTAACAAGGTARCY)
   --filterQ    Filter input reads above this Q value (default: 20).
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
               this value will be discarded (default: 2)
@@ -68,6 +68,7 @@ def helpMessage() {
   --refseq_db    Location of RefSeq+RDP database for taxonomy classification
   --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
                         removal) (default: trim with cutadapt)
+  --skip_nb    Skip Naive-Bayes classification (only uses VSEARCH) (default: false)
   --colorby    Columns in metadata TSV file to use for coloring the MDS plot
                in HTML report (default: condition)
   --run_picrust2    Run PICRUSt2 pipeline. Note that pathway inference with 16S using PICRUSt2
@@ -83,10 +84,11 @@ def helpMessage() {
 params.help = false
 if (params.help) exit 0, helpMessage()
 params.version = false
-version = "0.3"
+version = "0.4"
 if (params.version) exit 0, log.info("$version")
 params.download_db = false
 params.skip_primer_trim = false
+params.skip_nb = false
 params.run_picrust2 = false
 params.filterQ = 20
 params.min_len = 1000
@@ -119,12 +121,14 @@ if (params.skip_primer_trim) {
   trim_cutadapt = "No"
 } else {
   trim_cutadapt = "Yes"
-  params.front_p = 'none'
-  params.adapter_p = 'none'
+  // These are default V1-V9 adapter
+  params.front_p = 'AGRGTTYGATYMTGGCTCAG'
+  params.adapter_p = 'AAGTCGTAACAAGGTARCY'
 }
 // Hidden parameters in case need to trim with DADA2 removePrimers function
-// params.front_p = 'AGRGTTYGATYMTGGCTCAG'
-// params.adapter_p = 'RGYTACCTTGTTACGACTT'
+// StrainID primers
+// params.front_p = 'AGRRTTYGATYHTDGYTYAG'
+// params.adapter_p = 'AGTACYRHRARGGAANGR'
 params.pooling_method = 'pseudo'
 params.vsearch_db = "$projectDir/databases/GTDB_ssu_all_r207.qza"
 params.vsearch_tax = "$projectDir/databases/GTDB_ssu_all_r207.taxonomy.qza"
@@ -147,12 +151,14 @@ params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
 params.dadaAssign_script = "$projectDir/scripts/dada2_assign_tax.R"
 
-log.info """
+log_text = """
   Parameters set for pb-16S-nf pipeline for PacBio HiFi 16S
   =========================================================
   Number of samples in samples TSV: $n_sample
   Filter input reads above Q: $params.filterQ
   Trim primers with cutadapt: $trim_cutadapt
+  Forward primer: $params.front_p
+  Reverse primer: $params.adapter_p
   Minimum amplicon length filtered in DADA2: $params.min_len
   Maximum amplicon length filtered in DADA2: $params.max_len
   maxEE parameter for DADA2 filterAndTrim: $params.max_ee
@@ -162,6 +168,7 @@ log.info """
   Minimum number of reads required to keep any ASV: $params.min_asv_totalfreq 
   Taxonomy sequence database for VSEARCH: $params.vsearch_db
   Taxonomy annotation database for VSEARCH: $params.vsearch_tax
+  Skip Naive Bayes classification: $params.skip_nb
   SILVA database for Naive Bayes classifier: $params.silva_db
   GTDB database for Naive Bayes classifier: $params.gtdb_db
   RefSeq + RDP database for Naive Bayes classifier: $params.refseq_db
@@ -176,6 +183,26 @@ log.info """
   Container enabled via docker/singularity: $params.enable_container
   Version of Nextflow pipeline: $version
 """
+
+log.info(log_text)
+
+// Save parameters into file
+process write_log{
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
+  container "kpinpb/pb-16s-nf-tools:latest" 
+  publishDir "$params.outdir"
+
+  input:
+  val(logs)
+
+  output:
+  path "parameters.txt"
+
+  script:
+  """
+  echo '$logs' > parameters.txt
+  """
+}
 
 // QC before cutadapt
 process QC_fastq {
@@ -223,7 +250,7 @@ process cutadapt {
 
   script:
   """
-  cutadapt -a "^AGRGTTYGATYMTGGCTCAG...AAGTCGTAACAAGGTARCY\$" \
+  cutadapt -g "${params.front_p}...${params.adapter_p}" \
     ${sampleFASTQ} \
     -o ${sampleID}.trimmed.fastq.gz \
     -j ${task.cpus} --trimmed-only --revcomp -e 0.1 \
@@ -234,6 +261,26 @@ process cutadapt {
   demux_read=`jq -r '.read_counts | .output' ${sampleID}.cutadapt.report`
   echo -e "sample\tinput_reads\tdemuxed_reads" > cutadapt_summary_${sampleID}.tsv
   echo -e "${sampleID}\t\$input_read\t\$demux_read" >> cutadapt_summary_${sampleID}.tsv
+  """
+}
+
+// QC after cutadapt
+process QC_fastq_post_trim {
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
+  container "kpinpb/pb-16s-nf-tools:latest"
+  label 'cpu8'
+  publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*post_trim.tsv'
+
+  input:
+  tuple val(sampleID), path(sampleFASTQ)
+
+  output:
+  path "${sampleID}.seqkit.readstats.post_trim.tsv", emit: all_seqkit_stats
+
+  script:
+  """
+  seqkit fx2tab -j $task.cpus -q --gc -l -H -n -i $sampleFASTQ |\
+    csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.readstats.post_trim.tsv
   """
 }
 
@@ -248,9 +295,11 @@ process collect_QC {
   path "*"
   path "*"
   path "*"
+  path "*"
 
   output:
   path "all_samples_seqkit.readstats.tsv", emit: all_samples_readstats
+  path "all_samples_seqkit.readstats.post_trim.tsv", emit: all_samples_readstats_post_trim
   path "all_samples_seqkit.summarystats.tsv", emit: all_samples_summarystats
   path "seqkit.summarised_stats.group_by_samples.tsv", emit: summarised_sample_readstats
   path "seqkit.summarised_stats.group_by_samples.pretty.tsv"
@@ -259,6 +308,7 @@ process collect_QC {
   script:
   """
   csvtk concat -t -C '%' *.seqkit.readstats.tsv > all_samples_seqkit.readstats.tsv
+  csvtk concat -t -C '%' *.seqkit.readstats.post_trim.tsv > all_samples_seqkit.readstats.post_trim.tsv
   csvtk concat -t -C '%' *.seqkit.summarystats.tsv > all_samples_seqkit.summarystats.tsv
   csvtk concat -t cutadapt_summary*.tsv > all_samples_cutadapt_stats.tsv
   # Summary read_qual for each sample
@@ -410,8 +460,8 @@ process dada2_denoise {
     --o-denoising-stats dada2-ccs_stats.qza \
     --p-min-len $params.min_len --p-max-len $params.max_len \
     --p-max-ee $params.max_ee \
-    --p-front \'$params.front_p\' \
-    --p-adapter \'$params.adapter_p\' \
+    --p-front 'none' \
+    --p-adapter 'none' \
     --p-n-threads $task.cpus \
     --p-pooling-method \'$params.pooling_method\'
 
@@ -478,7 +528,8 @@ process filter_dada2 {
 process dada2_assignTax {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", pattern: 'best_tax*'
+  publishDir "$params.outdir/nb_tax"
   cpus params.vsearch_cpu
 
   input:
@@ -495,6 +546,9 @@ process dada2_assignTax {
   path "best_taxonomy.tsv", emit: best_nb_tax
   path "best_taxonomy_withDB.tsv"
   path "best_tax_merged_freq_tax.tsv", emit: best_nb_tax_tsv
+  path "silva_nb.tsv"
+  path "gtdb_nb.tsv"
+  path "refseq_rdp_nb.tsv"
 
   script:
   """
@@ -785,6 +839,34 @@ process export_biom {
   """
 }
 
+// Export results into biom for use with phyloseq
+process export_biom_skip_nb {
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:latest"
+  publishDir "$params.outdir/results"
+  label 'cpu_def'
+
+  input:
+  path asv_freq
+  path tax_tsv_vsearch
+
+  output:
+  path "feature-table-tax_vsearch.biom", emit:biom_vsearch
+
+  script:
+  """
+  qiime tools export --input-path $asv_freq --output-path asv_freq/
+
+  sed 's/Feature ID/#OTUID/' $tax_tsv_vsearch | sed 's/Taxon/taxonomy/' | \
+    sed 's/Consensus/confidence/' > biom-taxonomy_vsearch.tsv
+
+  biom add-metadata -i asv_freq/feature-table.biom \
+    -o feature-table-tax_vsearch.biom \
+    --observation-metadata-fp biom-taxonomy_vsearch.tsv \
+    --sc-separated taxonomy
+  """
+}
+
 process picrust2 {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
@@ -816,22 +898,40 @@ process barplot {
   input:
   path asv_tab
   path tax
-  path tax_vsearch
   path metadata
+  val(oname)
 
   output:
-  path 'taxa_barplot.qzv'
-  path 'taxa_barplot_vsearch.qzv'
+  path "${oname}"
 
   script:
   """
   qiime taxa barplot --i-table $asv_tab --i-taxonomy $tax \
     --m-metadata-file $metadata \
-    --o-visualization taxa_barplot.qzv
+    --o-visualization $oname
+  """
+}
 
-  qiime taxa barplot --i-table $asv_tab --i-taxonomy $tax_vsearch \
+process barplot_nb {
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:latest"
+  publishDir "$params.outdir/results"
+  label 'cpu_def'
+
+  input:
+  path asv_tab
+  path tax
+  path metadata
+  val(oname)
+
+  output:
+  path "${oname}"
+
+  script:
+  """
+  qiime taxa barplot --i-table $asv_tab --i-taxonomy $tax \
     --m-metadata-file $metadata \
-    --o-visualization taxa_barplot_vsearch.qzv
+    --o-visualization $oname
   """
 }
 
@@ -843,7 +943,7 @@ process html_rep {
   label 'cpu_def'
 
   input:
-  path tax_freq_tab_tsv
+  val(tax_freq_tab_tsv)
   path metadata
   path sample_manifest
   path dada2_qc
@@ -855,6 +955,7 @@ process html_rep {
   path unifrac_mat
   path wunifrac_mat
   val(colorby)
+  path post_trim_readstats
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -865,13 +966,13 @@ process html_rep {
   export R_LIBS_USER="/opt/conda/envs/pb-16S-vis/lib/R/library"
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
   """
   else
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
   """
 }
 
@@ -883,7 +984,7 @@ process html_rep_skip_cutadapt {
   label 'cpu_def'
 
   input:
-  path tax_freq_tab_tsv
+  val(tax_freq_tab_tsv)
   path metadata
   path sample_manifest
   path dada2_qc
@@ -895,6 +996,7 @@ process html_rep_skip_cutadapt {
   path unifrac_mat
   path wunifrac_mat
   val(colorby)
+  val(post_trim_readstats)
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -905,13 +1007,13 @@ process html_rep_skip_cutadapt {
   export R_LIBS_USER="/opt/conda/envs/pb-16S-vis/lib/R/library"
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
   """
   else
   """
   cp $params.rmd_vis_biom_script visualize_biom.Rmd
   cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat"), output_dir="./")'
+  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
   """
 }
 
@@ -986,6 +1088,7 @@ workflow pb16S {
   if (params.download_db){
     download_db()
   } else {
+    write_log(log_text)
     sample_file = channel.fromPath(params.input)
       .splitCsv(header: ['sample', 'fastq'], skip: 1, sep: "\t")
       .map{ row -> tuple(row.sample, file(row.fastq)) }
@@ -998,12 +1101,16 @@ workflow pb16S {
       cutadapt_summary = "none"
       qiime2_manifest = prepare_qiime2_manifest_skip_cutadapt.out.sample_trimmed_file
       collect_QC_readstats = collect_QC_skip_cutadapt.out.all_samples_readstats
+      post_trim_readstats = "none"
       collect_QC_summarised_sample_stats = collect_QC_skip_cutadapt.out.summarised_sample_readstats
     } else {
       cutadapt(QC_fastq.out.filtered_fastq)
+      QC_fastq_post_trim(cutadapt.out.cutadapt_fastq)
       collect_QC(QC_fastq.out.all_seqkit_stats.collect(),
           QC_fastq.out.all_seqkit_summary.collect(),
-          cutadapt.out.summary_tocollect.collect())
+          cutadapt.out.summary_tocollect.collect(),
+          QC_fastq_post_trim.out.all_seqkit_stats.collect())
+      post_trim_readstats = collect_QC.out.all_samples_readstats_post_trim
       prepare_qiime2_manifest(cutadapt.out.samples_ind.collect())
       cutadapt_summary = collect_QC.out.cutadapt_summary
       qiime2_manifest = prepare_qiime2_manifest.out.sample_trimmed_file
@@ -1025,27 +1132,35 @@ workflow pb16S {
     }
     dada2_rarefaction(filter_dada2.out.asv_freq, metadata_file, dada2_qc.out.alpha_depth)
     class_tax(filter_dada2.out.asv_seq, filter_dada2.out.asv_freq, params.vsearch_db, params.vsearch_tax)
-    dada2_assignTax(filter_dada2.out.asv_seq_fasta, filter_dada2.out.asv_seq, filter_dada2.out.asv_freq,
-        params.silva_db, params.gtdb_db, params.refseq_db, params.dadaAssign_script)
-    export_biom(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
+    if(params.skip_nb){
+      nb_tax = "none"
+      export_biom_skip_nb(filter_dada2.out.asv_freq, class_tax.out.tax_tsv) 
+      barplot(filter_dada2.out.asv_freq, class_tax.out.tax_vsearch, metadata_file, "taxonomy_barplot_vsearch.qzv")
+    } else {
+      dada2_assignTax(filter_dada2.out.asv_seq_fasta, filter_dada2.out.asv_seq, filter_dada2.out.asv_freq,
+          params.silva_db, params.gtdb_db, params.refseq_db, params.dadaAssign_script)
+      nb_tax = dada2_assignTax.out.best_nb_tax_tsv 
+      export_biom(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax, class_tax.out.tax_tsv)
+      barplot_nb(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, metadata_file, "taxonomy_barplot_nb.qzv")
+      barplot(filter_dada2.out.asv_freq, class_tax.out.tax_vsearch, metadata_file, "taxonomy_barplot_vsearch.qzv")
+    }
     if (params.run_picrust2){
       picrust2(filter_dada2.out.asv_seq_fasta, export_biom.out.biom_vsearch)
     }
-    barplot(filter_dada2.out.asv_freq, dada2_assignTax.out.best_nb_tax_qza, class_tax.out.tax_vsearch, metadata_file)
     if (params.skip_primer_trim){
-      html_rep_skip_cutadapt(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
+      html_rep_skip_cutadapt(nb_tax, metadata_file, qiime2_manifest,
           dada2_qc.out.dada2_qc_tsv, 
           collect_QC_readstats, collect_QC_summarised_sample_stats,
           cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
           qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
-          params.colorby)
+          params.colorby, post_trim_readstats)
     } else {
-      html_rep(dada2_assignTax.out.best_nb_tax_tsv, metadata_file, qiime2_manifest,
+      html_rep(nb_tax, metadata_file, qiime2_manifest,
           dada2_qc.out.dada2_qc_tsv, 
           collect_QC_readstats, collect_QC_summarised_sample_stats,
           cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
           qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
-          params.colorby)
+          params.colorby, post_trim_readstats)
     }
     krona_plot(filter_dada2.out.asv_freq, class_tax.out.tax_vsearch)
   }

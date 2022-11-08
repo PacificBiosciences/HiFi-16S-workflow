@@ -26,6 +26,9 @@ colnames(silva_spec)[grepl("tax.", colnames(silva_spec))] <-
   gsub("tax\\.(.*)", "\\1", colnames(silva_spec)[grepl("tax.", colnames(silva_spec))])
 buf <- data.frame("Assignment" = rep("Silva 138.1", nrow(silva_spec)))
 silva_spec <- cbind(silva_spec, buf)
+write.table(data.frame("Feature ID" = otu_id, silva_spec), "silva_nb.tsv", quote = FALSE,
+            sep = "\t",row.names = FALSE)
+
 gtdb_spec <- assignTaxonomy(seqs, refFasta = gtdb_db, minBoot = minBoot_num,
                             multithread = threads, outputBootstraps = TRUE)
 gtdb_spec <- as.data.frame(gtdb_spec)
@@ -37,6 +40,9 @@ gtdb_spec[, 'Species'] <- gsub("(.*)\\(.*\\)", "\\1", gtdb_spec[, 'Species'])
 gtdb_spec[, 'Species'] <- gsub("_", "\\ ", gtdb_spec[, 'Species'])
 buf <- data.frame("Assignment" = rep("GTDB r207", nrow(gtdb_spec)))
 gtdb_spec <- cbind(gtdb_spec, buf)
+write.table(data.frame("Feature ID" = otu_id, gtdb_spec), "gtdb_nb.tsv", quote = FALSE,
+            sep = "\t",row.names = FALSE)
+
 refseq_spec <- assignTaxonomy(seqs, refFasta = refseq_db, minBoot = minBoot_num,
                               multithread = threads, outputBootstraps = TRUE)
 refseq_spec <- as.data.frame(refseq_spec)
@@ -46,6 +52,8 @@ colnames(refseq_spec)[grepl("tax.", colnames(refseq_spec))] <-
 refseq_spec[, 'Species'] <- gsub("(.*)_(.*?)_.*\\(.*\\)", "\\2", refseq_spec[, 'Species'])
 buf <- data.frame("Assignment" = rep("RefSeq + RDP", nrow(refseq_spec)))
 refseq_spec <- cbind(refseq_spec, buf)
+write.table(data.frame("Feature ID" = otu_id, refseq_spec), "refseq_rdp_nb.tsv", quote = FALSE,
+            sep = "\t",row.names = FALSE)
 
 # Iteratively join at species level
 final_spec <- gtdb_spec

@@ -70,24 +70,24 @@ nextflow run main.nf --help
   required. For metadata TSV file, at least two columns named "sample_name" and
   "condition" to separate samples into different groups.
 
-  nextflow run main.nf --input samples.tsv --metadata metadata.tsv \
+  nextflow run main.nf --input samples.tsv --metadata metadata.tsv \\
     --dada2_cpu 8 --vsearch_cpu 8
 
-  By default, sequences are first trimmed with cutadapt (higher rate compared to using DADA2
-  ) using the example command below. You can skip this by specifying "--skip_primer_trim"
-  if the sequences are already trimmed. The primer sequences used are the F27 and R1492
-  primers for full length 16S sequencing.
+  By default, sequences are first trimmed with cutadapt. If adapters are already trimmed, you can skip 
+  cutadapt by specifying "--skip_primer_trim".
 
   Other important options:
+  --front_p    Forward primer sequence. Default to F27. (default: AGRGTTYGATYMTGGCTCAG)
+  --adapter_p    Reverse primer sequence. Default to R1492. (default: AAGTCGTAACAAGGTARCY)
   --filterQ    Filter input reads above this Q value (default: 20).
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
               this value will be discarded (default: 2)
-  --minQ    DADA2 minQ parameter. Reads with any base lower than this score
+  --minQ    DADA2 minQ parameter. Reads with any base lower than this score 
             will be removed (default: 0)
   --min_len    Minimum length of sequences to keep (default: 1000)
   --max_len    Maximum length of sequences to keep (default: 1600)
-  --pooling_method    QIIME 2 pooling method for DADA2 denoise see QIIME 2
-                      documentation for more details (default: "pseudo", alternative: "independent")
+  --pooling_method    QIIME 2 pooling method for DADA2 denoise see QIIME 2 
+                      documentation for more details (default: "pseudo", alternative: "independent") 
   --maxreject    max-reject parameter for VSEARCH taxonomy classification method in QIIME 2
                  (default: 100)
   --maxaccept    max-accept parameter for VSEARCH taxonomy classification method in QIIME 2
@@ -95,11 +95,11 @@ nextflow run main.nf --help
   --min_asv_totalfreq    Total frequency of any ASV must be above this threshold
                          across all samples to be retained. Set this to 0 to disable filtering
                          (default 5)
-  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained.
+  --min_asv_sample    ASV must exist in at least min_asv_sample to be retained. 
                       Set this to 0 to disable. (default 1)
   --vsearch_identity    Minimum identity to be considered as hit (default 0.97)
   --rarefaction_depth    Rarefaction curve "max-depth" parameter. By default the pipeline
-                         automatically select a cut-off above the minimum of the denoised
+                         automatically select a cut-off above the minimum of the denoised 
                          reads for >80% of the samples. This cut-off is stored in a file called
                          "rarefaction_depth_suggested.txt" file in the results folder
                          (default: null)
@@ -107,18 +107,20 @@ nextflow run main.nf --help
   --vsearch_cpu    Number of threads for VSEARCH taxonomy classification (default: 8)
   --cutadapt_cpu    Number of threads for primer removal using cutadapt (default: 16)
   --outdir    Output directory name (default: "results")
-  --vsearch_db  Location of VSEARCH database (e.g. silva-138-99-seqs.qza can be
+  --vsearch_db	Location of VSEARCH database (e.g. silva-138-99-seqs.qza can be
                 downloaded from QIIME database)
   --vsearch_tax    Location of VSEARCH database taxonomy (e.g. silva-138-99-tax.qza can be
                    downloaded from QIIME database)
-  --silva_db   Location of Silva 138 database for taxonomy classification
+  --silva_db   Location of Silva 138 database for taxonomy classification 
   --gtdb_db    Location of GTDB r202 for taxonomy classification
   --refseq_db    Location of RefSeq+RDP database for taxonomy classification
   --skip_primer_trim    Skip all primers trimming (switch off cutadapt and DADA2 primers
                         removal) (default: trim with cutadapt)
+  --skip_nb    Skip Naive-Bayes classification (only uses VSEARCH) (default: false)
   --colorby    Columns in metadata TSV file to use for coloring the MDS plot
                in HTML report (default: condition)
-  --run_picrust2    Run PICRUSt2 pipeline (default: false)
+  --run_picrust2    Run PICRUSt2 pipeline. Note that pathway inference with 16S using PICRUSt2
+                    has not been tested systematically (default: false)
   --download_db    Download databases needed for taxonomy classification only. Will not
                    run the pipeline. Databases will be downloaded to a folder "databases"
                    in the Nextflow pipeline directory.
@@ -310,6 +312,24 @@ primers removal?
   In addition, [this thread](https://forum.qiime2.org/t/esv-vs-otu-deflation-qiime1-vs-2/14867/2) on
   `QIIME 2` forum discusses the difference in numbers through traditional OTU compared
   to ASV approach.
+
+* Can I classify with X database?
+  
+  As of current implementation, it's straightforward to import any database to use with VSEARCH. You will need
+  `X.fasta` sequences and the corresponding taxonomy for each sequence in the FASTA file. The taxonomy format should be
+  in a 2 columns TSV file. Example:
+  ```
+  seq1  d__Bacteria;p__Proteobacteria;c__Gammaproteobacteria;o__Enterobacterales;f__Enterobacteriaceae;g__Enterobacter;s__Enterobacter asburiae_B
+  seq2  d__Bacteria;p__Proteobacteria;c__Gammaproteobacteria;o__Enterobacterales;f__Enterobacteriaceae;g__Enterobacter;s__Enterobacter asburiae_B
+  ```
+  Then, import both the sequences and taxonomy into `QZA` format for `QIIME 2`:
+  ```
+  qiime tools import --type 'FeatureData[Sequence]' --input-path 'X.fasta' --output-path X.qza
+  qiime tools import --type 'FeatureData[Taxonomy]' --input-format HeaderlessTSVTaxonomyFormat --input-path X.taxonomy.tsv --output-path X.taxonomy.qza
+  ```
+  And supply `X.qza` to `--vsearch_db`, `X.taxonomy.qza` to `--vsearch_tax`. It is not straightforward to use it with
+  the Naive-Bayes approach, yet, so please also set `--skip_nb` to use only VSEARCH for classification.
+
 
 ## References
 ### QIIME 2
