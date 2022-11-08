@@ -461,3 +461,4 @@ dependencies:
   - krona=2.8.1
   - bc=1.07.1
   - git=2.35.3
+  - jq=1.6
