@@ -32,21 +32,19 @@ This pipeline runs using Nextflow (Version 22 and above). If you have Singularit
 cluster, we recommend using Singularity or Docker to run the pipeline by specifying `-profile singularity` or
 `-profile docker` when running the pipeline. Singularity will pull the docker images to the folder `$HOME/nf_conda/singularity`.
 
-By default all softwares dependencies are managed via `Conda`. We recommend installing [`mamba`](https://github.com/mamba-org/mamba)
-to speed up the conda environment installation. The default `nextflow.config` file 
-enables the use of `mamba` by default. You can install Nextflow following the instruction
-from Nextflow [documentation](https://www.nextflow.io/docs/latest/getstarted.html) or via Conda:
+By default all softwares dependencies are managed via `Conda`. Nextflow will use `Conda` to build
+the required environment so there is no need for you to manually build any environment.
+You can install Nextflow following the instruction from Nextflow [documentation](https://www.nextflow.io/docs/latest/getstarted.html) 
+or via `Conda` itself:
 
 ```
-# (Optional but recommended) Install mamba
-conda install mamba -n base -c conda-forge
 conda install -c bioconda nextflow
 
-# If this is your first time using conda/mamba
-mamba init
+# If this is your first time using conda
+conda init
 ```
 
-After installing Nextflow and `mamba`(Optional but recommended), clone the repository and
+After installing Nextflow, clone the repository and
 download databases using the following commands. To update the pipeline in the future, 
 simply type `git pull`.
 
@@ -54,6 +52,8 @@ simply type `git pull`.
 git clone https://github.com/PacificBiosciences/pb-16S-nf.git
 cd pb-16S-nf
 nextflow run main.nf --download_db
+# With docker
+nextflow run main.nf --download_db -profile docker
 ```
 
 After downloading the databases, run the following command in the cloned folder
@@ -140,12 +140,12 @@ echo -e "sample-id\tabsolute-filepath\ntest_data\t$(readlink -f test_data/test_1
 
 nextflow run main.nf --input test_data/test_sample.tsv \
     --metadata test_data/test_metadata.tsv -profile conda \
-    --outdir results \
+    --outdir results
 
 # To test using Singularity or docker (change singularity to docker)
 nextflow run main.nf --input test_data/test_sample.tsv \
     --metadata test_data/test_metadata.tsv -profile singularity \
-    --outdir results \
+    --outdir results
 ```
 
 To run this pipeline on your data, create the sample TSV and metadata TSV following
@@ -233,7 +233,7 @@ pipeline steps are not able to find specific command line tools (e.g. qiime).
   You can try to install the QIIME 2 environment directly to inspect any error
   messages:
 
-  `mamba env create -n q2_test -f qiime2-2022.2-py38-linux-conda.yml`
+  `conda env create -n q2_test -f qiime2-2022.2-py38-linux-conda.yml`
 
 * I've received/downloaded 16S FASTQ that already has the primers trimmed, can I skip
 primers removal?
