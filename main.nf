@@ -956,6 +956,8 @@ process html_rep {
   path wunifrac_mat
   val(colorby)
   path post_trim_readstats
+  path rmd_vis_biom_script
+  path rmd_helper
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -964,15 +966,17 @@ process html_rep {
   if (params.enable_container)
   """
   export R_LIBS_USER="/opt/conda/envs/pb-16S-vis/lib/R/library"
-  cp $params.rmd_vis_biom_script visualize_biom.Rmd
-  cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
+  # Copy script because of path issue (Rmd expects input files to be in the same folder as Rmd file)
+  cp $rmd_vis_biom_script vis_script.rmd
+  Rscript -e 'rmarkdown::render("vis_script.rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
+  mv vis_script.html visualize_biom.html
   """
   else
   """
-  cp $params.rmd_vis_biom_script visualize_biom.Rmd
-  cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
+  cp $rmd_vis_biom_script vis_script.rmd
+  # Copy script because of path issue (Rmd expects input files to be in the same folder as Rmd file)
+  Rscript -e 'rmarkdown::render("vis_script.rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
+  mv vis_script.html visualize_biom.html
   """
 }
 
@@ -997,6 +1001,8 @@ process html_rep_skip_cutadapt {
   path wunifrac_mat
   val(colorby)
   val(post_trim_readstats)
+  path rmd_vis_biom_script
+  path rmd_helper
 
   output:
   path "visualize_biom.html", emit: html_report
@@ -1005,15 +1011,17 @@ process html_rep_skip_cutadapt {
   if (params.enable_container)
   """
   export R_LIBS_USER="/opt/conda/envs/pb-16S-vis/lib/R/library"
-  cp $params.rmd_vis_biom_script visualize_biom.Rmd
-  cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
+  # Copy script because of path issue (Rmd expects input files to be in the same folder as Rmd file)
+  cp $rmd_vis_biom_script vis_script.rmd
+  Rscript -e 'rmarkdown::render("vis_script.rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
+  mv vis_script.html visualize_biom.html
   """
   else
   """
-  cp $params.rmd_vis_biom_script visualize_biom.Rmd
-  cp $params.rmd_helper import_biom.R
-  Rscript -e 'rmarkdown::render("visualize_biom.Rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
+  # Copy script because of path issue (Rmd expects input files to be in the same folder as Rmd file)
+  cp $rmd_vis_biom_script vis_script.rmd
+  Rscript -e 'rmarkdown::render("vis_script.rmd", params=list(merged_tax_tab_file="$tax_freq_tab_tsv", metadata="$metadata", sample_file="$sample_manifest", dada2_qc="$dada2_qc", reads_qc="$reads_qc", summarised_reads_qc="$summarised_reads_qc", cutadapt_qc="$cutadapt_summary_qc", vsearch_tax_tab_file="$vsearch_tax_tsv", colorby="$colorby", bray_mat="$bray_mat", unifrac_mat="$unifrac_mat", wunifrac_mat="$wunifrac_mat", post_trim_readstats="$post_trim_readstats"), output_dir="./")'
+  mv vis_script.html visualize_biom.html
   """
 }
 
@@ -1153,14 +1161,14 @@ workflow pb16S {
           collect_QC_readstats, collect_QC_summarised_sample_stats,
           cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
           qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
-          params.colorby, post_trim_readstats)
+          params.colorby, post_trim_readstats, params.rmd_vis_biom_script, params.rmd_helper)
     } else {
       html_rep(nb_tax, metadata_file, qiime2_manifest,
           dada2_qc.out.dada2_qc_tsv, 
           collect_QC_readstats, collect_QC_summarised_sample_stats,
           cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
           qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
-          params.colorby, post_trim_readstats)
+          params.colorby, post_trim_readstats, params.rmd_vis_biom_script, params.rmd_helper )
     }
     krona_plot(filter_dada2.out.asv_freq, class_tax.out.tax_vsearch)
   }
