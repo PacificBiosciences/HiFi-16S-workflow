@@ -73,7 +73,7 @@ if (params$cutadapt_qc != "none") {
 }
 
 # Try importing from TSV
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   tax_tsv <-  read_tsv(params$merged_tax_tab_file)
   tax_tsv <- tax_tsv[2:nrow(tax_tsv), ]
 }
@@ -88,7 +88,7 @@ removed_sample <- setdiff(mapping_file$sample.id, sample_final)
 otu_tab_vsearch <- as.matrix(tax_tsv_vsearch %>% select(all_of(sample_final)) %>% mutate_all(as.numeric))
 rownames(otu_tab_vsearch) <- tax_tsv_vsearch$id
 
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   otu_tab <- as.matrix(tax_tsv %>% select(all_of(sample_final)) %>% mutate_all(as.numeric))
   rownames(otu_tab) <- tax_tsv$id
   tax_tab <- str_split(tax_tsv$Taxon, ";", simplify = TRUE)
@@ -180,7 +180,7 @@ for (i in 1:length(physeq_list)){
 
 total_asv <- nrow(otu_table(physeq_list[["vsearch"]]))
 
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   tab_besttax <- as_tibble(as.data.frame(tax_table(physeq_list[["besttax"]])), rownames="OTU")
   otu_besttax <- as_tibble(as.data.frame(otu_table(physeq_list[["besttax"]])), rownames="OTU")
   class_spec <- tab_besttax %>% filter(!grepl("Unclassified", Species))
@@ -236,7 +236,7 @@ dada2_qc <- dada2_qc %>%
 * Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["vsearch"]])[class_gen_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
 
 ```{r results="asis", echo=FALSE}
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   cat("### Classification using Naive Bayes classifier with SILVA, GTDB and RefSeq + RDP  \n")
   cat(paste0("* ASVs classified at Species level: ", nrow(class_spec), " (", round(nrow(class_spec)/total_asv, 4)*100, "%)  \n"))
   cat(paste0("* ASVs classified at Species level (Excluding metagenome/uncultured entries): ", nrow(class_spec_uncultured), " (", round(nrow(class_spec_uncultured)/total_asv, 4)*100, "%)  \n"))
@@ -343,7 +343,7 @@ ggplot(dada2_qc %>%
 * Note that if the distances between all samples are zero for a specific method, the plots will not be shown.
 * MDS plots use ASVs as input.
 * Samples might be missing due to choice of rarefecation depth. Rerun pipeline
-  with `-resume --rarefaction_depth X` to choose a custom rarefecation depth X.
+  with `-resume --rarefaction_depth X` to choose a custom rarefaction depth X.
 
 ### Bray-Curtis MDS plot
 ``` {r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -354,7 +354,12 @@ if (! is_empty(iDist)){
   iDist <- as.dist(iDist[, 2:ncol(iDist)])
   # Calculate ordination
   # If all samples are identical, don't do anything!
-  if(sum(iDist) != 0){
+  if(sum(iDist < 0.002) == length(iDist)){
+    # Weird issue with phyloseq where if the distances are all minute (e.g.
+    # 1/2 reads difference between sample, PCoA (MDS) ordination method will fail).
+    # Skip if that's the case
+    print("All samples have distances of approximately zero (<0.002), perhaps they're replicates?")
+  } else if (sum(iDist) != 0) {
     iMDS  <- ordinate(phyloseq_vsearch, "MDS", distance=iDist)
     ## Make plot
     plot_ordination(phyloseq_vsearch, iMDS, color=params$colorby, title = "Bray-Curtis MDS")
@@ -362,7 +367,7 @@ if (! is_empty(iDist)){
     print("All samples have distances of zero in Bray-Curtis matrix")
   }
 } else {
-    print("Bray-Curtis matrix is empty (Did you process only one sample?)")
+  print("Bray-Curtis matrix is empty (Did you process only one sample?)")
 }
 ```
 
@@ -372,21 +377,31 @@ if (! is_empty(iDist)){
 iDist <- read_tsv(params$wunifrac_mat)
 if (! is_empty(iDist)) {
   iDist <- as.dist(iDist[, 2:ncol(iDist)])
-  if(sum(iDist) != 0){
+  if(sum(iDist < 0.002) == length(iDist)){
+    # Weird issue with phyloseq where if the distances are all minute (e.g.
+    # 1/2 reads difference between sample, PCoA (MDS) ordination method will fail).
+    # Skip if that's the case
+    print("All samples have distances of approximately zero (<0.002), perhaps they're replicates?")
+  } else if(sum(iDist) != 0){
     iMDS  <- ordinate(phyloseq_vsearch, "MDS", distance=iDist)
     plot_ordination(phyloseq_vsearch, iMDS, color=params$colorby, title = "Weighted Unifrac MDS")
   } else {
     print("All samples have distances of zero in weighted Unifrac matrix")
   }
 } else {
-    print("Weighted unifrac matrix is empty (Did you process only one sample?)")
+  print("Weighted unifrac matrix is empty (Did you process only one sample?)")
 }
 
 iDist2 <- read_tsv(params$unifrac_mat)
 if (! is_empty(iDist2)){
   iDist2 <- as.dist(iDist2[, 2:ncol(iDist2)])
   #Calculate ordination
-  if(sum(iDist2) != 0){
+  if(sum(iDist < 0.002) == length(iDist)){
+    # Weird issue with phyloseq where if the distances are all minute (e.g.
+    # 1/2 reads difference between sample, PCoA (MDS) ordination method will fail).
+    # Skip if that's the case
+    print("All samples have distances of approximately zero (<0.002), perhaps they're replicates?")
+  } else if(sum(iDist2) != 0){
     iMDS2  <- ordinate(phyloseq_vsearch, "MDS", distance=iDist2)
     plot_ordination(phyloseq_vsearch, iMDS2, color=params$colorby, title = "Unweighted Unifrac MDS")
   } else {
@@ -395,7 +410,6 @@ if (! is_empty(iDist2)){
 } else {
   print("Unweighted unifrac matrix is empty (Did you process only one sample?)")
 }
-
 ```
 
 ### Top 50 ASVs (VSEARCH classification)
@@ -468,13 +482,13 @@ Heatmap(mat_to_plot,
 
 
 ```{r results="asis", echo=FALSE}
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   cat("### Top 50 ASVs (Naive Bayes Classifier)  \n")
 }
 ```
 
 ```{r, echo=FALSE}
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   vis_tab <- tab_besttax %>% inner_join(otu_besttax, by="OTU")
   count_mat <- as.matrix(vis_tab %>% select(sample_data(physeq)$sample.id))
   rel_abundance <- sweep(count_mat,2,colSums(count_mat),`/`)
@@ -488,7 +502,7 @@ if(params$merged_tax_tab_file != "none"){
 ```
 
 ```{r results="asis", echo=FALSE}
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   cat("### Top 10 Classified Genus (Collapsed to species) with Naive Bayes Classifier  \n")
   cat("* Relative abundance is calculated by dividing the number of reads for each ASV to the
 total number of reads in each sample.  \n")
@@ -499,7 +513,7 @@ genus.  \n")
 
 ```{r, echo=FALSE, fig.width = 28, fig.height = 12, out.width = "100%"}
 # Display top 10
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   top10_genus <- merge_tab_genus %>% 
   filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Genus)) %>% 
   group_by(Genus) %>% 
@@ -519,7 +533,7 @@ if(params$merged_tax_tab_file != "none"){
 
 # Weird issue where I can't put the data table into the same if condition
 # otherwise they won't display in the HTML...
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   datatable(top10_genus,
             options = list(scrollX = TRUE), 
             filter = list(
@@ -527,7 +541,7 @@ if(params$merged_tax_tab_file != "none"){
             ))
 }
 
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   datatable(top10_gen_species,
             options = list(scrollX = TRUE), 
             filter = list(
@@ -535,7 +549,7 @@ if(params$merged_tax_tab_file != "none"){
             ))
 }
 
-if(params$merged_tax_tab_file != "none"){
+if(params$merged_tax_tab_file != ""){
   # Make heatmap. Filter out ultra low abundance species
   toplot <- merge_tab_spec %>% 
     filter(method=="besttax", !grepl("Unclassified|uncultured|metagenome", Species),

@@ -76,6 +76,8 @@ def helpMessage() {
   --download_db    Download databases needed for taxonomy classification only. Will not
                    run the pipeline. Databases will be downloaded to a folder "databases"
                    in the Nextflow pipeline directory.
+  --publish_dir_mode    Outputs mode based on Nextflow "publishDir" directive. Specify "copy"
+                        if requires hard copies. (default: symlink)
   --version    Output version
   """
 }
@@ -150,6 +152,7 @@ params.cutadapt_cpu = 16
 params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
 params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
 params.dadaAssign_script = "$projectDir/scripts/dada2_assign_tax.R"
+params.publish_dir_mode = "symlink"
 
 log_text = """
   Parameters set for pb-16S-nf pipeline for PacBio HiFi 16S
@@ -190,7 +193,7 @@ log.info(log_text)
 process write_log{
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest" 
-  publishDir "$params.outdir"
+  publishDir "$params.outdir", mode: params.publish_dir_mode
 
   input:
   val(logs)
@@ -209,7 +212,7 @@ process QC_fastq {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
   label 'cpu8'
-  publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*filterQ*.fastq.gz'
+  publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*filterQ*.fastq.gz', mode: params.publish_dir_mode
 
   input:
   tuple val(sampleID), path(sampleFASTQ)
@@ -217,8 +220,8 @@ process QC_fastq {
   output:
   path "${sampleID}.seqkit.readstats.tsv", emit: all_seqkit_stats
   path "${sampleID}.seqkit.summarystats.tsv", emit: all_seqkit_summary
-  path "${sampleID}_filtered.tsv", emit: filtered_fastq_tsv
   tuple val(sampleID), path("${sampleID}.filterQ${params.filterQ}.fastq.gz"), emit: filtered_fastq
+  path("${sampleID}.filterQ${params.filterQ}.fastq.gz"), emit: filtered_fastq_files
 
   script:
   """
@@ -227,7 +230,6 @@ process QC_fastq {
   seqkit stats -T -j $task.cpus -a ${sampleFASTQ} |\
     csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.summarystats.tsv
   seqkit seq -j $task.cpus --min-qual $params.filterQ $sampleFASTQ --out-file ${sampleID}.filterQ${params.filterQ}.fastq.gz
-  echo -e "${sampleID}\t"\$PWD"/${sampleID}.filterQ${params.filterQ}.fastq.gz" >> ${sampleID}_filtered.tsv
   """
 }
 
@@ -235,8 +237,8 @@ process QC_fastq {
 process cutadapt {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/trimmed_primers_FASTQ", pattern: '*.fastq.gz'
-  publishDir "$params.outdir/cutadapt_summary", pattern: '*.report'
+  publishDir "$params.outdir/trimmed_primers_FASTQ", pattern: '*.fastq.gz', mode: params.publish_dir_mode
+  publishDir "$params.outdir/cutadapt_summary", pattern: '*.report', mode: params.publish_dir_mode
   cpus params.cutadapt_cpu
 
   input:
@@ -244,9 +246,9 @@ process cutadapt {
 
   output:
   tuple val(sampleID), path("${sampleID}.trimmed.fastq.gz"), emit: cutadapt_fastq
-  path "sample_ind_*.tsv", emit: samples_ind
   path "*.report", emit: cutadapt_summary
   path "cutadapt_summary_${sampleID}.tsv", emit: summary_tocollect
+  path("${sampleID}.trimmed.fastq.gz"), emit: cutadapt_fastq_files
 
   script:
   """
@@ -256,7 +258,6 @@ process cutadapt {
     -j ${task.cpus} --trimmed-only --revcomp -e 0.1 \
     --json ${sampleID}.cutadapt.report
 
-  echo -e "${sampleID}\t"\$PWD"/${sampleID}.trimmed.fastq.gz" > sample_ind_${sampleID}.tsv
   input_read=`jq -r '.read_counts | .input' ${sampleID}.cutadapt.report`
   demux_read=`jq -r '.read_counts | .output' ${sampleID}.cutadapt.report`
   echo -e "sample\tinput_reads\tdemuxed_reads" > cutadapt_summary_${sampleID}.tsv
@@ -269,7 +270,7 @@ process QC_fastq_post_trim {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
   label 'cpu8'
-  publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*post_trim.tsv'
+  publishDir "$params.outdir/filtered_input_FASTQ", pattern: '*post_trim.tsv', mode: params.publish_dir_mode
 
   input:
   tuple val(sampleID), path(sampleFASTQ)
@@ -288,7 +289,7 @@ process QC_fastq_post_trim {
 process collect_QC {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
-  publishDir "$params.outdir/results/reads_QC"
+  publishDir "$params.outdir/results/reads_QC", mode: params.publish_dir_mode
   label 'cpu8'
 
   input:
@@ -321,7 +322,7 @@ process collect_QC {
 process collect_QC_skip_cutadapt {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
-  publishDir "$params.outdir/results/reads_QC"
+  publishDir "$params.outdir/results/reads_QC", mode: params.publish_dir_mode
   label 'cpu8'
 
   input:
@@ -348,16 +349,29 @@ process collect_QC_skip_cutadapt {
 process prepare_qiime2_manifest {
   label 'cpu_def'
     publishDir "$params.outdir/results/"
+  container "kpinpb/pb-16s-nf-tools:latest", mode: params.publish_dir_mode
 
   input: 
-  path "sample_ind_*.tsv"
+  val(samplesFASTQ)
+  path(metadata)
 
   output:
-  path "samplefile.txt", emit: sample_trimmed_file
+  path "samplefile*.txt", emit: sample_trimmed_file
 
   """
   echo -e "sample-id\tabsolute-filepath" > samplefile.txt
-  cat sample_ind_*.tsv >> samplefile.txt
+  echo -e "$samplesFASTQ" | sed -e 's/\\[//g' -e 's/\\]//g' | sed -r 's/\s+//g' | tr ',' '\\n' | split -l 2 - sample_ind_
+  for i in \$(ls sample_ind_*); do sample=\$(cat \${i} | tr '\\n' '\\t' | cut -f1); fastq=\$(basename \$(cat \${i} | tr '\\n' '\\t' | cut -f2)); echo -e "\${sample}\t\${fastq}"; done >> samplefile.txt
+  rm -f sample_ind_*
+  # If pool column exists, split sample files
+  poolyes=\$(csvtk headers -t $metadata | grep pool | wc -l)
+  if [[ \$poolyes -eq 1 ]]
+  then
+    csvtk join -t samplefile.txt <(csvtk cut -t -f sample_name,pool $metadata) -f "sample-id;sample_name" | csvtk split -t -f pool
+    counter=1
+    for i in \$(ls stdin*.tsv); do csvtk cut -t -f -pool \${i} > samplefile\${counter}.txt; rm -f \${i}; let counter++; done
+    rm -f samplefile.txt
+  fi
   """
 
 }
@@ -366,46 +380,81 @@ process prepare_qiime2_manifest {
 process prepare_qiime2_manifest_skip_cutadapt {
   label 'cpu_def'
     publishDir "$params.outdir/results/"
+  container "kpinpb/pb-16s-nf-tools:latest", mode: params.publish_dir_mode
 
   input: 
-  path "*filtered.tsv"
+  val(samplesFASTQ)
+  path(metadata)
 
   output:
   path "samplefile.txt", emit: sample_trimmed_file
 
   """
   echo -e "sample-id\tabsolute-filepath" > samplefile.txt
-  cat *filtered.tsv >> samplefile.txt
+  echo -e "$samplesFASTQ" | sed -e 's/\\[//g' -e 's/\\]//g' | sed -r 's/\s+//g' | tr ',' '\\n' | split -l 2 - sample_ind_
+  for i in \$(ls sample_ind_*); do sample=\$(cat \${i} | tr '\\n' '\\t' | cut -f1); fastq=\$(basename \$(cat \${i} | tr '\\n' '\\t' | cut -f2)); echo -e "\${sample}\t\${fastq}"; done >> samplefile.txt
+  rm -f sample_ind_*
+  # If pool column exists, split sample files
+  poolyes=\$(csvtk headers -t $metadata | grep pool | wc -l)
+  if [[ \$poolyes -eq 1 ]]
+  then
+    csvtk join -t samplefile.txt <(csvtk cut -t -f sample_name,pool $metadata) -f "sample-id;sample_name" | csvtk split -t -f pool
+    counter=1
+    for i in \$(ls stdin*.tsv); do csvtk cut -t -f -pool \${i} > samplefile\${counter}.txt; rm -f \${i}; let counter++; done
+    rm -f samplefile.txt
+  fi
   """
 
 }
 
-// Import data into QIIME 2
+// Import data into QIIME 2, note the `path *` in input is staging all the input 
+// FASTQ into the process so it'll work on AWS that has no notion of local directory path
 process import_qiime2 {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/import_qiime"
+  publishDir "$params.outdir/import_qiime", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
   path sample_manifest
+  path '*'
 
   output:
   path 'samples.qza'
 
   script:
   """
+  # Make sure path is absolute 
+  awk -v wdir="\$(pwd)/" -F\$'\t' '{if (NR>1){print \$1,wdir\$2} else {print \$0}}' OFS=\$'\t' $sample_manifest > sample_list.txt
   qiime tools import --type 'SampleData[SequencesWithQuality]' \
-    --input-path $sample_manifest \
+    --input-path sample_list.txt \
     --output-path samples.qza \
     --input-format SingleEndFastqManifestPhred33V2
   """
 }
 
+// Merge sample manifest file for final vis purpose later on
+process merge_sample_manifest {
+  label 'cpu_def'
+  container "kpinpb/pb-16s-nf-tools:latest"
+
+  input:
+  path sample_manifest
+
+  output:
+  path 'merged_sample_file.txt', emit: merged_samplefile
+
+  script:
+  """
+  csvtk concat -t $sample_manifest > merged_sample_file.txt
+  """
+}
+
+// Summarize demultiplex statistics
 process demux_summarize {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/summary_demux"
+  publishDir "$params.outdir/summary_demux", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
@@ -426,10 +475,11 @@ process demux_summarize {
 
 }
 
+// Denoise into ASVs
 process dada2_denoise {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/dada2"
+  publishDir "$params.outdir/dada2", mode: params.publish_dir_mode
   cpus params.dada2_cpu
 
   input:
@@ -438,11 +488,11 @@ process dada2_denoise {
   val(minQ)
 
   output:
-  path "dada2-ccs_rep.qza", emit: asv_seq
-  path "dada2-ccs_table.qza", emit: asv_freq
-  path "dada2-ccs_stats.qza", emit:asv_stats
-  path "seqtab_nochim.rds", emit: dada2_rds
-  path "plot_error_model.pdf"
+  path "dada2-ccs_rep*.qza", emit: asv_seq
+  path "dada2-ccs_table*.qza", emit: asv_freq
+  path "dada2-ccs_stats*.qza", emit:asv_stats
+  path "seqtab_nochim*.rds", emit: dada2_rds
+  path "plot_error_model*.pdf"
 
   script:
   """
@@ -468,10 +518,52 @@ process dada2_denoise {
   """
 }
 
+// TODO Merge ASV table and sequences of all chunks, if chunked
+// Take note of the output above! There will only be one set of out from
+// different group in dada2 folder after dada2_denoise
+process mergeASV {
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:latest"
+  publishDir "$params.outdir/dada2", mode: params.publish_dir_mode
+  cpus params.dada2_cpu
+
+  input:
+  path "dada2-ccs_rep*.qza"
+  path "dada2-ccs_table*.qza"
+  path "dada2-ccs_stats*.qza"
+
+  output:
+  path "dada2-ccs_rep_merged.qza", emit: asv_seq
+  path "dada2-ccs_table_merged.qza", emit: asv_freq
+  path "dada2-ccs_stats_merged.qza", emit: asv_stats
+
+  script:
+  """
+  qiime feature-table merge \
+    --i-tables dada2-ccs_table*.qza \
+    --o-merged-table dada2-ccs_table_merged.qza
+  
+  qiime feature-table merge-seqs \
+    --i-data dada2-ccs_rep*.qza \
+    --o-merged-data dada2-ccs_rep_merged.qza
+
+  for i in \$(ls dada2-ccs_stats*.qza);
+  do
+    qiime tools export --input-path \${i} \
+    --output-path ./\${i%%.qza}_export/
+  done
+
+  cat ./*_export/stats.tsv | awk '{if (NR>2 && \$0~/^#|sample-id/) {next} else {print \$0}}' > merged_stats.tsv
+  qiime tools import --input-path merged_stats.tsv --output-path dada2-ccs_stats_merged --type 'SampleData[DADA2Stats]'
+  """
+}
+
+
+// Filter DADA2 ASVs using minimum number of samples and frequency of ASVs
 process filter_dada2 {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/dada2"
+  publishDir "$params.outdir/dada2", mode: params.publish_dir_mode
   cpus params.dada2_cpu
 
   input:
@@ -509,7 +601,7 @@ process filter_dada2 {
       --p-filter-empty-samples \
       --o-filtered-table dada2-ccs_table_filtered.qza
   else
-    mv dada2-ccs_table.qza dada2-ccs_table_filtered.qza
+    mv $asv_table dada2-ccs_table_filtered.qza
   fi
   qiime feature-table filter-seqs \
     --i-data $asv_seq \
@@ -528,8 +620,8 @@ process filter_dada2 {
 process dada2_assignTax {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results", pattern: 'best_tax*'
-  publishDir "$params.outdir/nb_tax"
+  publishDir "$params.outdir/results", pattern: 'best_tax*', mode: params.publish_dir_mode
+  publishDir "$params.outdir/nb_tax", mode: params.publish_dir_mode
   cpus params.vsearch_cpu
 
   input:
@@ -577,7 +669,7 @@ process dada2_assignTax {
 process dada2_qc {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
@@ -655,7 +747,7 @@ process dada2_qc {
 process qiime2_phylogeny_diversity {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results/phylogeny_diversity"
+  publishDir "$params.outdir/results/phylogeny_diversity", mode: params.publish_dir_mode
   label 'cpu8' 
 
   input:
@@ -733,7 +825,7 @@ process qiime2_phylogeny_diversity {
 process dada2_rarefaction {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
@@ -753,11 +845,11 @@ process dada2_rarefaction {
   """
 }
 
-// Classify taxonomy and export table
+// Classify taxonomy and export table using VSEARCH approach
 process class_tax {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   cpus params.vsearch_cpu
 
   input:
@@ -805,7 +897,7 @@ process class_tax {
 process export_biom {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
@@ -843,7 +935,7 @@ process export_biom {
 process export_biom_skip_nb {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
@@ -871,7 +963,7 @@ process picrust2 {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
   label 'cpu32'
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
 
   input:
   path dada2_asv
@@ -892,7 +984,7 @@ process picrust2 {
 process barplot {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
@@ -915,7 +1007,7 @@ process barplot {
 process barplot_nb {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
@@ -939,11 +1031,11 @@ process barplot_nb {
 process html_rep {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-vis-conda.yml" : null)
   container "kpinpb/pb-16s-vis:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
-  val(tax_freq_tab_tsv)
+  path tax_freq_tab_tsv
   path metadata
   path sample_manifest
   path dada2_qc
@@ -984,11 +1076,11 @@ process html_rep {
 process html_rep_skip_cutadapt {
   conda (params.enable_conda ? "$projectDir/env/pb-16s-vis-conda.yml" : null)
   container "kpinpb/pb-16s-vis:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
   input:
-  val(tax_freq_tab_tsv)
+  path tax_freq_tab_tsv
   path metadata
   path sample_manifest
   path dada2_qc
@@ -1029,7 +1121,7 @@ process html_rep_skip_cutadapt {
 process krona_plot {
   conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
   container "kpinpb/pb-16s-nf-qiime:latest"
-  publishDir "$params.outdir/results"
+  publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
   // Ignore if this fail
   errorStrategy = 'ignore'
@@ -1105,12 +1197,14 @@ workflow pb16S {
     if (params.skip_primer_trim){
       collect_QC_skip_cutadapt(QC_fastq.out.all_seqkit_stats.collect(),
           QC_fastq.out.all_seqkit_summary.collect())
-      prepare_qiime2_manifest_skip_cutadapt(QC_fastq.out.filtered_fastq_tsv.collect())
+      prepare_qiime2_manifest_skip_cutadapt(QC_fastq.out.filtered_fastq.collect(), metadata_file)
       cutadapt_summary = "none"
-      qiime2_manifest = prepare_qiime2_manifest_skip_cutadapt.out.sample_trimmed_file
+      qiime2_manifest = prepare_qiime2_manifest_skip_cutadapt.out.sample_trimmed_file.flatten()
+      merge_sample_manifest(prepare_qiime2_manifest_skip_cutadapt.out.sample_trimmed_file.collect())
       collect_QC_readstats = collect_QC_skip_cutadapt.out.all_samples_readstats
       post_trim_readstats = "none"
       collect_QC_summarised_sample_stats = collect_QC_skip_cutadapt.out.summarised_sample_readstats
+      import_qiime2(qiime2_manifest, QC_fastq.out.filtered_fastq_files.collect())
     } else {
       cutadapt(QC_fastq.out.filtered_fastq)
       QC_fastq_post_trim(cutadapt.out.cutadapt_fastq)
@@ -1119,17 +1213,19 @@ workflow pb16S {
           cutadapt.out.summary_tocollect.collect(),
           QC_fastq_post_trim.out.all_seqkit_stats.collect())
       post_trim_readstats = collect_QC.out.all_samples_readstats_post_trim
-      prepare_qiime2_manifest(cutadapt.out.samples_ind.collect())
+      prepare_qiime2_manifest(cutadapt.out.cutadapt_fastq.collect(), metadata_file)
       cutadapt_summary = collect_QC.out.cutadapt_summary
-      qiime2_manifest = prepare_qiime2_manifest.out.sample_trimmed_file
+      qiime2_manifest = prepare_qiime2_manifest.out.sample_trimmed_file.flatten()
+      merge_sample_manifest(prepare_qiime2_manifest.out.sample_trimmed_file.collect())
       collect_QC_readstats = collect_QC.out.all_samples_readstats
       collect_QC_summarised_sample_stats = collect_QC.out.summarised_sample_readstats
+      import_qiime2(qiime2_manifest, cutadapt.out.cutadapt_fastq_files.collect())
     }
-    import_qiime2(qiime2_manifest)
     demux_summarize(import_qiime2.out)
     dada2_denoise(import_qiime2.out, params.dadaCCS_script, params.minQ)
-    filter_dada2(dada2_denoise.out.asv_freq, dada2_denoise.out.asv_seq)
-    dada2_qc(dada2_denoise.out.asv_stats, filter_dada2.out.asv_freq, metadata_file)
+    mergeASV(dada2_denoise.out.asv_seq.collect(), dada2_denoise.out.asv_freq.collect(), dada2_denoise.out.asv_stats.collect())
+    filter_dada2(mergeASV.out.asv_freq, mergeASV.out.asv_seq)
+    dada2_qc(mergeASV.out.asv_stats, filter_dada2.out.asv_freq, metadata_file)
     if( params.rarefaction_depth > 0 ){
       rd = params.rarefaction_depth
       qiime2_phylogeny_diversity(metadata_file, filter_dada2.out.asv_seq,
@@ -1141,7 +1237,7 @@ workflow pb16S {
     dada2_rarefaction(filter_dada2.out.asv_freq, metadata_file, dada2_qc.out.alpha_depth)
     class_tax(filter_dada2.out.asv_seq, filter_dada2.out.asv_freq, params.vsearch_db, params.vsearch_tax)
     if(params.skip_nb){
-      nb_tax = "none"
+      nb_tax = []
       export_biom_skip_nb(filter_dada2.out.asv_freq, class_tax.out.tax_tsv) 
       barplot(filter_dada2.out.asv_freq, class_tax.out.tax_vsearch, metadata_file, "taxonomy_barplot_vsearch.qzv")
     } else {
@@ -1156,14 +1252,14 @@ workflow pb16S {
       picrust2(filter_dada2.out.asv_seq_fasta, export_biom.out.biom_vsearch)
     }
     if (params.skip_primer_trim){
-      html_rep_skip_cutadapt(nb_tax, metadata_file, qiime2_manifest,
+      html_rep_skip_cutadapt(nb_tax, metadata_file, merge_sample_manifest.out.merged_samplefile,
           dada2_qc.out.dada2_qc_tsv, 
           collect_QC_readstats, collect_QC_summarised_sample_stats,
           cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,
           qiime2_phylogeny_diversity.out.unifrac_mat, qiime2_phylogeny_diversity.out.wunifrac_mat,
           params.colorby, post_trim_readstats, params.rmd_vis_biom_script, params.rmd_helper)
     } else {
-      html_rep(nb_tax, metadata_file, qiime2_manifest,
+      html_rep(nb_tax, metadata_file,  merge_sample_manifest.out.merged_samplefile,
           dada2_qc.out.dada2_qc_tsv, 
           collect_QC_readstats, collect_QC_summarised_sample_stats,
           cutadapt_summary, class_tax.out.tax_freq_tab_tsv, qiime2_phylogeny_diversity.out.bray_mat,

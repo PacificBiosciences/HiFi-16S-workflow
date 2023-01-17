@@ -4,6 +4,7 @@
   * [Workflow overview and output](#workflow-overview-and-output)
   * [Installation and usage](#installation-and-usage)
   * [HPC and job scheduler usage](#hpc)
+  * [Speeding up denoising process](#pooling)
   * [Run time and compute requirements](#runtime)
   * [Frequently asked questions (FAQ)](#faq)
   * [References](#references)
@@ -52,7 +53,7 @@ simply type `git pull`.
 git clone https://github.com/PacificBiosciences/pb-16S-nf.git
 cd pb-16S-nf
 nextflow run main.nf --download_db
-# With docker
+# With docker (If you use docker, add -profile docker to all Nextflow-related command)
 nextflow run main.nf --download_db -profile docker
 ```
 
@@ -124,6 +125,8 @@ nextflow run main.nf --help
   --download_db    Download databases needed for taxonomy classification only. Will not
                    run the pipeline. Databases will be downloaded to a folder "databases"
                    in the Nextflow pipeline directory.
+  --publish_dir_mode    Outputs mode based on Nextflow "publishDir" directive. Specify "copy"
+                        if requires hard copies. (default: symlink)
   --version    Output version
 ```
 
@@ -169,6 +172,37 @@ Note that the `nextflow.config` file by default will
 generate workflow DAG and resources report to help benchmarking the resources
 required. See the `report_results` folder created after the pipeline finishes running 
 for DAG and resources report.
+
+## Speeding up `DADA2` denoise <a name="pooling"></a>
+
+By default, the pipeline pools all samples into one single `qza` file for `DADA2` denoise (using
+the default pseudo pooling approach by `DADA2`). This is designed to maximize the sensitivity to
+low frequency ASVs (e.g. an ASV with just 2 reads in sample 1 may be discarded, but if the same
+exact ASV is seen in another sample, this gives the algorithm higher confidence that it's real).
+However, when the samples are highly diverse (e.g. environmental samples), this can become very slow.
+
+If a (possibly) minor loss in sensitivity is acceptable, the pipeline allows one to "split" the
+input samples into different groups that will be denoised separately. This is done via a `pool`
+column in `metadata.tsv` input. E.g.:
+
+```
+sample_name     condition       pool
+bc1005_bc1056   RepA    RepA
+bc1005_bc1057   RepA    RepA
+bc1005_bc1062   RepA    RepA
+bc1005_bc1075   RepA    RepA
+bc1005_bc1100   RepB    RepB
+bc1007_bc1075   RepB    RepB
+bc1020_bc1059   RepB    RepB
+bc1024_bc1111   RepB    RepB
+```
+
+The TSV above will split the 8 samples into two groups (RepA and RepB) and denoise them separately.
+After denoising, all denoised ASVs and statistics are merged again for downstream filtering and
+processing. This allows one to maximize sensitivity *within* a group of samples and speed up
+the pipeline considerably. On the other hand, if each sample has been sequenced deeply, one can even
+denoise each sample *individually* by setting an unique group for each sample (e.g. replicating
+the `sample_name` column as the `pool` column) to process the samples quickly.
 
 ## Run time and compute requirements <a name="runtime"></a>
 
@@ -330,6 +364,21 @@ primers removal?
   And supply `X.qza` to `--vsearch_db`, `X.taxonomy.qza` to `--vsearch_tax`. It is not straightforward to use it with
   the Naive-Bayes approach, yet, so please also set `--skip_nb` to use only VSEARCH for classification.
 
+* The pipeline failed in report generation with error code 137 (e.g. issue #21).
+
+  If you have many samples with diverse sample types such as environmental samples, it's possible that DADA2 will generate 
+  a very large number of ASVs. The script to produce the report may subsequently failed due to running out of memory
+  trying to process all the ASVs. You may want to consider splitting the different sample types into individual
+  Nextflow runs to avoid this issue. Alternatively, if you have a cluster with a lot of memory, you can assign higher 
+  memory to the step that fails using `nextflow.config`.
+
+* Can I get the output in hard copy instead of symlinks? (Issue #22)
+  
+  By default, `Nextflow` provides output in absolute symlinks (linked to files in the `work` folder) to avoid duplicating
+  files. This is controlled by the `publishDir` directive (See [here](https://www.nextflow.io/docs/latest/process.html#publishdir))
+  in each process. The pipeline implements a global `--publish_dir_mode` that allows user to specify a global `publishDir`
+  mode. E.g. `nextflow run main.nf --publish_dir_mode copy` will provide all outputs in hard copies. Note that the files
+  will still exist as duplicates in the `work` folder. You may delete the `work` folder when the pipeline finishes successfully.
 
 ## References
 ### QIIME 2
