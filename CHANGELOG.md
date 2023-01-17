@@ -1,3 +1,13 @@
+# v0.5 changelog
+* Allow splitting samples into group for dada2 noise (pool column in metadata TSV, see
+  GitHub documentation [here](https://github.com/PacificBiosciences/pb-16S-nf#pooling)).
+* #22: Added `--publish_dir_mode` to allow users to specify if they want the outputs in
+  other modes such as hardcopy instead of the default Nextflow behaviour (absolute symlinks).
+* Handle a minor bug in `visualize_biom.Rmd` script whereby if the samples are extremely
+  similar to each other, MDS plotting will fail.
+* Cleaned up code with small changes to allow pipeline to run on AWS. Big thanks to
+  collaborator from AGRF Australia for initiating, testing and providing feedbacks.
+
 # v0.4 changelog
 * Fix some bugs wrongly displaying Naive-Bayes statistics as VSEARCH stats in HTML
 * Allow manually specifying primers with `--forward_p` and `--adapter_p` for
