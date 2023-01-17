@@ -348,8 +348,8 @@ process collect_QC_skip_cutadapt {
 // Put all trimmed samples into a single file for QIIME2 import
 process prepare_qiime2_manifest {
   label 'cpu_def'
-    publishDir "$params.outdir/results/"
-  container "kpinpb/pb-16s-nf-tools:latest", mode: params.publish_dir_mode
+  publishDir "$params.outdir/results/", mode: params.publish_dir_mode
+  container "kpinpb/pb-16s-nf-tools:latest"
 
   input: 
   val(samplesFASTQ)
@@ -379,8 +379,8 @@ process prepare_qiime2_manifest {
 // Put all trimmed samples into a single file for QIIME2 import if skipping cutadapt
 process prepare_qiime2_manifest_skip_cutadapt {
   label 'cpu_def'
-    publishDir "$params.outdir/results/"
-  container "kpinpb/pb-16s-nf-tools:latest", mode: params.publish_dir_mode
+  publishDir "$params.outdir/results/", mode: params.publish_dir_mode
+  container "kpinpb/pb-16s-nf-tools:latest"
 
   input: 
   val(samplesFASTQ)
