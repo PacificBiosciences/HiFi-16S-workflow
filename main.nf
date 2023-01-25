@@ -7,7 +7,7 @@ in demultiplexed 16S amplicon sequencing FASTQ file.
 ===============================================================================
 
 Author: Khi Pin, Chua
-Updated: 2022-5-5
+Updated: 2023-1-25
 */
 
 nextflow.enable.dsl=2
@@ -86,7 +86,7 @@ def helpMessage() {
 params.help = false
 if (params.help) exit 0, helpMessage()
 params.version = false
-version = "0.4"
+version = "0.5"
 if (params.version) exit 0, log.info("$version")
 params.download_db = false
 params.skip_primer_trim = false
