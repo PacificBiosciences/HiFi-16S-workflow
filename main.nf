@@ -349,6 +349,7 @@ process collect_QC_skip_cutadapt {
 process prepare_qiime2_manifest {
   label 'cpu_def'
   publishDir "$params.outdir/results/", mode: params.publish_dir_mode
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
 
   input: 
@@ -380,6 +381,7 @@ process prepare_qiime2_manifest {
 process prepare_qiime2_manifest_skip_cutadapt {
   label 'cpu_def'
   publishDir "$params.outdir/results/", mode: params.publish_dir_mode
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
 
   input: 
@@ -436,6 +438,7 @@ process import_qiime2 {
 // Merge sample manifest file for final vis purpose later on
 process merge_sample_manifest {
   label 'cpu_def'
+  conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest"
 
   input:
