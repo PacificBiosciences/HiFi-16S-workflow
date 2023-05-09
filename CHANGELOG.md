@@ -1,3 +1,8 @@
+# v0.7 changelog
+* New feature to limit reads to N reads (`--downsample`) in case of samples with extremely high depth.
+* Updated Qiime2 to 2023.2 version (This should not affect downstream results) to get rid of
+annoying installation issue with old Qiime2 version.
+
 # v0.5 changelog
 * Allow splitting samples into group for dada2 noise (pool column in metadata TSV, see
   GitHub documentation [here](https://github.com/PacificBiosciences/pb-16S-nf#pooling)).

@@ -7,7 +7,7 @@ in demultiplexed 16S amplicon sequencing FASTQ file.
 ===============================================================================
 
 Author: Khi Pin, Chua
-Updated: 2023-1-25
+Updated: 2023-3-31
 */
 
 nextflow.enable.dsl=2
@@ -32,6 +32,7 @@ def helpMessage() {
   --front_p    Forward primer sequence. Default to F27. (default: AGRGTTYGATYMTGGCTCAG)
   --adapter_p    Reverse primer sequence. Default to R1492. (default: AAGTCGTAACAAGGTARCY)
   --filterQ    Filter input reads above this Q value (default: 20).
+  --downsample    Limit reads to a maximum of N reads if there are more than N reads (default: off)
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
               this value will be discarded (default: 2)
   --minQ    DADA2 minQ parameter. Reads with any base lower than this score 
@@ -86,7 +87,7 @@ def helpMessage() {
 params.help = false
 if (params.help) exit 0, helpMessage()
 params.version = false
-version = "0.5"
+version = "0.6"
 if (params.version) exit 0, log.info("$version")
 params.download_db = false
 params.skip_primer_trim = false
@@ -98,6 +99,8 @@ params.max_len = 1600
 params.colorby = "condition"
 params.skip_phylotree = false
 params.minQ = 0
+// Downsample to N reads, default to 0 which means disable
+params.downsample = 0
 // Check input
 params.input = false
 if (params.input){
@@ -150,7 +153,7 @@ params.rmd_vis_biom_script= "$projectDir/scripts/visualize_biom.Rmd"
 params.rmd_helper = "$projectDir/scripts/import_biom.R"
 params.cutadapt_cpu = 16
 params.primer_fasta = "$projectDir/scripts/16S_primers.fasta"
-params.dadaCCS_script = "$projectDir/scripts/run_dada_ccs.R"
+params.dadaCCS_script = "$projectDir/scripts/run_dada_2023.2.R"
 params.dadaAssign_script = "$projectDir/scripts/dada2_assign_tax.R"
 params.publish_dir_mode = "symlink"
 
@@ -160,6 +163,7 @@ log_text = """
   Number of samples in samples TSV: $n_sample
   Filter input reads above Q: $params.filterQ
   Trim primers with cutadapt: $trim_cutadapt
+  Limit to N reads if exceeding N reads (0 = disabled): $params.downsample
   Forward primer: $params.front_p
   Reverse primer: $params.adapter_p
   Minimum amplicon length filtered in DADA2: $params.min_len
@@ -194,6 +198,7 @@ process write_log{
   conda (params.enable_conda ? "$projectDir/env/pb-16s-pbtools.yml" : null)
   container "kpinpb/pb-16s-nf-tools:latest" 
   publishDir "$params.outdir", mode: params.publish_dir_mode
+  label 'cpu_def'
 
   input:
   val(logs)
@@ -224,6 +229,16 @@ process QC_fastq {
   path("${sampleID}.filterQ${params.filterQ}.fastq.gz"), emit: filtered_fastq_files
 
   script:
+  if (params.downsample > 0){
+  """
+  seqkit fx2tab -j $task.cpus -q --gc -l -H -n -i $sampleFASTQ |\
+    csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.readstats.tsv
+  seqkit stats -T -j $task.cpus -a ${sampleFASTQ} |\
+    csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.summarystats.tsv
+  seqkit seq -j $task.cpus --min-qual $params.filterQ $sampleFASTQ |\
+    seqkit head -n $params.downsample --out-file ${sampleID}.filterQ${params.filterQ}.fastq.gz
+  """
+  } else {
   """
   seqkit fx2tab -j $task.cpus -q --gc -l -H -n -i $sampleFASTQ |\
     csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.readstats.tsv
@@ -231,12 +246,13 @@ process QC_fastq {
     csvtk mutate2 -C '%' -t -n sample -e '"${sampleID}"' > ${sampleID}.seqkit.summarystats.tsv
   seqkit seq -j $task.cpus --min-qual $params.filterQ $sampleFASTQ --out-file ${sampleID}.filterQ${params.filterQ}.fastq.gz
   """
+  }
 }
 
 // Trim full length 16S primers with cutadapt
 process cutadapt {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/trimmed_primers_FASTQ", pattern: '*.fastq.gz', mode: params.publish_dir_mode
   publishDir "$params.outdir/cutadapt_summary", pattern: '*.report', mode: params.publish_dir_mode
   cpus params.cutadapt_cpu
@@ -389,7 +405,7 @@ process prepare_qiime2_manifest_skip_cutadapt {
   path(metadata)
 
   output:
-  path "samplefile.txt", emit: sample_trimmed_file
+  path "samplefile*.txt", emit: sample_trimmed_file
 
   """
   echo -e "sample-id\tabsolute-filepath" > samplefile.txt
@@ -412,8 +428,8 @@ process prepare_qiime2_manifest_skip_cutadapt {
 // Import data into QIIME 2, note the `path *` in input is staging all the input 
 // FASTQ into the process so it'll work on AWS that has no notion of local directory path
 process import_qiime2 {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/import_qiime", mode: params.publish_dir_mode
   label 'cpu_def'
 
@@ -455,8 +471,8 @@ process merge_sample_manifest {
 
 // Summarize demultiplex statistics
 process demux_summarize {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/summary_demux", mode: params.publish_dir_mode
   label 'cpu_def'
 
@@ -480,8 +496,8 @@ process demux_summarize {
 
 // Denoise into ASVs
 process dada2_denoise {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/dada2", mode: params.publish_dir_mode
   cpus params.dada2_cpu
 
@@ -501,12 +517,12 @@ process dada2_denoise {
   """
   # Use custom script that can skip primer trimming
   mkdir -p dada2_custom_script
-  cp $dada_ccs_script dada2_custom_script/run_dada_ccs_original.R
-  sed 's/minQ\\ =\\ 0/minQ=$minQ/g' dada2_custom_script/run_dada_ccs_original.R > \
-    dada2_custom_script/run_dada_ccs.R
-  chmod +x dada2_custom_script/run_dada_ccs.R
+  cp $dada_ccs_script dada2_custom_script/run_dada.R
+  # sed 's/minQ\\ =\\ 0/minQ=$minQ/g' dada2_custom_script/run_dada_ccs_original.R > \
+  #   dada2_custom_script/run_dada_ccs.R
+  chmod +x dada2_custom_script/run_dada.R
   export PATH="./dada2_custom_script:\$PATH"
-  which run_dada_ccs.R
+  which run_dada.R
   qiime dada2 denoise-ccs --i-demultiplexed-seqs $samples_qza \
     --o-table dada2-ccs_table.qza \
     --o-representative-sequences dada2-ccs_rep.qza \
@@ -525,8 +541,8 @@ process dada2_denoise {
 // Take note of the output above! There will only be one set of out from
 // different group in dada2 folder after dada2_denoise
 process mergeASV {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/dada2", mode: params.publish_dir_mode
   cpus params.dada2_cpu
 
@@ -564,8 +580,8 @@ process mergeASV {
 
 // Filter DADA2 ASVs using minimum number of samples and frequency of ASVs
 process filter_dada2 {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/dada2", mode: params.publish_dir_mode
   cpus params.dada2_cpu
 
@@ -621,8 +637,8 @@ process filter_dada2 {
 // Assign taxonomies to SILVA, GTDB and RefSeq using DADA2
 // assignTaxonomy function based on Naive Bayes classifier
 process dada2_assignTax {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", pattern: 'best_tax*', mode: params.publish_dir_mode
   publishDir "$params.outdir/nb_tax", mode: params.publish_dir_mode
   cpus params.vsearch_cpu
@@ -670,8 +686,8 @@ process dada2_assignTax {
 
 // QC summary for dada2
 process dada2_qc {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
@@ -748,8 +764,8 @@ process dada2_qc {
 }
 
 process qiime2_phylogeny_diversity {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results/phylogeny_diversity", mode: params.publish_dir_mode
   label 'cpu8' 
 
@@ -826,8 +842,8 @@ process qiime2_phylogeny_diversity {
 
 // Rarefaction visualization
 process dada2_rarefaction {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
@@ -850,8 +866,8 @@ process dada2_rarefaction {
 
 // Classify taxonomy and export table using VSEARCH approach
 process class_tax {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", mode: params.publish_dir_mode
   cpus params.vsearch_cpu
 
@@ -866,6 +882,7 @@ process class_tax {
   path "tax_export/taxonomy.tsv", emit: tax_tsv
   path "merged_freq_tax.qzv", emit: tax_freq_tab
   path "vsearch_merged_freq_tax.tsv", emit: tax_freq_tab_tsv
+  path "taxonomy.vsearch.blast_results.qza", emit: tax_vsearch_blast
 
   script:
   """
@@ -877,7 +894,8 @@ process class_tax {
     --p-maxrejects $params.maxreject \
     --p-maxaccepts $params.maxaccept \
     --p-perc-identity $params.vsearch_identity \
-    --p-top-hits-only
+    --p-top-hits-only \
+    --o-search-results taxonomy.vsearch.blast_results.qza
 
   qiime tools export --input-path taxonomy.vsearch.qza --output-path tax_export
 
@@ -898,8 +916,8 @@ process class_tax {
 
 // Export results into biom for use with phyloseq
 process export_biom {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
@@ -936,8 +954,8 @@ process export_biom {
 
 // Export results into biom for use with phyloseq
 process export_biom_skip_nb {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
@@ -985,8 +1003,8 @@ process picrust2 {
 }
 
 process barplot {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
@@ -1008,8 +1026,8 @@ process barplot {
 }
 
 process barplot_nb {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
 
@@ -1122,8 +1140,8 @@ process html_rep_skip_cutadapt {
 
 // Krona plot
 process krona_plot {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$params.outdir/results", mode: params.publish_dir_mode
   label 'cpu_def'
   // Ignore if this fail
@@ -1153,8 +1171,8 @@ process krona_plot {
 }
 
 process download_db {
-  conda (params.enable_conda ? "$projectDir/env/qiime2-2022.2-py38-linux-conda.yml" : null)
-  container "kpinpb/pb-16s-nf-qiime:latest"
+  conda (params.enable_conda ? "$projectDir/env/qiime2-2023.2-py38-linux-conda.yml" : null)
+  container "kpinpb/pb-16s-nf-qiime:v0.7"
   publishDir "$projectDir/databases", mode: "copy"
   label 'cpu_def'
 
@@ -1171,8 +1189,8 @@ process download_db {
   wget -N --content-disposition 'https://zenodo.org/record/4735821/files/RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz?download=1'
 
   echo "Downloading SILVA sequences and taxonomies for Naive Bayes classifier"
-  wget -N --content-disposition 'https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza'
-  wget -N --content-disposition 'https://data.qiime2.org/2022.2/common/silva-138-99-tax.qza'
+  wget -N --content-disposition 'https://data.qiime2.org/2023.2/common/silva-138-99-seqs.qza'
+  wget -N --content-disposition 'https://data.qiime2.org/2023.2/common/silva-138-99-tax.qza'
 
   echo "Downloading GTDB database"
   wget -N --content-disposition --no-check-certificate 'https://zenodo.org/record/6912512/files/GTDB_ssu_all_r207.taxonomy.qza?download=1'

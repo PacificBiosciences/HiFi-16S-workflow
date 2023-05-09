@@ -81,6 +81,7 @@ nextflow run main.nf --help
   --front_p    Forward primer sequence. Default to F27. (default: AGRGTTYGATYMTGGCTCAG)
   --adapter_p    Reverse primer sequence. Default to R1492. (default: AAGTCGTAACAAGGTARCY)
   --filterQ    Filter input reads above this Q value (default: 20).
+  --downsample    Limit reads to a maximum of N reads if there are more than N reads (default: off)
   --max_ee    DADA2 max_EE parameter. Reads with number of expected errors higher than
               this value will be discarded (default: 2)
   --minQ    DADA2 minQ parameter. Reads with any base lower than this score 

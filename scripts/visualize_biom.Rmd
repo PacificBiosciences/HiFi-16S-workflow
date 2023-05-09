@@ -220,6 +220,8 @@ dada2_qc <- dada2_qc %>%
 * Missing samples (Not enough reads, do not pass QC, etc): `r removed_sample`
 * Total number of CCS reads before filtering and primers trimming: `r nrow(reads_qc)`
 * Was primers trimmed prior to DADA2? `r paste0(" ", trim_cutadapt)`
+* Note that if downsampling was enabled, the reads will be filtered first, then restricted
+  to a maximum of N reads.
 * Total number of reads after quality filtering: `r if (skip_cutadapt != "Yes") {sum(all_read_count$input_reads)} else {sum(as.numeric(dada2_qc$input))}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$input_reads)/nrow(reads_qc), 4)*100, "%")} else {paste0(round(sum(as.numeric(dada2_qc$input))/nrow(reads_qc), 4)*100, "%")}`)
 * Total number of reads after primers trimming (DADA2 input): `r if (skip_cutadapt != "Yes") {sum(all_read_count$demuxed_reads)} else {paste0("Skipped cutadapt trimming")}` (`r if (skip_cutadapt != "Yes") {paste0(round(sum(all_read_count$demuxed_reads)/sum(all_read_count$input_reads), 4)*100, "%")} else {paste0("Skipped cutadapt trimming")}`)
 * Total number of ASVs found: `r total_asv`
