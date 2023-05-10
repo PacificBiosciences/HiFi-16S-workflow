@@ -366,7 +366,7 @@ if(primer.removed.dir!='NULL'){#for CCS read analysis
                                       multithread=multithread, BAND_SIZE=BAND_SIZE))
   err_plot <- plotErrors(err)
   pdf("plot_error_model.pdf", width=12, height=8, useDingbats=FALSE)
-  err_plot
+  print(err_plot)
   dev.off()
 
 }else if(inp.dirR!='NULL'){#for paired read analysis
