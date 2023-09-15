@@ -10,14 +10,14 @@
   * [References](#references)
   * [DISCLAIMER](#disclaimer)
 
-## Pipeline is currently under active development and we welcome feedbacks to improve.
+## The pipeline is currently under active development, and we welcome feedback for future improvements.
 
 ## Workflow overview and output
 
 ![alt text](misc/pipeline_workflow.png "Workflow diagram")
 
 This Nextflow pipeline is designed to process PacBio HiFi full-length 16S data into high
-quality amplicon sequence variants (ASVs) using `QIIME 2` and `DADA2`. It provides a set of visualization 
+quality amplicon sequence variants (ASVs) using `QIIME 2` and `DADA2`. It provides a set of visualizations
 through the `QIIME 2` framework for interactive plotting. The pipeline generates a HTML report for
 the important statistics and top taxonomies. The outputs and stages of this pipeline 
 are documented [here](pipeline_overview.md).
