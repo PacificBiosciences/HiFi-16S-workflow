@@ -4,39 +4,37 @@
   * [Workflow overview and output](#workflow-overview-and-output)
   * [Installation and usage](#installation-and-usage)
   * [HPC and job scheduler usage](#hpc)
-  * [Speeding up denoising process](#pooling)
+  * [Speeding up the denoising process](#pooling)
   * [Run time and compute requirements](#runtime)
   * [Frequently asked questions (FAQ)](#faq)
   * [References](#references)
   * [DISCLAIMER](#disclaimer)
 
-## Pipeline is currently under active development and we welcome feedbacks to improve.
+## The pipeline is currently under active development; we welcome your feedback to help improve it.
 
 ## Workflow overview and output
 
 ![alt text](misc/pipeline_workflow.png "Workflow diagram")
 
-This Nextflow pipeline is designed to process PacBio HiFi full-length 16S data into high
-quality amplicon sequence variants (ASVs) using `QIIME 2` and `DADA2`. It provides a set of visualization 
-through the `QIIME 2` framework for interactive plotting. The pipeline generates a HTML report for
-the important statistics and top taxonomies. The outputs and stages of this pipeline 
-are documented [here](pipeline_overview.md).
+This Nextflow pipeline is designed to process PacBio HiFi full-length 16S data into high- quality amplicon sequence variants (ASVs) using `QIIME 2` and `DADA2`. 
+The pipeline provides a set of visualizations using the `QIIME 2` framework for interactive plotting. The pipeline generates an HTML report for
+the important statistics and top taxonomies. The outputs and stages of this pipeline are documented [here](pipeline_overview.md).
 
-We provide an example of report generated using this pipeline based on 8 replicates from the ATCC MSA-1003 
-mock community sequenced on Sequel II ([Link](https://www.pacb.com/connect/datasets/)). Right click this 
-[link](examples/results/visualize_biom.html?raw=1) and save it on 
-your computer, then double click to open the example report. All other important outputs from the pipeline are available
+We provide a sample report generated using this pipeline based on 8 replicates from the ATCC MSA-1003 
+mock community sequenced on a Sequel II system ([Link](https://www.pacb.com/connect/datasets/)). Right-click this 
+[link](examples/results/visualize_biom.html?raw=1), save it on 
+your computer, then double-click to open the sample report. All other important outputs from the pipeline are available
 in the [`examples`](examples) folder when you clone this repository.
 
 ## Installation and usage
-This pipeline runs using Nextflow (Version 22 and above). If you have Singularity or Docker on your
+This pipeline runs using Nextflow Version 22 and later. If you have Singularity or Docker on your
 cluster, we recommend using Singularity or Docker to run the pipeline by specifying `-profile singularity` or
 `-profile docker` when running the pipeline. Singularity will pull the docker images to the folder `$HOME/nf_conda/singularity`.
 
-By default all softwares dependencies are managed via `Conda`. Nextflow will use `Conda` to build
-the required environment so there is no need for you to manually build any environment.
-You can install Nextflow following the instruction from Nextflow [documentation](https://www.nextflow.io/docs/latest/getstarted.html) 
-or via `Conda` itself:
+By default, all software dependencies are managed using `Conda`. Nextflow will use `Conda` to build
+the required environment so there is no need to manually build environments.
+You can install Nextflow by following the steps here ([documentation](https://www.nextflow.io/docs/latest/getstarted.html)) 
+or by using `Conda` itself:
 
 ```
 conda install -c bioconda nextflow
@@ -45,9 +43,8 @@ conda install -c bioconda nextflow
 conda init
 ```
 
-After installing Nextflow, clone the repository and
-download databases using the following commands. To update the pipeline in the future, 
-simply type `git pull`.
+After installing Nextflow, clone the repository and download databases using the following commands. To update the pipeline in the future, 
+type `git pull`.
 
 ```
 git clone https://github.com/PacificBiosciences/pb-16S-nf.git
@@ -57,8 +54,7 @@ nextflow run main.nf --download_db
 nextflow run main.nf --download_db -profile docker
 ```
 
-After downloading the databases, run the following command in the cloned folder
-to see the options for the pipeline:
+After downloading the databases, run the following command in the cloned folder to see the options for the pipeline:
 
 ```
 nextflow run main.nf --help
@@ -131,12 +127,10 @@ nextflow run main.nf --help
   --version    Output version
 ```
 
-To test the pipeline, run the example below. Note that the path of the database needs
-to be changed to their respective locations on your server if it's different (See parameters above). If you 
+To test the pipeline, run the example below. Note that the database paths should be changed to their respective locations on your server if they are different. (See the parameters above.) If you 
 follow the command above, the databases will be downloaded into a `databases` folder in the `pb-16S-nf` folder
-and you do not need to specify the path. Conda environment will by default be created at 
-`$HOME/nf_conda` folder unless changed in the `nextflow.config` file. Once the conda environment
-is created it will be reused by any future run.
+and you do not need to specify the path. The conda environment will be created by default in the 
+`$HOME/nf_conda` folder unless changed in the `nextflow.config` file. Once the conda environment is created, it will be reused by any future run.
 
 ```
 # Create sample TSV for testing
@@ -153,38 +147,38 @@ nextflow run main.nf --input test_data/test_sample.tsv \
 ```
 
 To run this pipeline on your data, create the sample TSV and metadata TSV following
-the test data format (For metadata, if you do not have any grouping, you can just
-put any words in the "condition" column) and run the workflow similar to the above. 
+the test data format (for metadata, if you do not have any grouping, put any words in the "condition" column) 
+and run the workflow similar to the above. 
 Remember to specify the `--outdir` directory to avoid overwriting existing results.
 
 ## HPC and job scheduler usage <a name="hpc"></a>
 
 The pipeline uses "Local" by default to run jobs on HPC. This can be changed
-in the `nextflow.config` file under `executor` to utilize HPC scheduler such as
-Slurm, SGE etc using Nextflow's native support. For example, to use Slurm, simply 
-open `nextflow.config` file and change `executor = 'Local'` to `executor = 'slurm'` and 
-specify the partition to be used using `queue = PARTITION`. See Nextflow 
-[documentation](https://www.nextflow.io/docs/latest/executor.html) on the available
-executors and parameters. CPUs for `VSEARCH`, `DADA2` and `cutadapt` can be specified as command line
-parameters using command line parameters. For all the other processes, they use any of the default
-labels in `nextflow.config` and can be changed according to your need.
+in the `nextflow.config` file under `executor` to use HPC schedulers such as
+Slurm, SGE and so on using Nextflow's native support. For example, to use Slurm, 
+open the `nextflow.config` file and change `executor = 'Local'` to `executor = 'slurm'` and 
+specify the partition to be used using `queue = PARTITION`. See the Nextflow 
+[documentation](https://www.nextflow.io/docs/latest/executor.html) for the available
+executors and parameters. CPUs for `VSEARCH`, `DADA2` and `cutadapt` can be specified as command-line
+parameters. For all the other processes, they use any of the default
+labels in `nextflow.config` and can be changed according to your needs.
 
-Note that the `nextflow.config` file by default will 
-generate workflow DAG and resources report to help benchmarking the resources
+Note that the `nextflow.config` file, by default, will 
+generate the workflow DAG and resources reports to help in benchmarking the resources
 required. See the `report_results` folder created after the pipeline finishes running 
-for DAG and resources report.
+for the DAG and resources report.
 
 ## Speeding up `DADA2` denoise <a name="pooling"></a>
 
 By default, the pipeline pools all samples into one single `qza` file for `DADA2` denoise (using
-the default pseudo pooling approach by `DADA2`). This is designed to maximize the sensitivity to
-low frequency ASVs (e.g. an ASV with just 2 reads in sample 1 may be discarded, but if the same
-exact ASV is seen in another sample, this gives the algorithm higher confidence that it's real).
-However, when the samples are highly diverse (e.g. environmental samples), this can become very slow.
+the default pseudo-pooling approach by `DADA2`). This is designed to maximize the sensitivity to
+low frequency ASVs. For example, an ASV with just 2 reads in sample 1 may be discarded, but if the same
+exact ASV is seen in another sample, this gives the algorithm higher confidence that it is real.
+However, when the samples are highly diverse (such as with environmental samples), this can become very slow.
 
-If a (possibly) minor loss in sensitivity is acceptable, the pipeline allows one to "split" the
-input samples into different groups that will be denoised separately. This is done via a `pool`
-column in `metadata.tsv` input. E.g.:
+If a (possibly) minor loss in sensitivity is acceptable, the pipeline allows you to "split" the
+input samples into different groups that will be denoised separately. This is done using a `pool`
+column in the `metadata.tsv` input. Example:
 
 ```
 sample_name     condition       pool
@@ -200,16 +194,16 @@ bc1024_bc1111   RepB    RepB
 
 The TSV above will split the 8 samples into two groups (RepA and RepB) and denoise them separately.
 After denoising, all denoised ASVs and statistics are merged again for downstream filtering and
-processing. This allows one to maximize sensitivity *within* a group of samples and speed up
-the pipeline considerably. On the other hand, if each sample has been sequenced deeply, one can even
-denoise each sample *individually* by setting an unique group for each sample (e.g. replicating
+processing. This allows you to maximize sensitivity *within* a group of samples and speed up
+the pipeline considerably. On the other hand, if each sample has been sequenced deeply, you can
+denoise each sample *individually* by setting a unique group for each sample (e.g. replicating
 the `sample_name` column as the `pool` column) to process the samples quickly.
 
 ## Run time and compute requirements <a name="runtime"></a>
 
-We recommend at least 32 CPUs for most sample type. The run time depends highly on the
+We recommend at least 32 CPUs for most sample types. The run time highly depends on the
 complexity of the samples in addition to the total number of reads. Shown here are examples of
-run time for some data that was tested with this pipeline using 32 CPUs:
+run times for data tested with this pipeline using 32 CPUs:
 
 |     Sample types      |     Number of samples    |     Number of FL reads    |     Total ASVs    |     Pipeline run time    |     Pipeline max memory    |
 |-----------------------|--------------------------|---------------------------|-------------------|--------------------------|----------------------------|
@@ -223,60 +217,58 @@ run time for some data that was tested with this pipeline using 32 CPUs:
 ## Frequently asked questions (FAQ) <a name="faq"></a>
 * Can I restart the pipeline?
 
-  Yes! Nextflow pipeline can be resumed after interruption by adding the `-resume` option 
-  in the `nextflow run` command when you run the pipeline. Nextflow is smart enough to not rerun
-  any step if it does not need to. For example, if you want to manually provide the 
+  Yes! The Nextflow pipeline can be resumed after interruption by adding the `-resume` option 
+  in the `nextflow run` command when you run the pipeline. Nextflow is intelligent enough to not rerun
+  any steps if it does not need to. For example, if you want to manually provide the 
   rarefaction/sampling depth after the pipeline finishes, rerun by adding 
-  `-resume --rarefaction_depth 5000` and only the steps that uses sampling/rarefaction depth will rerun.
-  Of course, any step downstream of those will also rerun.
+  `-resume --rarefaction_depth 5000` and only the steps that uses sampling/rarefaction depth will be rerun.
+  Of course, any downstream steps will also be rerun.
 
 * Why `cutadapt`?
 
   The naive Bayes classified in QIIME 2 requires the ASVs to be in the same sequence orientation.
   PacBio's CCS reads have random orientations out of the instrument, hence they need to
-  to be oriented first, and this can be done with either `lima` or `cutadapt`. 
+  to be oriented first; this can be done using either `lima` or `cutadapt`. 
   Technically, `lima` has this capability too but it requires BAM input. There are many
-  public dataset on SRA that is in FASTQ format and `lima` will not orientate them. Due to the 
+  public datasets on SRA in FASTQ format and `lima` will not orient them. Due to the 
   accuracy of HiFi reads, the performance difference between `lima` and `cutadapt` should be
   minimal in our experience.
 
   Without the read orientation, you will notice that the taxonomy assignments can produce
-  weird results (e.g. archea assignment only at the highest taxonomy level).
+  strange results, such as archea assignment only at the highest taxonomy level.
 
-* A lot of my reads are lost in the denoise stage, what's going on?
+* Many of my reads are lost in the denoise stage - what's going on?
 
-  This can happen in extremely diverse community such as soil where the ASVs are of very low abundance.
-  In each sample, the reads supporting the ASV are very low and may not pass DADA2 threshold to qualify
+  This can happen in extremely diverse communities such as soil where the ASVs are of very low abundance.
+  In each sample, the reads supporting the ASV are very low and may not pass the DADA2 threshold to qualify
   as a cluster. In addition, DADA2 has a strict reads quality filter (maxEE parameter) that will filter
   away reads with relatively low accuracy. 
   See [here](https://github.com/benjjneb/dada2/issues/841) and [here](https://github.com/benjjneb/dada2/issues/1164) 
   for discussions on DADA2 algorithm and reads loss. 
 
-* I'm getting `Conda` "Safety" error indicating corrupted package or that some
-pipeline steps are not able to find specific command line tools (e.g. qiime).
+* I'm getting `Conda` "Safety" error indicating a corrupted package or that some
+pipeline steps are not able to find specific command-line tools (e.g. qiime).
 
   Sometimes the conda cache can become corrupted if you run many workflows
   in parallel before the environment was created, thus causing conflicts between
-  the different workflow competing to create the same environment. We recommend running
-  the test dataset above and wait for it to finish first so the conda
+  different workflow competing to create the same environment. We recommend running
+  the test dataset above and then wait for it to finish first so the conda
   environment is created successfully. Subsequent runs will use the same
-  environment and will not need to recreate them. Nevertheless, if the errors
-  happen, try running `conda clean -a` and remove the offending `conda` packages cache
-  in the cache directory (e.g. if the erorr happens for QIIME, delete any folder in `conda info` 
-  "package cache" containing QIIME).
+  environment, and will not need to recreate the environment. If the errors still
+  occur, try running `conda clean -a` and remove the offending `conda` package cache
+  in the cache directory. For example, if the error happens for QIIME, delete any folder in `conda info` 
+  "package cache" containing QIIME.
 
-  You can try to install the QIIME 2 environment directly to inspect any error
-  messages:
+  You can try to install the QIIME 2 environment directly to inspect any error messages:
 
   `conda env create -n q2_test -f qiime2-2022.2-py38-linux-conda.yml`
 
-* I've received/downloaded 16S FASTQ that already has the primers trimmed, can I skip
-primers removal?
+* I've received/downloaded 16S FASTQ files that already have the primers trimmed. Can I skip primers removal?
 
   We recommend using the pipeline to trim the primers as it works well for HiFi sequencing
   data. However, there are many public dataset that may already have the full length
   primers trimmed, in which case you can specify `--skip_primer_trim` to skip
-  primers trimming. If unsure, run with default pipeline and the cutadapt demultiplexing rate
+  primer trimming. If unsure, run with the default pipeline and the cutadapt demultiplexing rate
   (in the file `results/samples_demux_rate.tsv`) should be close to zero for all
   samples if the primers are already trimmed.
 
@@ -285,51 +277,51 @@ primers removal?
   The "besttax" assignment uses the `assignTaxonomy` Naive-Bayes classifier function from DADA2 
   to carry out taxonomy assignment. It uses 3 databases to classify the ASVs 
   (requiring a minimum bootstrap of 80 using the minBoot parameter) and the priority of assignment
-  is GTDB r207, followed by Silva v138, then lastly RefSeq + RDP. This means for example
+  is GTDB r207, followed by Silva v138, then lastly RefSeq + RDP. This means, for example,
   if an ASV is not assigned at Species level using GTDB, it will check if it can be assigned
-  with Silva. This ensure we assign as many ASVs as possible.
+  with Silva. This ensures that we assign as many ASVs as possible.
 
   This process is done first at Species level, then at Genus level. In addition, if any ASV
-  is assigned as "uncultured" or "metagenome" (many entries like this in Silva), 
-  it will go through the iterative assignment process just like the unclassified ASVs. 
+  is assigned as "uncultured" or "metagenome" (there are many entries like this in Silva), 
+  it will go through the iterative assignment process just like with the unclassified ASVs. 
   Note that while this method will assign a high amount of ASVs, there may be issues 
   such as how the taxonomy is annotated in different databases. 
 
-  As such, there is also a VSEARCH taxonomy classification using GTDB database (r207) only in the file called 
+  There is also a VSEARCH taxonomy classification using the GTDB database (r207) only in the file called 
   `results/vsearch_merged_freq_tax.tsv` that may provide a more consistent annotation. This uses
   the `classify-consensus-vsearch` plugin from `QIIME 2` and we use the "top-hits" approach
   with a stringent default hit criteria (97% identity) to classify the taxonomy of ASVs.
 
   The final report will contain statistics from either types of assignment. If you notice a large
-  discrepancy, it can be because one method fail to assign a large amount of ASVs from the
+  discrepancy, it can be because one method fails to assign a large amount of ASVs from the
   same genus/species. This is likely a database-related bias.
 
-* Some species in MSA 1003 demo data are missing!
+* Some species in the MSA 1003 demo data are missing!
 
   If you run this pipeline by default with PacBio's publicly available
   192-plex replicates ATCC-MSA1003, some 0.02% bacteria may be missing depending on
   which replicates you use due to the default `min_asv_sample` and `min_asv_totalfreq`
-  parameters. These bacteria may only have a few reads in 1/2 samples, so they're
+  parameters. These bacteria may only have a few reads in 1/2 samples, so they are
   prone to getting filtered out. You can set the two parameters to 0 to disable
-  filtering and the bacteria should pop out. However, in real dataset this 
+  filtering and the bacteria should pop out. However, in a real dataset this 
   may result in more false-positives.
   
-* Percentage reads classified at species is higher than genus!
+* The percentage reads classified at species is higher than genus!
   
-  You have likely bumped into weird issues with database. For example, there are some microbes
-  that has the taxanomy populated at species level, but all the other levels are empty. Unfortunately,
-  database curation is hard, and is out of the scope of this pipeline.
+  You have likely bumped into strange issues with the database. For example, there are some microbes
+  that have the taxonomy populated at species level, but all the other levels are empty. Unfortunately,
+  database curation is out of the scope of this pipeline.
 
-* Can I download the databases for taxonomic classification manually?
+* Can I manually download the databases for taxonomic classification?
 
-  The taxonomy classification step of the pipeline requires a few databases that will be downloaded with the
+  The pipeline taxonomy classification step requires a few databases that will be downloaded with the
   `--download_db` parameters into a "databases" folder. All the databases are also 
   collected on [Zenodo](https://zenodo.org/record/6912512). These databases can also be downloaded
   manually from the following links if the download script above does not work. The GTDB database
   for VSEARCH will require some processing using the `QIIME 2` package. See `scripts/download_db.sh` for details.
   
   The links for VSEARCH here are for SILVA 138 databases provided by QIIME 2 and do not require further processing. 
-  You can also use these if you do not want to use GTDB (default if you run `--download_db` command above).
+  You can also use these if you do not want to use GTDB; this is the default if you run the `--download_db` command above.
 
   - `--vsearch_db` and `--vsearch_tax` provided by the `QIIME 2` community
     - [`silva-138-99-seqs.qza`](https://data.qiime2.org/2022.2/common/silva-138-99-seqs.qza)
@@ -341,34 +333,33 @@ primers removal?
   - `--refseq_db` provided by `DADA2`
     - [`RefSeq_16S_6-11-20_RDPv16_fullTaxo.fa.gz`](https://zenodo.org/record/4735821)
 
-* I want to understand more about OTU vs ASV.
+* I want to understand more about OTU versus ASV.
 
-  Zymo Research provides a good article on the difference between ASV and OTU [here](https://www.zymoresearch.com/blogs/blog/microbiome-informatics-otu-vs-asv).
-  In addition, [this thread](https://forum.qiime2.org/t/esv-vs-otu-deflation-qiime1-vs-2/14867/2) on
-  `QIIME 2` forum discusses the difference in numbers through traditional OTU compared
-  to ASV approach.
+  Zymo Research provides a good article on the difference between ASV and OTU here: (https://www.zymoresearch.com/blogs/blog/microbiome-informatics-otu-vs-asv).
+  In addition, [this thread](https://forum.qiime2.org/t/esv-vs-otu-deflation-qiime1-vs-2/14867/2) on the
+  `QIIME 2` forum discusses the difference in numbers through traditional OTU compared to the ASV approach.
 
 * Can I classify with X database?
   
-  As of current implementation, it's straightforward to import any database to use with VSEARCH. You will need
+  With the current implementation, it is straightforward to import any database to use with VSEARCH. You will need the
   `X.fasta` sequences and the corresponding taxonomy for each sequence in the FASTA file. The taxonomy format should be
-  in a 2 columns TSV file. Example:
+  in a 2-columns TSV file. Example:
   ```
   seq1  d__Bacteria;p__Proteobacteria;c__Gammaproteobacteria;o__Enterobacterales;f__Enterobacteriaceae;g__Enterobacter;s__Enterobacter asburiae_B
   seq2  d__Bacteria;p__Proteobacteria;c__Gammaproteobacteria;o__Enterobacterales;f__Enterobacteriaceae;g__Enterobacter;s__Enterobacter asburiae_B
   ```
-  Then, import both the sequences and taxonomy into `QZA` format for `QIIME 2`:
+  Then, import both the sequences and taxonomy into the `QZA` format for `QIIME 2`:
   ```
   qiime tools import --type 'FeatureData[Sequence]' --input-path 'X.fasta' --output-path X.qza
   qiime tools import --type 'FeatureData[Taxonomy]' --input-format HeaderlessTSVTaxonomyFormat --input-path X.taxonomy.tsv --output-path X.taxonomy.qza
   ```
-  And supply `X.qza` to `--vsearch_db`, `X.taxonomy.qza` to `--vsearch_tax`. It is not straightforward to use it with
+  Then supply `X.qza` to `--vsearch_db`, `X.taxonomy.qza` to `--vsearch_tax`. It is not straightforward to use it with
   the Naive-Bayes approach, yet, so please also set `--skip_nb` to use only VSEARCH for classification.
 
 * The pipeline failed in report generation with error code 137 (e.g. issue #21).
 
-  If you have many samples with diverse sample types such as environmental samples, it's possible that DADA2 will generate 
-  a very large number of ASVs. The script to produce the report may subsequently failed due to running out of memory
+  If you have many samples with diverse sample types such as environmental samples, it is possible that DADA2 will generate 
+  a very large number of ASVs. The script to produce the report may subsequently fail due to running out of memory
   trying to process all the ASVs. You may want to consider splitting the different sample types into individual
   Nextflow runs to avoid this issue. Alternatively, if you have a cluster with a lot of memory, you can assign higher 
   memory to the step that fails using `nextflow.config`.
@@ -376,9 +367,9 @@ primers removal?
 * Can I get the output in hard copy instead of symlinks? (Issue #22)
   
   By default, `Nextflow` provides output in absolute symlinks (linked to files in the `work` folder) to avoid duplicating
-  files. This is controlled by the `publishDir` directive (See [here](https://www.nextflow.io/docs/latest/process.html#publishdir))
+  files. This is controlled by the `publishDir` directive (see here: https://www.nextflow.io/docs/latest/process.html#publishdir)
   in each process. The pipeline implements a global `--publish_dir_mode` that allows user to specify a global `publishDir`
-  mode. E.g. `nextflow run main.nf --publish_dir_mode copy` will provide all outputs in hard copies. Note that the files
+  mode. For example, `nextflow run main.nf --publish_dir_mode copy` will provide all outputs in hard copy. Note that the files
   will still exist as duplicates in the `work` folder. You may delete the `work` folder when the pipeline finishes successfully.
 
 ## References
