@@ -1,3 +1,17 @@
+# v0.9 changelog
+- Refactored codes, split sections into modules
+- Added GreenGenes 2024.10, updated GTDB to r220, and Silva to 138.2, please rerun download_db to get the latest version
+- Added new parameter `--db_to_prioritize` to allow users to specify which database to prioritize for taxonomy assignment.
+  - Prioritization of assignment by default is now GG2, then GTDB, then Silva.
+- Attempt to make tmpdir and cachedir more robust for QIIME2-related processes
+  - TMPDIR is now set to the current working directory
+- Update QIIME2 to 2024.10 version. Workflow tested with Nextflow 24.11.0
+- Switched to using QIIME2 official container instead of self-built one.
+
+# v0.8 changelog
+* Added new omegac parameter that can be tuned if wish (default 1e-40)
+* Added function to use a specific sample for error model learning
+
 # v0.7 changelog
 * New feature to limit reads to N reads (`--downsample`) in case of samples with extremely high depth.
 * Updated Qiime2 to 2023.2 version (This should not affect downstream results) to get rid of

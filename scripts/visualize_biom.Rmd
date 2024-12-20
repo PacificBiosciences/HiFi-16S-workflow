@@ -231,21 +231,17 @@ dada2_qc <- dada2_qc %>%
 ### Classification using VSEARCH with a single database
 
 * ASVs classified at Species level: `r nrow(class_spec_vsearch)` (`r round(nrow(class_spec_vsearch)/total_asv, 4)*100`%)
-* ASVs classified at Species level (Excluding metagenome/uncultured entries): `r nrow(class_spec_uncultured_vsearch)` (`r round(nrow(class_spec_uncultured_vsearch)/total_asv, 4)*100`%)
-* Percentage reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["vsearch"]])[class_spec_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
+* Percentage reads belong to ASV classified at Species level: `r round(sum(otu_table(physeq_list[["vsearch"]])[class_spec_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
 * ASVs classified at Genus level: `r nrow(class_gen_vsearch)` (`r round(nrow(class_gen_vsearch)/total_asv, 4)*100`%)
-* ASVs classified at Genus level (Excluding metagenome/uncultured entries): `r nrow(class_gen_uncultured_vsearch)` (`r round(nrow(class_gen_uncultured_vsearch)/total_asv, 4)*100`%)
-* Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): `r round(sum(otu_table(physeq_list[["vsearch"]])[class_gen_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
+* Percentage reads belong to ASV classified at Genus level: `r round(sum(otu_table(physeq_list[["vsearch"]])[class_gen_uncultured_vsearch$OTU,])/sum(otu_table(physeq_list[["vsearch"]])), 2)*100`%
 
 ```{r results="asis", echo=FALSE}
 if(params$merged_tax_tab_file != ""){
   cat("### Classification using Naive Bayes classifier with SILVA, GTDB and RefSeq + RDP  \n")
   cat(paste0("* ASVs classified at Species level: ", nrow(class_spec), " (", round(nrow(class_spec)/total_asv, 4)*100, "%)  \n"))
-  cat(paste0("* ASVs classified at Species level (Excluding metagenome/uncultured entries): ", nrow(class_spec_uncultured), " (", round(nrow(class_spec_uncultured)/total_asv, 4)*100, "%)  \n"))
-  cat(paste0("* Percentage reads belong to ASV classified at Species level (Excluding metagenome/uncultured entries): ", round(sum(otu_table(physeq_list[["besttax"]])[class_spec_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100, "%  \n"))
+  cat(paste0("* Percentage reads belong to ASV classified at Species level: ", round(sum(otu_table(physeq_list[["besttax"]])[class_spec_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100, "%  \n"))
   cat(paste0("* ASVs classified at Genus level: ", nrow(class_gen), " (", round(nrow(class_gen)/total_asv, 4)*100, "%)  \n"))
-  cat(paste0("* ASVs classified at Genus level (Excluding metagenome/uncultured entries): ", nrow(class_gen_uncultured), " (", round(nrow(class_gen_uncultured)/total_asv, 4)*100, "%)  \n"))
-  cat(paste0("* Percentage reads belong to ASV classified at Genus level (Excluding metagenome/uncultured entries): ", round(sum(otu_table(physeq_list[["besttax"]])[class_gen_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100, "%  \n"))
+  cat(paste0("* Percentage reads belong to ASV classified at Genus level: ", round(sum(otu_table(physeq_list[["besttax"]])[class_gen_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100, "%  \n"))
 }
 ```
 
