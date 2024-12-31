@@ -161,6 +161,12 @@ process prepare_qiime2_manifest {
     for i in \$(ls sample_ind_*); do sample=\$(cat \${i} | tr '\\n' '\\t' | cut -f1); fastq=\$(basename \$(cat \${i} | tr '\\n' '\\t' | cut -f2)); echo -e "\${sample}\t\${fastq}"; done >> samplefile.txt
     rm -f sample_ind_*
     # If pool column exists, split sample files
+    # First make sure metadata file is not empty
+    # Check if metadata file exists and is not empty
+    if [ ! -s "$metadata" ]; then
+        echo "Error: Metadata file is empty or does not exist"
+        exit 1
+    fi
     poolyes=\$(csvtk headers -t $metadata | grep pool | wc -l)
     if [[ \$poolyes -eq 1 ]]
     then
@@ -190,6 +196,12 @@ process prepare_qiime2_manifest_skip_cutadapt {
     for i in \$(ls sample_ind_*); do sample=\$(cat \${i} | tr '\\n' '\\t' | cut -f1); fastq=\$(basename \$(cat \${i} | tr '\\n' '\\t' | cut -f2)); echo -e "\${sample}\t\${fastq}"; done >> samplefile.txt
     rm -f sample_ind_*
     # If pool column exists, split sample files
+    # First make sure metadata file is not empty
+    # Check if metadata file exists and is not empty
+    if [ ! -s "$metadata" ]; then
+        echo "Error: Metadata file is empty or does not exist"
+        exit 1
+    fi
     poolyes=\$(csvtk headers -t $metadata | grep pool | wc -l)
     if [[ \$poolyes -eq 1 ]]
     then

@@ -237,7 +237,7 @@ dada2_qc <- dada2_qc %>%
 
 ```{r results="asis", echo=FALSE}
 if(params$merged_tax_tab_file != ""){
-  cat("### Classification using Naive Bayes classifier with SILVA, GTDB and RefSeq + RDP  \n")
+  cat("### Classification using Naive Bayes classifier with Greengenes2, GTDB and Silva \n")
   cat(paste0("* ASVs classified at Species level: ", nrow(class_spec), " (", round(nrow(class_spec)/total_asv, 4)*100, "%)  \n"))
   cat(paste0("* Percentage reads belong to ASV classified at Species level: ", round(sum(otu_table(physeq_list[["besttax"]])[class_spec_uncultured$OTU,])/sum(otu_table(physeq_list[["besttax"]])), 2)*100, "%  \n"))
   cat(paste0("* ASVs classified at Genus level: ", nrow(class_gen), " (", round(nrow(class_gen)/total_asv, 4)*100, "%)  \n"))

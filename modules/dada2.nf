@@ -235,31 +235,27 @@ process dada2_qc {
     ninety=0.8
     if [ \${number} -le 2 ];
     then
-        rarefaction_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -t, -k2 -nr | \
+        rarefaction_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -k2 -nr | \
             tail -n1 | cut -f2`
         int_rarefaction_d=\${rarefaction_d%%.*}
         echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
-        alpha_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -t, -k2 -nr | \
-            tail -n1 | cut -f2`
-        int_alpha_d=\${alpha_d%%.*}
+        int_alpha_d=\${int_rarefaction_d}
     elif [ \${number} -gt 2 ] && [ \${number} -lt 5 ];
     then
         result=`awk -v n="\$number" -v p=0.8 'BEGIN{print int(n * p)}'`
-        rarefaction_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -t, -k2 -nr | \
+        rarefaction_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -k2 -nr | \
             head -n \${result} | tail -n1 | cut -f2`
         int_rarefaction_d=\${rarefaction_d%%.*}
         echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
-        alpha_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -t, -k2 -nr | \
-            tail -n1 | cut -f2`
-        int_alpha_d=\${alpha_d%%.*}
+        int_alpha_d=\${int_rarefaction_d}
     else
         result=`awk -v n="\$number" -v p=0.8 'BEGIN{print int(n * p)}'`
-        rarefaction_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -t, -k2 -nr | \
+        rarefaction_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -k2 -nr | \
             head -n \${result} | tail -n1 | cut -f2`
         int_rarefaction_d=\${rarefaction_d%%.*}
         echo \${int_rarefaction_d} > rarefaction_depth_suggested.txt
         alpha_res=`awk -v n="\$number" 'BEGIN{print int(n * 0.2)}'`
-        alpha_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -t, -k2 -nr | \
+        alpha_d=`cat dada2_table_summary/sample-frequency-detail.tsv | sort -k2 -nr | \
             head -n \${alpha_res} | tail -n1 | cut -f2`
         int_alpha_d=\${alpha_d%%.*}
     fi
