@@ -27,7 +27,7 @@ include { class_tax; dada2_assignTax } from './modules/taxonomy'
 include { export_biom; export_biom_skip_nb } from './modules/taxonomy'
 
 include { qiime2_phylogeny_diversity } from './modules/visualization'
-include { barplot; barplot_nb; html_rep; html_rep_skip_cutadapt; krona_plot } from './modules/visualization'
+include { barplot; barplot_nb; html_rep; html_rep_skip_cutadapt } from './modules/visualization'
 
 include { picrust2; download_db; helpMessage } from './modules/utils'
 
@@ -252,8 +252,6 @@ workflow pb16S {
                 post_trim_readstats, params.rmd_vis_biom_script, params.rmd_helper
             )
         }
-
-        krona_plot(filter_dada2.out.asv_freq, class_tax.out.tax_vsearch)
     }
 }
 

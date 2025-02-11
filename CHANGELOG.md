@@ -7,6 +7,7 @@
   - TMPDIR is now set to the current working directory
 - Update QIIME2 to 2024.10 version. Workflow tested with Nextflow 24.11.0
 - Switched to using QIIME2 official container instead of self-built one.
+- Disable Krona (It has not been maintained for a while).
 
 # v0.8 changelog
 * Added new omegac parameter that can be tuned if wish (default 1e-40)
