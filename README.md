@@ -48,11 +48,11 @@ After installing Nextflow, clone the repository and download databases using the
 type `git pull`.
 
 ```
-git clone https://github.com/PacificBiosciences/pb-16S-nf.git
-cd pb-16S-nf
+git clone https://github.com/PacificBiosciences/HiFi-16S-workflow.git
+cd HiFi-16S-workflow
 nextflow run main.nf --download_db
-# With docker (If you use docker, add -profile docker to all Nextflow-related command)
-nextflow run main.nf --download_db -profile docker
+# With singularity (If you use singularity, add -profile singularity to all Nextflow-related command)
+nextflow run main.nf --download_db -profile singularity
 ```
 
 After downloading the databases, run the following command in the cloned folder to see the options for the pipeline:
@@ -297,7 +297,9 @@ pipeline steps are not able to find specific command-line tools (e.g. qiime).
   such as how the taxonomy is annotated in different databases. You can change the top priority database
   by setting the `db_to_prioritize` parameter in the `nextflow.config` file. If you set it to "GTDB",
   the taxonomy assignment will prioritize GTDB -> GreenGenes2 -> Silva. If you set it to "Silva",
-  the taxonomy assignment will prioritize Silva -> GreenGenes2 -> GTDB.
+  the taxonomy assignment will prioritize Silva -> GreenGenes2 -> GTDB. In the `nb_tax` output folder,
+  you can find the taxonomy assignment for each individual database, too, if you would like to
+  use just a single database for Naive-Bayes classification.
 
   There is also a VSEARCH taxonomy classification using the a single database (GTDB r220 by default) only in the file called
   `results/vsearch_merged_freq_tax.tsv` that may provide a more consistent annotation. This uses
@@ -327,8 +329,7 @@ pipeline steps are not able to find specific command-line tools (e.g. qiime).
 - Can I manually download the databases for taxonomic classification?
 
   The pipeline taxonomy classification step requires a few databases that will be downloaded with the
-  `--download_db` parameters into a "databases" folder. All the databases are also
-  collected on [Zenodo](https://zenodo.org/record/6912512). These databases can also be downloaded
+  `--download_db` parameters into a "databases" folder. These databases can also be downloaded
   manually from the following links if the download script above does not work. The GTDB database
   for VSEARCH will require some processing using the `QIIME 2` package. See `scripts/download_db.sh` for details.
 
