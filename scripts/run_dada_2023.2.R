@@ -389,7 +389,7 @@ if(inp.dirR =='NULL'){#for CCS/sinlge/pyro read analysis
   for(j in seq(length(filts))) {
     drp <- derepFastq(filts[[j]])
     dds[[j]] <- dada(drp, err=err, multithread=multithread,HOMOPOLYMER_GAP_PENALTY=HOMOPOLYMER_GAP_PENALTY,
-                     BAND_SIZE=BAND_SIZE, verbose=FALSE)
+                     BAND_SIZE=BAND_SIZE, verbose=FALSE, OMEGA_C=1e-40)
     cat(".")
   }
   cat("\n")
@@ -407,7 +407,7 @@ if(inp.dirR =='NULL'){#for CCS/sinlge/pyro read analysis
       drp <- derepFastq(filts[[j]])
       dds[[j]] <- dada(drp, err=err, multithread=multithread,
                        priors=pseudo_priors, HOMOPOLYMER_GAP_PENALTY=HOMOPOLYMER_GAP_PENALTY,
-                       BAND_SIZE=BAND_SIZE, verbose=FALSE)
+                       BAND_SIZE=BAND_SIZE, verbose=FALSE, OMEGA_C=1e-40)
       cat(".")
     }
     cat("\n")
@@ -424,9 +424,9 @@ if(inp.dirR =='NULL'){#for CCS/sinlge/pyro read analysis
 
   for(j in seq(length(filts))) {
     drpF <- derepFastq(filts[[j]])
-    ddsF[[j]] <- dada(drpF, err=err, multithread=multithread, verbose=FALSE)
+    ddsF[[j]] <- dada(drpF, err=err, multithread=multithread, verbose=FALSE, OMEGA_C=1e-40)
     drpR <- derepFastq(filtsR[[j]])
-    ddsR[[j]] <- dada(drpR, err=errR, multithread=multithread, verbose=FALSE)
+    ddsR[[j]] <- dada(drpR, err=errR, multithread=multithread, verbose=FALSE, OMEGA_C=1e-40)
     cat(".")
   }
   cat("\n")
@@ -446,10 +446,10 @@ if(inp.dirR =='NULL'){#for CCS/sinlge/pyro read analysis
     for(j in seq(length(filts))) {
       drpF <- derepFastq(filts[[j]])
       ddsF[[j]] <- dada(drpF, err=err, priors=pseudo_priorsF,
-                        multithread=multithread, verbose=FALSE)
+                        multithread=multithread, verbose=FALSE,OMEGA_C=1e-40)
       drpR <- derepFastq(filtsR[[j]])
       ddsR[[j]] <- dada(drpR, err=errR, priors=pseudo_priorsR,
-                        multithread=multithread, verbose=FALSE)
+                        multithread=multithread, verbose=FALSE,OMEGA_C=1e-40)
       cat(".")
     }
     cat("\n")

@@ -1,0 +1,123 @@
+{
+  "tag": "Cutadapt report",
+  "schema_version": [0, 3],
+  "cutadapt_version": "4.9",
+  "python_version": "3.10.14",
+  "command_line_arguments": [
+    "-g",
+    "AGRGTTYGATYMTGGCTCAG...AAGTCGTAACAAGGTARCY",
+    "16s_mas12_part_106.filterQ20.fastq.gz",
+    "-o",
+    "16s_mas12_part_106.trimmed.fastq.gz",
+    "-j",
+    "16",
+    "--trimmed-only",
+    "--revcomp",
+    "-e",
+    "0.1",
+    "--json",
+    "16s_mas12_part_106.cutadapt.report"
+  ],
+  "cores": 16,
+  "input": {
+    "path1": "16s_mas12_part_106.filterQ20.fastq.gz",
+    "path2": null,
+    "paired": false
+  },
+  "read_counts": {
+    "input": 48933,
+    "filtered": {
+      "too_short": null,
+      "too_long": null,
+      "too_many_n": null,
+      "too_many_expected_errors": null,
+      "casava_filtered": null,
+      "discard_trimmed": null,
+      "discard_untrimmed": null
+    },
+    "output": 48836,
+    "reverse_complemented": 48836,
+    "read1_with_adapter": 48836,
+    "read2_with_adapter": null
+  },
+  "basepair_counts": {
+    "input": 73582590,
+    "input_read1": 73582590,
+    "input_read2": null,
+    "quality_trimmed": null,
+    "quality_trimmed_read1": null,
+    "quality_trimmed_read2": null,
+    "poly_a_trimmed": null,
+    "poly_a_trimmed_read1": null,
+    "poly_a_trimmed_read2": null,
+    "output": 71531918,
+    "output_read1": 71531918,
+    "output_read2": null
+  },
+  "adapters_read1": [
+    {
+      "name": "1",
+      "total_matches": 97672,
+      "on_reverse_complement": 48836,
+      "linked": true,
+      "five_prime_end": {
+        "type": "regular_five_prime",
+        "sequence": "AGRGTTYGATYMTGGCTCAG",
+        "error_rate": 0.1,
+        "indels": true,
+        "error_lengths": [9, 19, 20],
+        "matches": 48836,
+        "adjacent_bases": null,
+        "dominant_adjacent_base": null,
+        "trimmed_lengths": [
+          {"len": 18, "expect": 0.0, "counts": [2, 5, 17]},
+          {"len": 19, "expect": 0.0, "counts": [13, 983, 14]},
+          {"len": 20, "expect": 0.0, "counts": [46148, 986, 39]},
+          {"len": 21, "expect": 0.0, "counts": [89, 497, 16]},
+          {"len": 22, "expect": 0.0, "counts": [0, 8, 15]},
+          {"len": 24, "expect": 0.0, "counts": [1]},
+          {"len": 26, "expect": 0.0, "counts": [1]},
+          {"len": 29, "expect": 0.0, "counts": [1]},
+          {"len": 32, "expect": 0.0, "counts": [1]}
+        ]
+      },
+      "three_prime_end": {
+        "type": "regular_three_prime",
+        "sequence": "AAGTCGTAACAAGGTARCY",
+        "error_rate": 0.1,
+        "indels": true,
+        "error_lengths": [9, 19],
+        "matches": 48836,
+        "adjacent_bases": {
+          "A": 75,
+          "C": 2,
+          "G": 42838,
+          "T": 5921,
+          "": 0
+        },
+        "dominant_adjacent_base": "G",
+        "trimmed_lengths": [
+          {"len": 14, "expect": 0.0, "counts": [2]},
+          {"len": 16, "expect": 0.0, "counts": [1, 1]},
+          {"len": 17, "expect": 0.0, "counts": [18, 3]},
+          {"len": 18, "expect": 0.0, "counts": [235, 389]},
+          {"len": 19, "expect": 0.0, "counts": [46558, 877]},
+          {"len": 20, "expect": 0.0, "counts": [353, 364]},
+          {"len": 21, "expect": 0.0, "counts": [9, 13]},
+          {"len": 22, "expect": 0.0, "counts": [2, 2]},
+          {"len": 23, "expect": 0.0, "counts": [1]},
+          {"len": 24, "expect": 0.0, "counts": [1]},
+          {"len": 25, "expect": 0.0, "counts": [2]},
+          {"len": 29, "expect": 0.0, "counts": [0, 1]},
+          {"len": 30, "expect": 0.0, "counts": [1]},
+          {"len": 33, "expect": 0.0, "counts": [1]},
+          {"len": 35, "expect": 0.0, "counts": [1]},
+          {"len": 36, "expect": 0.0, "counts": [1]}
+        ]
+      }
+    }
+  ],
+  "adapters_read2": null,
+  "poly_a_trimmed_read1": null,
+  "poly_a_trimmed_read2": null
+}
