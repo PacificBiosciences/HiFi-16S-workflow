@@ -96,7 +96,7 @@ write.table(
 )
 asv_seqs <- colnames(seqtab_filt)
 repseqs <- DNAStringSet(asv_seqs)
-names(repseqs) <- paste0("ASV", seq_along(repseqs))
+names(repseqs) <- asv_seqs
 writeXStringSet(repseqs, filepath = output_asv_fasta)
 
 
