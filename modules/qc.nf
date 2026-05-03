@@ -99,7 +99,6 @@ process cutadapt {
     conda (params.enable_conda ? "$projectDir/env/cutadapt.yml" : null)
     container "quay.io/biocontainers/cutadapt:5.2--py313h8c92656_1"
     label 'cpu16'
-    cpus params.highparallel
 
     publishDir "${params.outdir}/trimmed_primers_FASTQ", pattern: '*.fastq.gz', mode: params.publish_dir_mode
     publishDir "${params.outdir}/cutadapt_report", pattern: '*.cutadapt.report', mode: params.publish_dir_mode
