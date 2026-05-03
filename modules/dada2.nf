@@ -67,8 +67,7 @@ process dada2_denoise_independent {
 
 
     input:
-    tuple val(sampleID), path(filtered_fastq)
-    path error_model
+    tuple val(sampleID), path(filtered_fastq), path(error_model)
 
     output:
     tuple val(sampleID), path("${sampleID}.dada.rds"), emit: dada_rds

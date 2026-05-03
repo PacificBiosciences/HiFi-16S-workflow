@@ -185,17 +185,25 @@ workflow pb16S_preprocess {
         reads_for_dada2
     )
 
+    if (params.error_model) {
+        error_model_ch = Channel.fromPath(params.error_model, checkIfExists: true)
+    } else {
+        learn_errors(
+            dada2_filter_ccs.out.filtered_fastq
+                .map { sampleID, fastq -> fastq }
+                .collect()
+        )
 
-    learn_errors(
-        dada2_filter_ccs.out.filtered_fastq.map { sampleID, fastq -> fastq }.collect()
-    )
+        error_model_ch = learn_errors.out.error_model
+    }
 
+    denoise_input_ch = dada2_filter_ccs.out.filtered_fastq
+        .combine(error_model_ch)
+        .map { sampleID, fastq, error_model ->
+            tuple(sampleID, fastq, error_model)
+        }
 
-    dada2_denoise_independent(
-        dada2_filter_ccs.out.filtered_fastq,
-        learn_errors.out.error_model
-    )
-
+    dada2_denoise_independent(denoise_input_ch)
 
     dada2_make_seqtab(
         dada2_denoise_independent.out.dada_rds.map { sampleID, rds -> rds }.collect()
