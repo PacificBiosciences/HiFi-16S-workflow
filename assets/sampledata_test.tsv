@@ -1,6 +1,0 @@
-sample-id	absolute-filepath
-ctr_EB	/home/mk/Repositories/HiFi-16S-workflow/tests/fastq/ctr_EB.fastq.gz
-ctr_MM	/home/mk/Repositories/HiFi-16S-workflow/tests/fastq/ctr_MM.fastq.gz
-ctr_msa_3001	/home/mk/Repositories/HiFi-16S-workflow/tests/fastq/ctr_msa_3001.fastq.gz
-ctr_zymo_com	/home/mk/Repositories/HiFi-16S-workflow/tests/fastq/ctr_zymo_com.fastq.gz
-ctr_zymo_log	/home/mk/Repositories/HiFi-16S-workflow/tests/fastq/ctr_zymo_log.fastq.gz
