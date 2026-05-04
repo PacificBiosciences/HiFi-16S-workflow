@@ -30,7 +30,7 @@ process inspect_metadata {
     [ -s "${metadata}" ] || { echo "Error: metadata file is missing or empty" >&2; exit 1; }
 
     csvtk headers -t "${sample_sheet}" | grep -qx 'sample-id' || { echo "Error: input sample sheet must contain column 'sample-id'" >&2; exit 1; }
-    csvtk headers -t "${sample_sheet}" | grep -qx 'absolute-filepath' || { echo "Error: input sample sheet must contain column 'absolute-filepath'" >&2; exit 1; }
+    csvtk headers -t "${sample_sheet}" | grep -qx 'filepath' || { echo "Error: input sample sheet must contain column 'filepath'" >&2; exit 1; }
     csvtk headers -t "${metadata}" | grep -qx 'sample_name' || { echo "Error: metadata must contain column 'sample_name'" >&2; exit 1; }
 
     csvtk cut -t -f sample-id "${sample_sheet}" | tail -n +2 | sort > input.samples.txt

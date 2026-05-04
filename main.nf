@@ -139,12 +139,12 @@ workflow pb16S_preprocess {
         .fromPath(params.input)
         .splitCsv(header: true, sep: '\t')
         .map { row ->
-            if (!row['sample-id'] || !row['absolute-filepath']) {
+            if (!row['sample-id'] || !row['filepath']) {
                 throw new IllegalArgumentException(
-                    "Input TSV must contain columns 'sample-id' and 'absolute-filepath'"
+                    "Input TSV must contain columns 'sample-id' and 'filepath'"
                 )
             }
-            tuple(row['sample-id'] as String, file(row['absolute-filepath'] as String))
+            tuple(row['sample-id'] as String, file(row['filepath'] as String))
         }
 
     QC_fastq(sample_ch)
