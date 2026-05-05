@@ -1,24 +1,13 @@
 /*
 ===============================================================================
-
-Minimal native preprocessing workflow for PacBio HiFi 16S.
-Current scope:
-- input loading
-- metadata inspection
-- FASTQ QC and filtering
-- optional primer trimming
-- QC aggregation
-
-===============================================================================
-
-Author: Refactor draft
-Updated: 2026-04-21
+Author: Marco Kreuzer
+Updated: 2026-05-05
 */
+
 import groovy.yaml.YamlSlurper
 
 nextflow.enable.dsl = 2
 
-version = "0.1.0"
 
 include {
     parseRequestedDbs
@@ -65,31 +54,72 @@ include {
 // Help text
 // ----------------------------------------------------------------------------
 def helpMessage() {
-    return """
-    Minimal native preprocessing workflow for PacBio HiFi 16S
+return """
+Minimal native preprocessing workflow for PacBio HiFi 16S
 
-    Required parameters:
-      --input                Samples TSV with columns: sample, fastq
-      --metadata             Metadata TSV with at least sample_name column
+```
+Required parameters:
+  --input                Samples TSV with columns: sample, fastq
+  --metadata             Metadata TSV with at least sample_name column
+  --db_base_dir          Database base directory
 
-    Optional parameters:
-      --outdir               Output directory [default: results]
-      --filterQ              Minimum read quality filter [default: 20]
-      --downsample           Downsample reads per sample, 0 disables [default: 0]
-      --skip_primer_trim     Skip cutadapt trimming [default: false]
-      --front_p              Forward primer sequence
-      --adapter_p            Reverse primer sequence
-      --download_db          Run database download workflow [default: false]
-      --download_targets     Comma-separated database names, e.g. gtdb or silva,gg2
-      -profile               standard / conda / docker / singularity
+Optional:
+  --outdir               Output directory [default: results]
+  --downsample           Downsample reads per sample, 0 disables [default: 0]
+  --filterQ              Minimum read quality filter [default: 20]
 
-    Example:
-      nextflow run main.nf \\
-        --input test/samples.tsv \\
-        --metadata test/metadata.tsv \\
-        --outdir results_test \\
-        -profile conda
-    """.stripIndent()
+Primer settings:
+  --front_p              Forward primer sequence [default: AGRGTTYGATYMTGGCTCAG]
+  --adapter_p            Reverse primer sequence [default: AAGTCGTAACAAGGTARCY]
+
+Read filtering:
+  --min_len              Minimum read length [default: 1000]
+  --max_len              Maximum read length [default: 1600]
+  --max_ee               Maximum expected errors [default: 2]
+
+Denoising:
+  --learn_nbases         Bases used for error learning [default: 1e7]
+  --band_size            Band size for alignment [default: 16]
+  --homopolymer_gap_penalty  Gap penalty [default: 1]
+  --omegac               Error threshold [default: 1e-40]
+
+Chimera removal:
+  --chimera_method       Method [default: consensus]
+  --min_parent_fold      Minimum fold [default: 1.0]
+
+Taxonomy / databases:
+  --databases_yaml       Database config YAML [default: conf/databases.yml]
+  --db_to_prioritize     Preferred DB [default: GG2]
+  --nb_databases         Naive Bayes DBs [default: silva,gtdb,gg2]
+  --vsearch_databases    VSEARCH DBs [default: silva]
+
+Database download:
+  --download_db          Run database download workflow [default: false]
+  --download_targets     Comma-separated DBs (e.g. silva,gg2,gtdb)
+
+Execution:
+  -profile               Configuration profile (e.g. standard, conda, docker, singularity, slurm)
+
+Notes:
+  Profiles control the execution environment (local, conda, containers, HPC).
+  For cluster execution, use an appropriate custom config or profile (e.g. slurm + singularity).
+  See slurm_custom.config for an example.
+
+Examples:
+
+  Local run (conda):
+    nextflow run main.nf \\
+      --input test/samples.tsv \\
+      --metadata test/metadata.tsv \\
+      --outdir results_test \\
+      -profile conda
+
+  Download databases:
+    nextflow run main.nf \\
+      --download_db \\
+      --download_targets silva,gg2,gtdb \\
+      -profile conda""".stripIndent()
+
 }
 
 // ----------------------------------------------------------------------------
@@ -100,7 +130,7 @@ if (params.help) {
 }
 
 if (params.version) {
-    exit 0, version
+    exit 0, workflow.manifest.version
 }
 
 def db_manifest_file = file(params.databases_yaml)
