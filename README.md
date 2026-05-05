@@ -2,7 +2,9 @@ This repository is a rewritten fork of the official PacBio HiFi-16S workflow, re
 
 # Overview
 
-This pipeline processes PacBio HiFi 16S amplicon sequencing data using a modular Nextflow DSL2 workflow. It includes quality control, filtering, denoising with DADA2, and taxonomic assignment.
+This pipeline processes PacBio HiFi 16S amplicon sequencing data using a modular Nextflow DSL2 workflow. It includes quality control, filtering, denoising with DADA2, and taxonomic assignment. The main output of the pipeline is a count table with taxonomic assignment.
+
+Please create an issue for bugs and feature requests.
 
 The refactor focuses on:
 
@@ -13,6 +15,9 @@ The refactor focuses on:
 - Reproducibility and benchmarking
 
 - Compatibility with modern PacBio Revio data
+
+- Database management
+
 
 # Key Features
 
@@ -82,9 +87,17 @@ Easier debugging and benchmarking
   
   - Independent execution
 
+# Missing Features
+
+- Denoising with pooling strategy
+
+- Phyloseq creation as final output
+
+- Small Report generation
 
 # Pipeline Structure
 
+```
 Input FASTQ
    ↓
 QC + Filtering
@@ -102,6 +115,7 @@ Chimera removal
 ASV filtering
    ↓
 Taxonomic assignment (per database)
+```
 
 # Usage
 
@@ -121,3 +135,19 @@ nextflow run main.nf \
   -profile conda
 
 ```
+
+## Cluster execution
+
+You can execute the pipeline on a cluster by using either a custom nextflow profile, or 
+by adding a custom config. See `custom_slurm.config` for an example.
+
+```
+nextflow run main.nf \
+  --input samplesheet.tsv \
+  --meta_data meta_data.tsv
+  --outdir results \
+  -profile conda
+  -c custom_slurm.config
+```
+
+
