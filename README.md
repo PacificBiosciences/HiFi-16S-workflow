@@ -16,13 +16,13 @@ The refactor focuses on:
 
 # Key Features
 
-## Parallelised Execution
+**Parallelised Execution**
 
 - Parallelisation handled at the Nextflow level, not inside R
 
 - Improved scalability on HPC systems
 
-## Modular DADA2 Workflow
+**Modular DADA2 Workflow**
 
 - Each step is split into independent processes:
 
@@ -36,9 +36,9 @@ The refactor focuses on:
 
   - Chimera removal
 
-- Easier debugging and benchmarking
+Easier debugging and benchmarking
 
-## Independent Sample Processing
+**Independent Sample Processing**
 
 - Trimming, filtering, and denoising operate on individual FASTQ files
 
@@ -49,7 +49,7 @@ The refactor focuses on:
   - Failure isolation per sample
 
 
-## Independent Denoising Mode
+**Independent Denoising Mode**
 
 - Each library can be denoised separately (independent mode)
 
@@ -60,7 +60,7 @@ The refactor focuses on:
 
 **Note**: May slightly affect ASV consistency across samples
 
-## Improved Error Model Handling
+**Improved Error Model Handling**
 
 - Supports binned quality scores (PacBio Revio)
 
@@ -70,7 +70,7 @@ The refactor focuses on:
 
   - Reused across runs (⚠️ use with caution—see below)
 
-## Flexible Taxonomic Assignment
+**Flexible Taxonomic Assignment**
 
 - Taxonomy assignment split into one process per database
 
@@ -113,10 +113,11 @@ nextflow run main.nf -profile test,docker # or signularity, or conda
 
 ## Basic Command
 
+```
 nextflow run main.nf \
   --input samplesheet.tsv \
   --meta_data meta_data.tsv
   --outdir results \
   -profile conda
 
-
+```
