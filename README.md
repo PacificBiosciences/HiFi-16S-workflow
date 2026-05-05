@@ -124,6 +124,39 @@ Taxonomic assignment (per database)
 ```
 nextflow run main.nf -profile test,docker # or signularity, or conda
 ```
+## Download Databases
+
+Make sure to set the preferred location of your databases in the `nextflow.config`.
+
+```
+nextflow run main.nf \
+  --download_db \
+  --download_targets silva,gg2,gtdb \
+  -profile conda
+```
+
+The structure of the database directory looks like this:
+
+```
+├── gg2
+│   ├── nb
+│   │   └── gg2_2024_09_toSpecies_trainset.fa.gz
+│   └── vsearch
+│       ├── sequences.fasta
+│       └── taxonomy.tsv
+├── gtdb
+│   ├── nb
+│   │   └── GTDB_bac120_arc53_ssu_r220_fullTaxo.fa.gz
+│   └── vsearch
+│       ├── sequences.fasta
+│       └── taxonomy.tsv
+└── silva
+    ├── nb
+    │   └── silva_nr99_v138.2_toSpecies_trainset.fa.gz
+    └── vsearch
+        ├── sequences.fasta
+        └── taxonomy.tsv
+```
 
 ## Basic Command
 
