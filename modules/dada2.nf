@@ -54,6 +54,7 @@ process learn_errors {
     """
     learn_errors.R \\
       ${learnNbasesArg} \\
+      ${params.binned_quality_scores} \\
       ${filtered_fastqs.join(' ')}
     """
 }

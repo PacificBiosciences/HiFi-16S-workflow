@@ -14,12 +14,13 @@ args <- commandArgs(trailingOnly = TRUE)
 # Expect:
 # 1) learn_nbases
 # 2..n) filtered FASTQ files
-if (length(args) < 2) {
+if (length(args) < 3) {
   err_quit(
     paste(
       "Expected arguments:",
       "1) learn_nbases",
-      "2..n) filtered FASTQ files",
+      "2) comma-separated binned quality scores, e.g. 3,10,17,22,27,35,40",
+      "3..n) filtered FASTQ files",
       sep = "\n"
     )
   )
@@ -31,7 +32,13 @@ if (is.na(learn_nbases) || learn_nbases <= 0) {
   err_quit("learn_nbases must be a positive number")
 }
 
-filts <- args[-1]
+binnedQs <- suppressWarnings(as.numeric(strsplit(args[2], ",")[[1]]))
+
+if (any(is.na(binnedQs)) || length(binnedQs) == 0) {
+  err_quit("binned quality scores must be comma-separated numbers, e.g. 3,10,17,22,27,35,40")
+}
+
+filts <- args[-c(1, 2)]
 
 # --- sanity checks ---
 missing <- filts[!file.exists(filts)]
@@ -49,7 +56,6 @@ if (!exists("makeBinnedQualErrfun", where = asNamespace("dada2"), inherits = FAL
 }
 
 # --- build error function (PacBio CCS specific) ---
-binnedQs <- c(3, 10, 17, 22, 27, 35, 40)
 errfun <- dada2:::makeBinnedQualErrfun(binnedQs)
 
 message("Learning error model")

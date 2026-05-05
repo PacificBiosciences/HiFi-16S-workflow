@@ -151,7 +151,7 @@ if (params.download_db) {
     validateDownloadParams(params, requested_dbs, db_manifest)
 } else {
     def n_sample = validatePreprocessParams(params)
-    log.info(buildRunLog(params, version, n_sample))
+    log.info(buildRunLog(params, workflow.manifest.version, n_sample))
 }
 
 
