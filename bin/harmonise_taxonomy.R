@@ -53,9 +53,8 @@ if (db_name == "gg2") {
 } else if (db_name == "silva") {
   dt$Taxon <- harmonise_silva_taxonomy(dt$Taxon)
 } else {
-  stop("Unsupported database: ", db_name, call. = FALSE)
+  message("Skipping taxonomy harmonisation for unsupported database: ", db_name)
 }
-
 # ---- write ----
 write.table(
   dt,
