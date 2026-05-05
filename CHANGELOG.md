@@ -1,3 +1,37 @@
+# v1.0 changelog
+
+Major refactor and first stable release of the HiFi 16S preprocessing workflow.
+
+## Breaking changes
+
+- sample.tsv requires 'filepath' instead of 'abslute-filepath'
+- dada2 major outputs are in 'results/final' instead of 'results/results'
+- Several outputs, including reports are not generated anymore
+
+## Features & workflow
+- Major refactor of the pipeline
+- dada2 workflow split into small porcesses
+- Error model learning with binned quality values (with optional user-provided model)
+- taxonomic assignment in indpendent nextflow processes
+- Harmonised taxonomy outputs between DADA2 Naive Bayes and VSEARCH workflows
+
+## Databases
+- Added **database download utility workflow**
+
+## Configuration & execution
+- Refactored Nextflow configuration structure
+- Improved cluster execution settings and added cluster execution template
+- Updated containers and conda environments
+
+##  Code quality & structure
+- Refactored QC step and validation into separate modules
+- Moved scripts from `scripts/` to `bin/`
+- General code cleanup and parameter harmonisation
+
+## 🧪 Testing & documentation
+- Added and cleaned up test data
+- Reorganised test assets structure
+
 # v0.9 changelog
 - Refactored codes, split sections into modules
 - Added GreenGenes 2024.10, updated GTDB to r220, and Silva to 138.2, please rerun download_db to get the latest version
