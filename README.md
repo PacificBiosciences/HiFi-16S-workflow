@@ -113,10 +113,11 @@ nextflow run main.nf -profile test,docker # or signularity, or conda
 
 ## Basic Command
 
+```
 nextflow run main.nf \
   --input samplesheet.tsv \
   --meta_data meta_data.tsv
   --outdir results \
   -profile conda
 
-
+```
