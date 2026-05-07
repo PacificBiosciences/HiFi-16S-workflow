@@ -4,7 +4,7 @@ silva:
     filename: "silva_nr99_v138.2_toSpecies_trainset.fa.gz"
     url: "https://zenodo.org/records/14169026/files/silva_nr99_v138.2_toSpecies_trainset.fa.gz?download=1"
   vsearch:
-    seq_filename: "sequences.fasta.gz"
+    seq_filename: "sequences.fasta"
     tax_filename: "taxonomy.tsv"
     seq_url: "https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/Exports/SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz"
     tax_url: "https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/Exports/taxonomy/taxmap_slv_ssu_ref_nr_138.2.txt.gz"
