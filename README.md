@@ -177,7 +177,7 @@ by adding a custom config. See `custom_slurm.config` for an example.
 ```
 nextflow run main.nf \
   --input samplesheet.tsv \
-  --meta_data meta_data.tsv
+  --metadata meta_data.tsv
   --outdir results \
   -profile conda
   -c custom_slurm.config
