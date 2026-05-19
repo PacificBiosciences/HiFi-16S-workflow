@@ -357,8 +357,7 @@ workflow download_databases {
         download_silva_db(
             db_manifest.silva.nb.url,
             db_manifest.silva.nb.filename,
-            db_manifest.silva.vsearch.seq_url,
-            db_manifest.silva.vsearch.tax_url
+            db_manifest.silva.vsearch.seq_url
         )
     }
 
