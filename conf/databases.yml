@@ -25,8 +25,8 @@ gg2:
     filename: "gg2_2024_09_toSpecies_trainset.fa.gz"
     url: "https://zenodo.org/records/14169078/files/gg2_2024_09_toSpecies_trainset.fa.gz?download=1"
   vsearch:
-    seq_filename: "sequences.fasta.gz"
-    tax_filename: "taxonomy.tsv.gz"
+    seq_filename: "sequences.fasta"
+    tax_filename: "taxonomy.tsv"
     seq_url: "https://ftp.microbio.me/greengenes_release/2024.09/2024.09.seqs.fna.gz"
     tax_url: "https://ftp.microbio.me/greengenes_release/2024.09/2024.09.taxonomy.asv.tsv.gz"
 

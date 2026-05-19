@@ -6,7 +6,6 @@ process download_gtdb_db {
     publishDir "${params.db_base_dir}/gtdb/vsearch", pattern: "sequences.fasta", mode: "copy"
     publishDir "${params.db_base_dir}/gtdb/vsearch", pattern: "taxonomy.tsv", mode: "copy"
 
-
     label 'cpu_def'
 
     input:
@@ -21,20 +20,28 @@ process download_gtdb_db {
 
     script:
     """
+    set -euo pipefail
+
     wget -O ${nb_filename} "${nb_url}"
-    wget -O ssu_all_r220.fna.gz "${vsearch_seq_url}"
+    wget -O gtdb_sequences.fna.gz "${vsearch_seq_url}"
 
-    gunzip -c ssu_all_r220.fna.gz > sequences.fasta
+    gunzip -c gtdb_sequences.fna.gz > sequences.fasta
 
-    zgrep "^>" ssu_all_r220.fna.gz | \\
-      awk '{
+    gunzip -c gtdb_sequences.fna.gz | \\
+      grep '^>' | \\
+      awk 'BEGIN{OFS="\\t"}
+      {
         id=\$1
         sub(/^>/,"",id)
+
         tax=\$0
-        sub(/^>[^ ]+ /,"",tax)
+        sub(/^>[^ ]+[[:space:]]+/, "", tax)
         sub(/ \\[.*/, "", tax)
-        print id "\\t" tax
+
+        print id, tax
       }' > taxonomy.tsv
+
+    rm -f gtdb_sequences.fna.gz
     """
 }
 
@@ -52,7 +59,6 @@ process download_silva_db {
     val nb_url
     val nb_filename
     val vsearch_seq_url
-    val vsearch_tax_url
 
     output:
     path "${nb_filename}"
@@ -63,23 +69,25 @@ process download_silva_db {
     """
     set -euo pipefail
 
-    echo "Downloading SILVA NB database..."
     wget -O ${nb_filename} "${nb_url}"
-
-    echo "Downloading SILVA VSEARCH sequences..."
     wget -O silva_sequences.fasta.gz "${vsearch_seq_url}"
+
     gunzip -c silva_sequences.fasta.gz > sequences.fasta
 
-    echo "Downloading SILVA taxonomy mapping..."
-    wget -O silva_taxmap.txt.gz "${vsearch_tax_url}"
-    gunzip -c silva_taxmap.txt.gz > silva_taxmap.txt
+    gunzip -c silva_sequences.fasta.gz | \\
+      grep '^>' | \\
+      awk 'BEGIN{OFS="\\t"}
+      {
+        id=\$1
+        sub(/^>/,"",id)
 
-    # Convert SILVA taxmap to simple TSV: sequence_id <tab> taxonomy
-    # Expected SILVA taxmap format: accession, ..., taxonomy in column 3
-    awk -F '\\t' 'BEGIN{OFS="\\t"} NF >= 3 {print \$1, \$3}' silva_taxmap.txt > taxonomy.tsv
+        tax=\$0
+        sub(/^>[^ ]+[[:space:]]+/, "", tax)
 
-    # Clean up intermediates
-    rm -f silva_sequences.fasta.gz silva_taxmap.txt.gz silva_taxmap.txt
+        print id, tax
+      }' > taxonomy.tsv
+
+    rm -f silva_sequences.fasta.gz
     """
 }
 
@@ -106,11 +114,28 @@ process download_gg2_db {
 
     script:
     """
+    set -euo pipefail
+
+    echo "Downloading GG2 NB database..."
     wget -O ${nb_filename} "${nb_url}"
+
+    echo "Downloading GG2 VSEARCH sequences..."
     wget -O gg2_sequences.fna.gz "${vsearch_seq_url}"
+
+    echo "Downloading GG2 taxonomy..."
     wget -O gg2_taxonomy.tsv.gz "${vsearch_tax_url}"
 
     gunzip -c gg2_sequences.fna.gz > sequences.fasta
-    gunzip -c gg2_taxonomy.tsv.gz > taxonomy.tsv
+
+    echo "Converting GG2 taxonomy to VSEARCH format..."
+
+    gunzip -c gg2_taxonomy.tsv.gz | \\
+      awk -F '\\t' 'BEGIN{OFS="\\t"}
+      NR==1 && \$1 ~ /Feature ID/ {next}
+      {
+        print \$1, \$2
+      }' > taxonomy.tsv
+
+    rm -f gg2_sequences.fna.gz gg2_taxonomy.tsv.gz
     """
 }
