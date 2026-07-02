@@ -2,7 +2,9 @@ nextflow.enable.dsl = 2
 
 include {
     inspect_metadata
-    QC_fastq
+    QC_raw_stats
+    filter_fastq
+    downsample_fastq
     cutadapt
     summarize_cutadapt
     QC_fastq_post_trim
@@ -32,40 +34,59 @@ workflow PB16S_PREPROCESS {
             if (!row['sample-id'] || !row['filepath']) {
                 error "Input TSV must contain columns 'sample-id' and 'filepath'"
             }
-            tuple(row['sample-id'] as String, file(row['filepath'] as String))
+
+            tuple(
+                row['sample-id'] as String,
+                file(row['filepath'] as String)
+            )
         }
 
-    QC_fastq(sample_ch)
+    QC_raw_stats(sample_ch)
+    filter_fastq(sample_ch)
 
     if (params.skip_primer_trim) {
+        downsample_fastq(filter_fastq.out.filtered_fastq)
+
         collect_QC_skip_cutadapt(
-            QC_fastq.out.all_seqkit_stats.collect(),
-            QC_fastq.out.all_seqkit_summary.collect()
+            QC_raw_stats.out.readstats.collect(),
+            QC_raw_stats.out.summarystats.collect()
         )
 
-        reads_for_dada2 = QC_fastq.out.filtered_fastq
+        reads_for_dada2 = downsample_fastq.out.downsampled_fastq
     }
     else {
         cutadapt(
-            QC_fastq.out.filtered_fastq,
+            filter_fastq.out.filtered_fastq,
             params.front_p,
             params.adapter_p
         )
 
-        summarize_cutadapt(cutadapt.out.cutadapt_report)
-        QC_fastq_post_trim(cutadapt.out.cutadapt_fastq)
+        summarize_cutadapt(
+            cutadapt.out.cutadapt_report.collect()
+        )
+
+        QC_fastq_post_trim(
+            cutadapt.out.cutadapt_fastq
+        )
+
+        downsample_fastq(
+            cutadapt.out.cutadapt_fastq
+        )
 
         collect_QC(
-            QC_fastq.out.all_seqkit_stats.collect(),
-            QC_fastq.out.all_seqkit_summary.collect(),
-            summarize_cutadapt.out.summary_tocollect.collect(),
+            QC_raw_stats.out.readstats.collect(),
+            QC_raw_stats.out.summarystats.collect(),
+            summarize_cutadapt.out.summary_tocollect,
             QC_fastq_post_trim.out.all_seqkit_stats.collect()
         )
 
-        reads_for_dada2 = cutadapt.out.cutadapt_fastq
+        reads_for_dada2 = downsample_fastq.out.downsampled_fastq
     }
 
-    DADA2_WORKFLOW(reads_for_dada2, metadata_ch)
+    DADA2_WORKFLOW(
+        reads_for_dada2,
+        metadata_ch
+    )
 
     TAXONOMY_WORKFLOW(
         db_manifest,

@@ -33,6 +33,44 @@ process dada2_filter_ccs {
     """
 }
 
+process subsample_for_error_model {
+    label 'highparallel'
+    container "quay.io/biocontainers/seqtk:1.4--he4a0461_2"
+
+    input:
+    tuple val(sampleID), path(filtered_fastq)
+
+    output:
+    path "${sampleID}.error_sample.fastq.gz", emit: sampled_fastq
+
+    script:
+    """
+    seqtk sample \
+      ${filtered_fastq} \
+      ${params.error_model_reads_per_sample} \
+      | gzip -c > ${sampleID}.error_sample.fastq.gz
+    """
+}
+
+process concatenate_error_model_reads {
+    label 'lowcpu'
+
+    publishDir "${params.outdir}/dada2/error_model",
+        pattern: 'error_model_sample.fastq.gz',
+        mode: params.publish_dir_mode
+
+    input:
+    path sampled_fastqs
+
+    output:
+    path "error_model_sample.fastq.gz", emit: error_sample
+
+    script:
+    """
+    cat ${sampled_fastqs.join(' ')} > error_model_sample.fastq.gz
+    """
+}
+
 process learn_errors {
     label 'highcpu'
     conda (params.enable_conda ? "$projectDir/env/dada2.yml" : null)
@@ -42,20 +80,18 @@ process learn_errors {
     publishDir "${params.outdir}/dada2/error_model", pattern: 'plot_error_model.pdf', mode: params.publish_dir_mode
 
     input:
-    path filtered_fastqs
+    path error_sample
 
     output:
     path "errorfun.rds", emit: error_model
     path "plot_error_model.pdf", emit: error_plot
 
     script:
-    def learnNbasesArg = params.learn_nbases != null ? params.learn_nbases : '1e6'
-
     """
     learn_errors.R \\
-      ${learnNbasesArg} \\
+      ${params.learn_nbases ?: '1e9'} \\
       ${params.binned_quality_scores} \\
-      ${filtered_fastqs.join(' ')}
+      ${error_sample}
     """
 }
 
