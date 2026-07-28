@@ -1,0 +1,4 @@
+sample-id	filepath
+18S_mock_sample	tests/fastq/18S/18S_mock_sample.fastq.gz
+18S_sample1	tests/fastq/18S/18S_sample1.fastq.gz
+18S_sample2	tests/fastq/18S/18S_sample2.fastq.gz
