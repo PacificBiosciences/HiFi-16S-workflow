@@ -7,7 +7,7 @@ def validateDownloadParams(params, requested_dbs, db_manifest) {
         error "When --download_db true, you must also provide --download_targets"
     }
 
-    def valid_dbs = ['silva', 'gtdb', 'gg2']
+    def valid_dbs = ['silva', 'gtdb', 'gg2','eukaryome_its', 'eukaryome_18s', 'eukaryome_28s']
 
     requested_dbs.each { db ->
         if (!valid_dbs.contains(db)) {
