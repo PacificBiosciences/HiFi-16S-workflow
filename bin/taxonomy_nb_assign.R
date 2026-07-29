@@ -68,17 +68,30 @@ collapse_taxonomy <- function(x) {
   paste(x, collapse = ";")
 }
 
-confidence_fun <- function(x) {
-  x <- suppressWarnings(as.numeric(x))
-  x <- x[!is.na(x)]
-  if (length(x) == 0) {
+confidence_fun <- function(taxa, boot) {
+  assigned <- which(!is.na(taxa) & taxa != "")
+
+  if (length(assigned) == 0) {
     return(NA_real_)
   }
-  max(x)
+
+  deepest_rank <- max(assigned)
+
+  suppressWarnings(as.numeric(boot[deepest_rank]))
 }
 
+confidences <- vapply(
+  seq_len(nrow(taxa_mat)),
+  function(i) {
+    confidence_fun(
+      taxa_mat[i, ],
+      boot_mat[i, ]
+    )
+  },
+  numeric(1)
+)
+
 taxon_strings <- apply(taxa_mat, 1, collapse_taxonomy)
-confidences <- apply(boot_mat, 1, confidence_fun)
 
 out <- data.frame(
   FeatureID = feature_ids,
