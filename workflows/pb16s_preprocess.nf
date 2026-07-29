@@ -57,8 +57,8 @@ workflow PB16S_PREPROCESS {
     else {
         cutadapt(
             filter_fastq.out.filtered_fastq,
-            params.front_p,
-            params.adapter_p
+            params.forward_p,
+            params.reverse_p
         )
 
         summarize_cutadapt(

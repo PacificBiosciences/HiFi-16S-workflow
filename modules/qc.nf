@@ -139,24 +139,60 @@ process cutadapt {
 
     input:
     tuple val(sampleID), path(filteredFASTQ)
-    val front_p
-    val adapter_p
+    val forward_p
+    val reverse_p
 
     output:
     tuple val(sampleID), path("${sampleID}.trimmed.fastq.gz"), emit: cutadapt_fastq
     path "${sampleID}.cutadapt.log", emit: cutadapt_report
 
     script:
+    /*
+     * Both parameters may be provided either as:
+     *
+     *   forward_p = 'PRIMER'
+     *
+     * or:
+     *
+     *   forward_p = [
+     *       'PRIMER_1',
+     *       'PRIMER_2'
+     *   ]
+     */
+    def forwardPrimers = forward_p instanceof Collection
+        ? forward_p
+        : [forward_p]
+
+    def reversePrimers = reverse_p instanceof Collection
+        ? reverse_p
+        : [reverse_p]
+
+    if (!forwardPrimers || forwardPrimers.any { !it }) {
+        error "No valid forward primer was provided for sample ${sampleID}"
+    }
+
+    if (!reversePrimers || reversePrimers.any { !it }) {
+        error "No valid reverse primer was provided for sample ${sampleID}"
+    }
+
+    def forwardArgs = forwardPrimers
+        .collect { primer -> "-g '${primer}'" }
+        .join(" \\\n        ")
+
+    def reverseArgs = reversePrimers
+        .collect { primer -> "-a '${primer}'" }
+        .join(" \\\n        ")
+
     """
     set -euo pipefail
 
     cutadapt \\
         -j ${task.cpus} \\
-        -g "${front_p}" \\
-        -a "${adapter_p}" \\
-        -o ${sampleID}.trimmed.fastq.gz \\
-        ${filteredFASTQ} \\
-        > ${sampleID}.cutadapt.log
+        ${forwardArgs} \\
+        ${reverseArgs} \\
+        -o "${sampleID}.trimmed.fastq.gz" \\
+        "${filteredFASTQ}" \\
+        > "${sampleID}.cutadapt.log"
     """
 }
 
