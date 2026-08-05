@@ -1,7 +1,7 @@
 /*
 ===============================================================================
 
-Native QC module for PacBio HiFi 16S preprocessing.
+Native QC module for PacBio HiFi 16S preprocessing
 
 Included:
 - metadata inspection
@@ -198,7 +198,7 @@ process cutadapt {
 
 
 process summarize_cutadapt {
-    conda (params.enable_conda ? "$projectDir/env/summarize_cutadapt.yml" : null)
+    conda (params.enable_conda ? "$projectDir/env/jq.yml" : null)
     container "makrezdocker/alpine-jq:1.0"
     label 'cpu_def'
     label 'cpu_def'
@@ -266,7 +266,7 @@ process collect_QC {
     input:
     path raw_readstats
     path raw_summarystats
-    path cutadapt_summary
+    path cutadapt_summary, stageAs: "input.cutadapt_summary.tsv"
     path post_trim_readstats
 
     output:
@@ -287,7 +287,7 @@ process collect_QC {
     csvtk concat -t -C '%' *.seqkit.summarystats.tsv \\
         > all_samples_seqkit.summarystats.tsv
 
-    cp ${cutadapt_summary} cutadapt_summary.tsv
+    cp "${cutadapt_summary}" cutadapt_summary.tsv
 
     csvtk concat -t -C '%' *.post_trim.seqkit.readstats.tsv \\
         > all_samples_post_trim_seqkit.readstats.tsv

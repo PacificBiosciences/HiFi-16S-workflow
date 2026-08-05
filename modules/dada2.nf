@@ -35,6 +35,7 @@ process dada2_filter_ccs {
 
 process subsample_for_error_model {
     label 'highparallel'
+    conda (params.enable_conda ? "$projectDir/env/qc_fastq.yml" : null)
     container "quay.io/biocontainers/seqtk:1.4--he4a0461_2"
 
     input:
@@ -53,6 +54,9 @@ process subsample_for_error_model {
 }
 
 process concatenate_error_model_reads {
+    container "makrezdocker/alpine-jq:1.0"
+    conda (params.enable_conda ? "$projectDir/env/jq.yml" : null)
+
     label 'lowcpu'
 
     publishDir "${params.outdir}/dada2/error_model",
