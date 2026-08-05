@@ -139,3 +139,68 @@ process download_gg2_db {
     rm -f gg2_sequences.fna.gz gg2_taxonomy.tsv.gz
     """
 }
+
+process download_eukaryome_db {
+    conda (params.enable_conda ? "$projectDir/env/jq.yml" : null)
+    container "makrezdocker/alpine-jq:1.2"
+
+    publishDir { "${params.db_base_dir}/${db_name}/nb" }, pattern: "*.fa.gz", mode: "copy"
+    publishDir { "${params.db_base_dir}/${db_name}/vsearch" }, pattern: "sequences.fasta", mode: "copy"
+    publishDir { "${params.db_base_dir}/${db_name}/vsearch" }, pattern: "taxonomy.tsv", mode: "copy"
+
+    label 'cpu_def'
+
+    input:
+    val db_name
+    val nb_url
+    val nb_filename
+    val vsearch_seq_url
+
+    output:
+    path "${nb_filename}"
+    path "sequences.fasta"
+    path "taxonomy.tsv"
+
+    script:
+    """
+    set -euo pipefail
+
+    echo "Downloading DADA2 database..."
+    wget -O dada2.zip "${nb_url}"
+
+    mkdir dada2_extracted
+    7z x dada2.zip -odada2_extracted
+
+    dada2_fasta=\$(find dada2_extracted -type f \\( -name "*.fa" -o -name "*.fasta" -o -name "*.fas" \\) | head -n 1)
+    gzip -c "\$dada2_fasta" > ${nb_filename}
+
+    echo "Downloading general EUKARYOME FASTA for VSEARCH..."
+    wget -O general.zip "${vsearch_seq_url}"
+
+    mkdir general_extracted
+    7z x general.zip -ogeneral_extracted
+
+    general_fasta=\$(find general_extracted -type f \\( -name "*.fa" -o -name "*.fasta" -o -name "*.fas" \\) | head -n 1)
+
+    awk '
+    BEGIN { OFS = "\\t" }
+    /^>/ {
+        header = substr(\$0, 2)
+        split(header, a, ";")
+        id = a[1]
+
+        tax = header
+        sub("^[^;]+;", "", tax)
+
+        print ">" id > "sequences.fasta"
+        print id, tax > "taxonomy.tsv"
+        next
+    }
+    {
+        print \$0 > "sequences.fasta"
+    }
+    ' "\$general_fasta"
+
+    rm -rf dada2.zip general.zip dada2_extracted general_extracted
+    """
+}

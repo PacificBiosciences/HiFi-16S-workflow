@@ -1,0 +1,6 @@
+sample-id	filepath
+ctr_EB	tests/fastq/16S/ctr_EB.fastq.gz
+ctr_MM	tests/fastq/16S/ctr_MM.fastq.gz
+ctr_msa_3001	tests/fastq/16S/ctr_msa_3001.fastq.gz
+ctr_zymo_com	tests/fastq/16S/ctr_zymo_com.fastq.gz
+ctr_zymo_log	tests/fastq/16S/ctr_zymo_log.fastq.gz

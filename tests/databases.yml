@@ -21,3 +21,27 @@ gg2:
   vsearch:
     seq_filename: "sequences.tiny.fasta"
     tax_filename: "taxonomy.tiny.tsv"
+
+eukaryome_18s:
+  version: "tiny"
+  nb:
+    filename: "tiny_db.fa.gz"
+  vsearch:
+    seq_filename: "sequences.tiny.fasta"
+    tax_filename: "taxonomy.tiny.tsv"
+
+eukaryome_28s:
+  version: "tiny"
+  nb:
+    filename: "tiny_db.fa.gz"
+  vsearch:
+    seq_filename: "sequences.tiny.fasta"
+    tax_filename: "taxonomy.tiny.tsv"
+
+eukaryome_its:
+  version: "tiny"
+  nb:
+    filename: "tiny_db.fa.gz"
+  vsearch:
+    seq_filename: "sequences.tiny.fasta"
+    tax_filename: "taxonomy.tiny.tsv"
