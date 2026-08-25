@@ -1,12 +1,13 @@
 nextflow.enable.dsl = 2
 
 include {
-    taxonomy_nb_assign
-    taxonomy_vsearch_assign
-    taxonomy_best
-    merge_taxonomy_with_table
-    add_md5_to_taxonomy_table
-} from '../modules/taxonomy'
+    TAXONOMY_NB
+} from '../subworkflows/taxonomy_nb'
+
+include {
+    TAXONOMY_VSEARCH
+} from '../subworkflows/taxonomy_vsearch'
+
 
 workflow TAXONOMY_WORKFLOW {
 
@@ -32,7 +33,10 @@ workflow TAXONOMY_WORKFLOW {
 
         tuple(
             db,
-            file("${params.db_base_dir}/${db}/nb/${db_manifest[db].nb.filename}", checkIfExists: true)
+            file(
+                "${params.db_base_dir}/${db}/nb/${db_manifest[db].nb.filename}",
+                checkIfExists: true
+            )
         )
     }
 
@@ -44,7 +48,11 @@ workflow TAXONOMY_WORKFLOW {
             tuple(fasta, db_name, db_fasta)
         }
 
-    taxonomy_nb_assign(nb_inputs_ch)
+    TAXONOMY_NB(
+        nb_inputs_ch,
+        asv_table_tsv,
+        params.db_to_prioritize
+    )
 
     selected_vsearch_dbs = params.vsearch_databases instanceof String
         ? params.vsearch_databases.split(',')*.trim().findAll()
@@ -61,8 +69,14 @@ workflow TAXONOMY_WORKFLOW {
 
         tuple(
             db,
-            file("${params.db_base_dir}/${db}/vsearch/${db_manifest[db].vsearch.seq_filename}", checkIfExists: true),
-            file("${params.db_base_dir}/${db}/vsearch/${db_manifest[db].vsearch.tax_filename}", checkIfExists: true)
+            file(
+                "${params.db_base_dir}/${db}/vsearch/${db_manifest[db].vsearch.seq_filename}",
+                checkIfExists: true
+            ),
+            file(
+                "${params.db_base_dir}/${db}/vsearch/${db_manifest[db].vsearch.tax_filename}",
+                checkIfExists: true
+            )
         )
     }
 
@@ -74,19 +88,9 @@ workflow TAXONOMY_WORKFLOW {
             tuple(fasta, db_name, vsearch_fasta, vsearch_taxonomy)
         }
 
-    taxonomy_vsearch_assign(vsearch_inputs_ch)
-
-    taxonomy_best(
-        taxonomy_nb_assign.out.nb_tax.map { it[1] }.collect(),
+    TAXONOMY_VSEARCH(
+        vsearch_inputs_ch,
+        asv_table_tsv,
         params.db_to_prioritize
-    )
-
-    merge_taxonomy_with_table(
-        taxonomy_best.out.best_tax,
-        asv_table_tsv
-    )
-
-    add_md5_to_taxonomy_table(
-        merge_taxonomy_with_table.out.merged_no_id
     )
 }

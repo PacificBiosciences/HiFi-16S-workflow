@@ -12,7 +12,6 @@ IDENTITY="$8"
 OUT_TSV="$9"
 
 BLAST6="${DB_NAME}.vsearch.blast6"
-BEST_HITS="${DB_NAME}.vsearch.best_hits.tsv"
 
 vsearch \
   --usearch_global "${ASV_FASTA}" \
@@ -25,15 +24,16 @@ vsearch \
   --top_hits_only \
   --blast6out "${BLAST6}"
 
-sort -k1,1 -k3,3nr "${BLAST6}" |
-  awk 'BEGIN{FS=OFS="\t"} !seen[$1]++' \
-    >"${BEST_HITS}"
-
 awk '
 BEGIN {
   FS="[ \t]+"
   OFS="\t"
-  print "Feature ID", "Reference ID", "Identity", "AlignmentLength", "Taxon"
+
+  print "Feature ID", \
+        "Reference ID", \
+        "Identity", \
+        "AlignmentLength", \
+        "Taxon"
 }
 
 FNR==NR {
@@ -41,7 +41,10 @@ FNR==NR {
   $1=""
   sub(/^[ \t]+/, "", $0)
 
-  # Remove optional trailing numeric confidence/weight column, seen in GG2.
+  # Preserve whitespace within taxon names as spaces.
+  gsub(/\t/, " ", $0)
+
+  # Remove optional trailing numeric confidence/weight field.
   sub(/[ \t]+[0-9.]+$/, "", $0)
 
   tax[id]=$0
@@ -58,4 +61,4 @@ FNR==NR {
 
   print asv, ref, pid, aln_len, taxonomy
 }
-' "${DB_TAX}" "${BEST_HITS}" >"${OUT_TSV}"
+' "${DB_TAX}" "${BLAST6}" >"${OUT_TSV}"
