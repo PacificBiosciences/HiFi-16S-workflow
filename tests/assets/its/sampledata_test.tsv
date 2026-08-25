@@ -1,0 +1,3 @@
+sample-id	filepath
+ctrl_1010	tests/fastq/its/ctrl_1010.fastq.gz
+ctrl2_1010	tests/fastq/its/ctrl2_1010.fastq.gz
