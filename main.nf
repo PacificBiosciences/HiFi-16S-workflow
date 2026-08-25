@@ -8,7 +8,9 @@ include {
 } from './modules/validation'
 
 include { DOWNLOAD_DATABASES } from './workflows/download_databases'
-include { PB16S_PREPROCESS }  from './workflows/pb16s_preprocess'
+include { PB16S_PREPROCESS }   from './workflows/pb16s_preprocess'
+include { DADA2_WORKFLOW }     from './workflows/dada2'
+include { TAXONOMY_WORKFLOW }  from './workflows/taxonomy'
 
 def helpMessage() {
     """
@@ -108,36 +110,66 @@ VERSION
 
 workflow {
 
-    if (params.help) {
-        log.info helpMessage()
-        return
-    }
+        if (params.help) {
+            log.info helpMessage()
+            return
+        }
 
-    if (params.version) {
-        log.info workflow.manifest.version
-        return
-    }
+        if (params.version) {
+            log.info workflow.manifest.version
+            return
+        }
 
-    def db_manifest_file = file(params.databases_yaml)
+        def db_manifest_file = file(params.databases_yaml)
 
-    if (!db_manifest_file.exists()) {
-        error "Database manifest not found: ${db_manifest_file}"
-    }
+        if (!db_manifest_file.exists()) {
+            error "Database manifest not found: ${db_manifest_file}"
+        }
 
-    def db_manifest = new groovy.yaml.YamlSlurper().parse(db_manifest_file)
+        def db_manifest = new groovy.yaml.YamlSlurper().parse(db_manifest_file)
 
-    if (params.download_db) {
-        def requested_dbs = parseRequestedDbs(params.download_targets)
+        if (params.download_db) {
+            def requested_dbs = parseRequestedDbs(params.download_targets)
 
-        validateDownloadParams(params, requested_dbs, db_manifest)
+            validateDownloadParams(params, requested_dbs, db_manifest)
 
-        DOWNLOAD_DATABASES(db_manifest, requested_dbs)
-    }
-    else {
-        def n_sample = validatePreprocessParams(params)
+            DOWNLOAD_DATABASES(db_manifest, requested_dbs)
+        }
+        else {
+            def n_sample = validatePreprocessParams(params)
 
-        log.info buildRunLog(params, workflow.manifest.version, n_sample)
+            log.info buildRunLog(
+                params,
+                workflow.manifest.version,
+                n_sample
+            )
 
-        PB16S_PREPROCESS(db_manifest)
+            sample_sheet_ch = Channel.fromPath(params.input)
+            metadata_ch     = Channel.fromPath(params.metadata)
+
+            /*
+            * Prepare reads
+            */
+            PB16S_PREPROCESS(
+                sample_sheet_ch,
+                metadata_ch
+            )
+
+            /*
+            * DADA2
+            */
+            DADA2_WORKFLOW(
+                PB16S_PREPROCESS.out.reads_for_dada2,
+                metadata_ch
+            )
+
+            /*
+            * Taxonomy
+            */
+            TAXONOMY_WORKFLOW(
+                db_manifest,
+                DADA2_WORKFLOW.out.asv_fasta,
+                DADA2_WORKFLOW.out.asv_table_tsv
+            )
     }
 }

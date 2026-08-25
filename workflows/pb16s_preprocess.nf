@@ -12,23 +12,18 @@ include {
     collect_QC_skip_cutadapt
 } from '../modules/qc'
 
-include { DADA2_WORKFLOW } from './dada2'
-include { TAXONOMY_WORKFLOW } from './taxonomy'
 
 workflow PB16S_PREPROCESS {
 
     take:
-    db_manifest
+    sample_sheet
+    metadata
 
     main:
 
-    sample_sheet_ch = Channel.fromPath(params.input)
-    metadata_ch     = Channel.fromPath(params.metadata)
+    inspect_metadata(sample_sheet, metadata)
 
-    inspect_metadata(sample_sheet_ch, metadata_ch)
-
-    sample_ch = Channel
-        .fromPath(params.input)
+    sample_ch = sample_sheet
         .splitCsv(header: true, sep: '\t')
         .map { row ->
             if (!row['sample-id'] || !row['filepath']) {
@@ -45,7 +40,10 @@ workflow PB16S_PREPROCESS {
     filter_fastq(sample_ch)
 
     if (params.skip_primer_trim) {
-        downsample_fastq(filter_fastq.out.filtered_fastq)
+
+        downsample_fastq(
+            filter_fastq.out.filtered_fastq
+        )
 
         collect_QC_skip_cutadapt(
             QC_raw_stats.out.readstats.collect(),
@@ -55,6 +53,7 @@ workflow PB16S_PREPROCESS {
         reads_for_dada2 = downsample_fastq.out.downsampled_fastq
     }
     else {
+
         cutadapt(
             filter_fastq.out.filtered_fastq,
             params.forward_p,
@@ -83,14 +82,6 @@ workflow PB16S_PREPROCESS {
         reads_for_dada2 = downsample_fastq.out.downsampled_fastq
     }
 
-    DADA2_WORKFLOW(
-        reads_for_dada2,
-        metadata_ch
-    )
-
-    TAXONOMY_WORKFLOW(
-        db_manifest,
-        DADA2_WORKFLOW.out.asv_fasta,
-        DADA2_WORKFLOW.out.asv_table_tsv
-    )
+    emit:
+    reads_for_dada2 = reads_for_dada2
 }

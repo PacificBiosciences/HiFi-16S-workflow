@@ -10,7 +10,6 @@ include {
     dada2_remove_chimeras
     dada2_filter_asvs
     dada2_stats
-    dada2_final_stats
 } from '../modules/dada2'
 
 workflow DADA2_WORKFLOW {
@@ -53,7 +52,7 @@ workflow DADA2_WORKFLOW {
             .map { sampleID, rds -> rds }
             .collect()
     )
-
+ 
     dada2_remove_chimeras(
         dada2_make_seqtab.out.seqtab_rds
     )
@@ -65,11 +64,6 @@ workflow DADA2_WORKFLOW {
     )
 
     dada2_stats(
-        dada2_filter_asvs.out.seqtab_filtered_rds,
-        metadata_ch
-    )
-
-    dada2_final_stats(
         dada2_filter_ccs.out.filter_stats.collect(),
         dada2_denoise_independent.out.denoise_stats.collect(),
         dada2_remove_chimeras.out.seqtab_nochim_rds,
