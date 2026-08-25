@@ -5,7 +5,6 @@ process dada2_filter_ccs {
     conda (params.enable_conda ? "$projectDir/env/dada2.yml" : null)
     container "quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0"
 
-    publishDir "${params.outdir}/dada2/filtered_fastq", pattern: '*.filtered.fastq.gz', mode: params.publish_dir_mode
     publishDir "${params.outdir}/dada2/filter_stats", pattern: '*.filter_stats.tsv', mode: params.publish_dir_mode
 
     input:
@@ -210,35 +209,8 @@ process dada2_filter_asvs {
       ${min_asv_sample}
     """
 }
+
 process dada2_stats {
-    conda (params.enable_conda ? "$projectDir/env/dada2.yml" : null)
-    container "quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0"
-
-    publishDir "${params.outdir}/dada2/", mode: params.publish_dir_mode
-
-    input:
-    path seqtab_filtered_rds
-    path metadata
-
-    output:
-    path "sample_frequency_detail.tsv", emit: sample_frequency_detail
-    path "dada2_qc.tsv", emit: dada2_qc_tsv
-    path "rarefaction_depth_suggested.txt", emit: rarefaction_depth_file
-    path "alpha_depth_suggested.txt", emit: alpha_depth_file
-
-    script:
-    """
-    dada2_stats.R \\
-      ${seqtab_filtered_rds} \\
-      ${metadata} \\
-      sample_frequency_detail.tsv \\
-      dada2_qc.tsv \\
-      rarefaction_depth_suggested.txt \\
-      alpha_depth_suggested.txt
-    """
-}
-
-process dada2_final_stats {
     conda (params.enable_conda ? "$projectDir/env/dada2.yml" : null)
     container "quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0"
 
@@ -255,22 +227,18 @@ process dada2_final_stats {
 
     output:
     path "dada2_tracking.tsv", emit: dada2_tracking_tsv
-    path "sample_frequency_detail.tsv", emit: sample_frequency_detail_tsv
-    path "dada2_qc.tsv", emit: dada2_qc_tsv
+    path "frequency.tsv", emit: frequency_tsv
     path "rarefaction_depth_suggested.txt", emit: rarefaction_depth_file
-    path "alpha_depth_suggested.txt", emit: alpha_depth_file
 
     script:
     """
-    final_stats.R \\
+    dada2_stats.R \\
       ${seqtab_nochim_rds} \\
       ${seqtab_filtered_rds} \\
       ${metadata} \\
       dada2_tracking.tsv \\
-      sample_frequency_detail.tsv \\
-      dada2_qc.tsv \\
+      frequency.tsv \\
       rarefaction_depth_suggested.txt \\
-      alpha_depth_suggested.txt \\
       ${filter_stats_files.join(' ')} \\
       --DENOISE_STATS-- \\
       ${denoise_stats_files.join(' ')}
