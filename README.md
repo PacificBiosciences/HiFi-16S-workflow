@@ -10,7 +10,7 @@
   - [References](#references)
   - [DISCLAIMER](#disclaimer)
 
-## The pipeline is currently under active development; we welcome your feedback to help improve it
+## This workflow is provided "as is", and currently not supported. We will not provide updates, bug fixes or technical support.
 
 ## Workflow overview and output
 
