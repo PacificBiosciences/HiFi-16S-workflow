@@ -65,8 +65,8 @@ Metadata file: ${params.metadata}
 Filter input reads above Q: ${params.filterQ}
 Downsample reads per sample (0 = disabled): ${params.downsample}
 Trim primers with cutadapt: ${trim_cutadapt}
-Forward primer: ${params.front_p}
-Reverse primer: ${params.adapter_p}
+Forward primer: ${params.forward_p}
+Reverse primer: ${params.reverse_p}
 Output directory: ${params.outdir}
 Execution profile uses conda: ${params.enable_conda}
 Execution profile uses containers: ${params.enable_container}
