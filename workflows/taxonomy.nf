@@ -70,11 +70,7 @@ workflow TAXONOMY_WORKFLOW {
         tuple(
             db,
             file(
-                "${params.db_base_dir}/${db}/vsearch/${db_manifest[db].vsearch.seq_filename}",
-                checkIfExists: true
-            ),
-            file(
-                "${params.db_base_dir}/${db}/vsearch/${db_manifest[db].vsearch.tax_filename}",
+                "${params.db_base_dir}/${db}/vsearch/${db_manifest[db].vsearch.filename}",
                 checkIfExists: true
             )
         )
@@ -84,13 +80,12 @@ workflow TAXONOMY_WORKFLOW {
 
     vsearch_inputs_ch = asv_fasta
         .combine(vsearch_db_ch)
-        .map { fasta, db_name, vsearch_fasta, vsearch_taxonomy ->
-            tuple(fasta, db_name, vsearch_fasta, vsearch_taxonomy)
+        .map { fasta, db_name, vsearch_fasta ->
+            tuple(fasta, db_name, vsearch_fasta)
         }
 
     TAXONOMY_VSEARCH(
         vsearch_inputs_ch,
         asv_table_tsv,
-        params.db_to_prioritize
     )
 }

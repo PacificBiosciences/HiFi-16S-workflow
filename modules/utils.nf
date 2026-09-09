@@ -1,152 +1,11 @@
-process download_gtdb_db {
+process download_nb_db {
+
     conda (params.enable_conda ? "$projectDir/env/jq.yml" : null)
     container "makrezdocker/alpine-jq:1.0"
 
-    publishDir "${params.db_base_dir}/gtdb/nb", pattern: "*.fa.gz", mode: "copy"
-    publishDir "${params.db_base_dir}/gtdb/vsearch", pattern: "sequences.fasta", mode: "copy"
-    publishDir "${params.db_base_dir}/gtdb/vsearch", pattern: "taxonomy.tsv", mode: "copy"
-
-    label 'cpu_def'
-
-    input:
-    val nb_url
-    val nb_filename
-    val vsearch_seq_url
-
-    output:
-    path "${nb_filename}"
-    path "sequences.fasta"
-    path "taxonomy.tsv"
-
-    script:
-    """
-    set -euo pipefail
-
-    wget -O ${nb_filename} "${nb_url}"
-    wget -O gtdb_sequences.fna.gz "${vsearch_seq_url}"
-
-    gunzip -c gtdb_sequences.fna.gz > sequences.fasta
-
-    gunzip -c gtdb_sequences.fna.gz | \\
-      grep '^>' | \\
-      awk 'BEGIN{OFS="\\t"}
-      {
-        id=\$1
-        sub(/^>/,"",id)
-
-        tax=\$0
-        sub(/^>[^ ]+[[:space:]]+/, "", tax)
-        sub(/ \\[.*/, "", tax)
-
-        print id, tax
-      }' > taxonomy.tsv
-
-    rm -f gtdb_sequences.fna.gz
-    """
-}
-
-process download_silva_db {
-    conda (params.enable_conda ? "$projectDir/env/jq.yml" : null)
-    container "makrezdocker/alpine-jq:1.0"
-
-    publishDir "${params.db_base_dir}/silva/nb", pattern: "*.fa.gz", mode: "copy"
-    publishDir "${params.db_base_dir}/silva/vsearch", pattern: "sequences.fasta", mode: "copy"
-    publishDir "${params.db_base_dir}/silva/vsearch", pattern: "taxonomy.tsv", mode: "copy"
-
-    label 'cpu_def'
-
-    input:
-    val nb_url
-    val nb_filename
-    val vsearch_seq_url
-
-    output:
-    path "${nb_filename}"
-    path "sequences.fasta"
-    path "taxonomy.tsv"
-
-    script:
-    """
-    set -euo pipefail
-
-    wget -O ${nb_filename} "${nb_url}"
-    wget -O silva_sequences.fasta.gz "${vsearch_seq_url}"
-
-    gunzip -c silva_sequences.fasta.gz > sequences.fasta
-
-    gunzip -c silva_sequences.fasta.gz | \\
-      grep '^>' | \\
-      awk 'BEGIN{OFS="\\t"}
-      {
-        id=\$1
-        sub(/^>/,"",id)
-
-        tax=\$0
-        sub(/^>[^ ]+[[:space:]]+/, "", tax)
-
-        print id, tax
-      }' > taxonomy.tsv
-
-    rm -f silva_sequences.fasta.gz
-    """
-}
-
-process download_gg2_db {
-    conda (params.enable_conda ? "$projectDir/env/jq.yml" : null)
-    container "makrezdocker/alpine-jq:1.0"
-
-    publishDir "${params.db_base_dir}/gg2/nb", pattern: "*.fa.gz", mode: "copy"
-    publishDir "${params.db_base_dir}/gg2/vsearch", pattern: "sequences.fasta", mode: "copy"
-    publishDir "${params.db_base_dir}/gg2/vsearch", pattern: "taxonomy.tsv", mode: "copy"
-
-    label 'cpu_def'
-
-    input:
-    val nb_url
-    val nb_filename
-    val vsearch_seq_url
-    val vsearch_tax_url
-
-    output:
-    path "${nb_filename}"
-    path "sequences.fasta"
-    path "taxonomy.tsv"
-
-    script:
-    """
-    set -euo pipefail
-
-    echo "Downloading GG2 NB database..."
-    wget -O ${nb_filename} "${nb_url}"
-
-    echo "Downloading GG2 VSEARCH sequences..."
-    wget -O gg2_sequences.fna.gz "${vsearch_seq_url}"
-
-    echo "Downloading GG2 taxonomy..."
-    wget -O gg2_taxonomy.tsv.gz "${vsearch_tax_url}"
-
-    gunzip -c gg2_sequences.fna.gz > sequences.fasta
-
-    echo "Converting GG2 taxonomy to VSEARCH format..."
-
-    gunzip -c gg2_taxonomy.tsv.gz | \\
-      awk -F '\\t' 'BEGIN{OFS="\\t"}
-      NR==1 && \$1 ~ /Feature ID/ {next}
-      {
-        print \$1, \$2
-      }' > taxonomy.tsv
-
-    rm -f gg2_sequences.fna.gz gg2_taxonomy.tsv.gz
-    """
-}
-
-process download_eukaryome_db {
-    conda (params.enable_conda ? "$projectDir/env/jq.yml" : null)
-    container "makrezdocker/alpine-jq:1.2"
-
-    publishDir { "${params.db_base_dir}/${db_name}/nb" }, pattern: "*.fa.gz", mode: "copy"
-    publishDir { "${params.db_base_dir}/${db_name}/vsearch" }, pattern: "sequences.fasta", mode: "copy"
-    publishDir { "${params.db_base_dir}/${db_name}/vsearch" }, pattern: "taxonomy.tsv", mode: "copy"
+    publishDir { "${params.db_base_dir}/${db_name}/nb" },
+        pattern: "*.fa.gz",
+        mode: "copy"
 
     label 'cpu_def'
 
@@ -154,53 +13,59 @@ process download_eukaryome_db {
     val db_name
     val nb_url
     val nb_filename
-    val vsearch_seq_url
 
     output:
-    path "${nb_filename}"
-    path "sequences.fasta"
-    path "taxonomy.tsv"
+    tuple val(db_name),
+          path("${nb_filename}"),
+          emit: nb
 
     script:
     """
     set -euo pipefail
 
-    echo "Downloading DADA2 database..."
-    wget -O dada2.zip "${nb_url}"
+    echo "Downloading ${db_name} Naive Bayes database..."
 
-    mkdir dada2_extracted
-    7z x dada2.zip -odada2_extracted
+    wget \\
+        -O ${nb_filename} \\
+        "${nb_url}"
+    """
+}
 
-    dada2_fasta=\$(find dada2_extracted -type f \\( -name "*.fa" -o -name "*.fasta" -o -name "*.fas" \\) | head -n 1)
-    gzip -c "\$dada2_fasta" > ${nb_filename}
+process download_eukaryome_db {
 
-    echo "Downloading general EUKARYOME FASTA for VSEARCH..."
-    wget -O general.zip "${vsearch_seq_url}"
+    conda (params.enable_conda ? "$projectDir/env/jq.yml" : null)
+    container "makrezdocker/alpine-jq:1.2"
 
-    mkdir general_extracted
-    7z x general.zip -ogeneral_extracted
+    publishDir { "${params.db_base_dir}/${db_name}" },
+        mode: "copy"
 
-    general_fasta=\$(find general_extracted -type f \\( -name "*.fa" -o -name "*.fasta" -o -name "*.fas" \\) | head -n 1)
+    label 'cpu_def'
 
-    awk '
-    BEGIN { OFS = "\\t" }
-    /^>/ {
-        header = substr(\$0, 2)
-        split(header, a, ";")
-        id = a[1]
+    input:
+    val db_name
+    val nb_url
+    val nb_filename
+    val vsearch_url
+    val vsearch_filename
 
-        tax = header
-        sub("^[^;]+;", "", tax)
+    output:
+    tuple val(db_name),
+          path("nb/${nb_filename}"),
+          emit: nb
 
-        print ">" id > "sequences.fasta"
-        print id, tax > "taxonomy.tsv"
-        next
-    }
-    {
-        print \$0 > "sequences.fasta"
-    }
-    ' "\$general_fasta"
+    tuple val(db_name),
+          path("vsearch/${vsearch_filename}"),
+          emit: vsearch
 
-    rm -rf dada2.zip general.zip dada2_extracted general_extracted
+    script:
+    """
+    mkdir -p nb vsearch
+
+    prepare_eukaryome_db.sh \
+        "${db_name}" \
+        "${nb_url}" \
+        "nb/${nb_filename}" \
+        "${vsearch_url}" \
+        "vsearch/${vsearch_filename}"
     """
 }

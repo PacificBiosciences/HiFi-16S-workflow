@@ -1,73 +1,75 @@
 silva:
   version: "138.2"
+  marker: "16S"
+
   nb:
     filename: "silva_nr99_v138.2_toSpecies_trainset.fa.gz"
     url: "https://zenodo.org/records/14169026/files/silva_nr99_v138.2_toSpecies_trainset.fa.gz?download=1"
-  vsearch:
-    seq_filename: "sequences.fasta"
-    tax_filename: "taxonomy.tsv"
-    seq_url: "https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/Exports/SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz"
-    tax_url: "https://www.arb-silva.de/fileadmin/silva_databases/release_138_2/Exports/taxonomy/taxmap_slv_ssu_ref_nr_138.2.txt.gz"
 
 gtdb:
   version: "r220"
+  marker: "16S"
+
   nb:
     filename: "GTDB_bac120_arc53_ssu_r220_fullTaxo.fa.gz"
     url: "https://zenodo.org/records/13984843/files/GTDB_bac120_arc53_ssu_r220_fullTaxo.fa.gz?download=1"
-  vsearch:
-    seq_filename: "sequences.fasta"
-    tax_filename: "taxonomy.tsv"
-    seq_url: "https://data.gtdb.ecogenomic.org/releases/release220/220.0/genomic_files_all/ssu_all_r220.fna.gz"
 
 gg2:
   version: "2024.09"
+  marker: "16S"
+
   nb:
     filename: "gg2_2024_09_toSpecies_trainset.fa.gz"
     url: "https://zenodo.org/records/14169078/files/gg2_2024_09_toSpecies_trainset.fa.gz?download=1"
-  vsearch:
-    seq_filename: "sequences.fasta"
-    tax_filename: "taxonomy.tsv"
-    seq_url: "https://ftp.microbio.me/greengenes_release/2024.09/2024.09.seqs.fna.gz"
-    tax_url: "https://ftp.microbio.me/greengenes_release/2024.09/2024.09.taxonomy.asv.tsv.gz"
 
-eukaryome_its:
-  version: "2.0"
-  marker: "ITS"
-  nb:
-    filename: "DADA2_EUK_ITS_v2.0.fa.gz"
-    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/DADA2_EUK_ITS_v2.0.zip"
-  vsearch:
-    seq_filename: "sequences.fasta"
-    tax_filename: "taxonomy.tsv"
-    seq_url: "https://sisu.ut.ee/wp-content/uploads/sites/643/General_EUK_ITS_v2.0.zip"
-
-eukaryome_18s:
-  version: "2.0"
+euk_ssu:
   marker: "18S"
-  nb:
-    filename: "DADA2_EUK_SSU_v2.0.fa.gz"
-    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/DADA2_EUK_SSU_v2.0.zip"
-  vsearch:
-    seq_filename: "sequences.fasta"
-    tax_filename: "taxonomy.tsv"
-    seq_url: "https://sisu.ut.ee/wp-content/uploads/sites/643/General_EUK_SSU_v2.0.zip"
 
-eukaryome_28s:
-  version: "2.0"
+  nb:
+    version: "2.1"
+    filename: "DADA2_EUK_SSU_v2.1.fa.gz"
+    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/DADA2_EUK_SSU_v2.1.zip"
+
+  vsearch:
+    version: "2.1"
+    filename: "SINTAX_EUK_SSU_v2.1.fa.gz"
+    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/SINTAX_EUK_SSU_v2.1.zip"
+
+euk_lsu:
   marker: "28S"
-  nb:
-    filename: "DADA2_EUK_LSU_v2.0.fa.gz"
-    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/DADA2_EUK_LSU_v2.0.zip"
-  vsearch:
-    seq_filename: "sequences.fasta"
-    tax_filename: "taxonomy.tsv"
-    seq_url: "https://sisu.ut.ee/wp-content/uploads/sites/643/General_EUK_LSU_v2.0.zip"
 
-# Example for creating incorporating own DB
-mydb:
-  version: "1.0"
   nb:
-    filename: "mydb_trainset.fa.gz"
+    version: "2.1"
+    filename: "DADA2_EUK_LSU_v2.1.fa.gz"
+    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/DADA2_EUK_LSU_v2.1.zip"
+
   vsearch:
-    seq_filename: "mydb_sequences.fasta.gz"
-    tax_filename: "mydb_taxonomy.tsv"
+    version: "2.1"
+    filename: "SINTAX_EUK_LSU_v2.1.fa.gz"
+    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/SINTAX_EUK_LSU_v2.1.zip"
+
+euk_long:
+  marker: "SSU-ITS-LSU"
+
+  nb:
+    version: "2.1"
+    filename: "DADA2_EUK_long_v2.1.fa.gz"
+    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/DADA2_EUK_longread_v2.1.zip"
+
+  vsearch:
+    version: "2.1"
+    filename: "SINTAX_EUK_long_v2.1.fa.gz"
+    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/SINTAX_EUK_longread_v2.1.zip"
+
+euk_its:
+  marker: "ITS"
+
+  nb:
+    version: "2.1"
+    filename: "DADA2_EUK_ITS_v2.1.fa.gz"
+    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/DADA2_EUK_ITS_v2.1.zip"
+
+  vsearch:
+    version: "2.1"
+    filename: "SINTAX_EUK_ITS_v2.1.fa.gz"
+    url: "https://sisu.ut.ee/wp-content/uploads/sites/643/SINTAX_EUK_ITS_v2.1.zip"
