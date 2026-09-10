@@ -450,6 +450,17 @@ pipeline steps are not able to find specific command-line tools (e.g. qiime).
 
 * Douglas, G. M. et al. PICRUSt2 for prediction of metagenome functions. Nat Biotechnol 38, 685–688 (2020).
 
+## Known Issues
+
+* Downsampling isn't random. Currently, downsampling is performed by taking the first n reads. However, starting with Revio ICS v13.0, PacBio BAMs are [grouped by minimizer](https://pacbiofileformats.readthedocs.io/en/13.1/BAM.html#bam-sorting-conventions, and thus are not randomly ordered
+* DADA2 denoise is slow on large datasets [issue 92](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/92)
+* Incorrect legend in DADA2 QC scatter plot [issue 96](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/96)
+* Does not work with newer Nextflow versions [issue 101](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/101), [issue 100](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/100) [issue 99](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/99)
+* workflow does use the binned quality in learn errors. [issue 75](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/75)
+* conda environment uses older tool versions [issue 86](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/86)
+* provided databases are outdated [issue 87](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/87)
+* default rarefaction may cause sample loss [issue 97](https://github.com/PacificBiosciences/HiFi-16S-workflow/issues/97)
+
 ## DISCLAIMER
 
 THIS WEBSITE AND CONTENT AND ALL SITE-RELATED SERVICES, INCLUDING ANY DATA,
