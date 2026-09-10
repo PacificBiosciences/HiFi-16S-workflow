@@ -37,7 +37,8 @@ silva_spec <- assignTaxonomy(seqs,
 silva_spec <- as.data.frame(silva_spec)
 colnames(silva_spec)[grepl("tax.", colnames(silva_spec))] <-
   gsub("tax\\.(.*)", "\\1", colnames(silva_spec)[grepl("tax.", colnames(silva_spec))])
-buf <- data.frame("Assignment" = rep("Silva 138.1", nrow(silva_spec)))
+silva_version <- sub(".*_v([0-9.]+)_.*", "\\1", basename(silva_db))                                                                                                                              
+buf <- data.frame("Assignment" = rep(paste0("Silva ", silva_version), nrow(silva_spec)))                                                                                                          
 silva_spec <- cbind(silva_spec, buf)
 # Paste genus and species name to be species (Only if species is not NA)
 silva_spec[!is.na(silva_spec[, "Species"]), "Species"] <-
@@ -61,7 +62,8 @@ colnames(gtdb_spec)[grepl("tax.", colnames(gtdb_spec))] <-
 gtdb_spec[, "Species"] <- gsub("(.*)\\(.*", "\\1", gtdb_spec[, "Species"])
 # Replace GTDB underscore with space
 gtdb_spec[, "Species"] <- gsub("_", "\\ ", gtdb_spec[, "Species"])
-buf <- data.frame("Assignment" = rep("GTDB r207", nrow(gtdb_spec)))
+gtdb_version <- sub(".*_(r[0-9]+).*", "\\1", basename(gtdb_db))                                                                                                                                  
+buf <- data.frame("Assignment" = rep(paste0("GTDB ", gtdb_version), nrow(gtdb_spec)))                                                                                                            
 gtdb_spec <- cbind(gtdb_spec, buf)
 write.table(data.frame("Feature ID" = otu_id, gtdb_spec), "gtdb_nb.tsv",
   quote = FALSE,
@@ -82,7 +84,8 @@ for (col in tax_cols_gg2) {
 colnames(gg2_spec)[grepl("tax.", colnames(gg2_spec))] <-
   gsub("tax\\.(.*)", "\\1", tax_cols_gg2)
 # Rename species
-buf <- data.frame("Assignment" = rep("GreenGenes2", nrow(gg2_spec)))
+gg2_version <- sub("gg2_([0-9]+)_([0-9]+)_.*", "\\1.\\2", basename(gg2_db))                                                                                                                      
+buf <- data.frame("Assignment" = rep(paste0("GreenGenes2 ", gg2_version), nrow(gg2_spec)))  
 gg2_spec <- cbind(gg2_spec, buf)
 # Paste genus and species name to be species (Only if species is not NA)
 gg2_spec[!is.na(gg2_spec[, "Species"]), "Species"] <-
